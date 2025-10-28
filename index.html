@@ -3,78 +3,547 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Leaflet + Google Sheets (CSV publicado)</title>
+    <title>Mapa Din&aacute;mico SNIEn</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        html,
-        body,
-        #map {
-            height: 100%;
-            margin: 0
-        }
-
-        .badge {
-            padding: .2rem .4rem;
-            border-radius: .4rem;
-            background: #eee;
-            font-size: .8rem
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.css" />
+    <link rel="stylesheet" href="css/main.css" />
 </head>
 
 <body>
-    <div id="map"></div>
+    <div id="preloader">
+        <div class="preloader-content" role="status" aria-live="polite">
+            <div class="spinner"></div>
+            <p>Cargando informaci&oacute;n geoespacial...</p>
+        </div>
+    </div>
+
+    <header class="site-header">
+        <div class="container header-content">
+            <div class="brand">
+                <div class="brand-logos">
+                    <img src="img/logo_sener.png" alt="Logo SENER" class="brand-logo brand-logo--sener" />
+                    <img src="img/snien.png" alt="Logo Sistema Nacional de Información Energética"
+                        class="brand-logo brand-logo--snien" />
+                </div>
+                <div class="brand-copy">
+                    <span class="brand-eyebrow">Secretar&iacute;a de Energ&iacute;a</span>
+                    <span class="brand-title">Mapa din&aacute;mico SNIEn</span>
+                </div>
+            </div>
+            <div class="header-meta">
+                <span class="meta-label">Actualizaci&oacute;n</span>
+                <span id="last-updated" class="meta-value">--</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <section class="map-section">
+            <div class="container">
+                <div class="map-card">
+                    <div class="card-toolbar">
+                        <div class="toolbar-group">
+                            <label for="basemap-select">Mapa base</label>
+                            <select id="basemap-select" class="control">
+                                <option value="sener-azul">SENER Azul</option>
+                                <option value="sener-light">SENER Light</option>
+                                <option value="sener-oscuro">SENER Oscuro</option>
+                                <option value="google-satelite">Google Sat&eacute;lite</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="instrument-select">Selecciona el instrumento</label>
+                            <select id="instrument-select" class="control">
+                                <option value="" selected disabled>Elige un instrumento</option>
+                                <option value="estrategia">Estrategia Nacional de Transici&oacute;n Energ&eacute;tica
+                                </option>
+                                <option value="prosener">Programa Sectorial de Energ&iacute;a (PROSENER)</option>
+                                <option value="platease">Plan para la Transici&oacute;n Energ&eacute;tica y el
+                                    Aprovechamiento Sustentable de la Energ&iacute;a (PLATEASE)</option>
+                                <option value="pladese">Plan de Desarrollo del Sector El&eacute;ctrico (PLADESE)
+                                </option>
+                                <option value="pladeshi">Plan de Desarrollo del Sector Hidrocarburos (PLADESHi)</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="plan-select">Planes complementarios</label>
+                            <select id="plan-select" class="control">
+                                <option value="" selected disabled>Elige un plan complementario</option>
+                                <option value="pvirce">Programas Vinculantes para la Instalaci&oacute;n y Retiro de
+                                    Centrales El&eacute;ctricas (PVIRCE)</option>
+                                <option value="pam">Programas de Ampliaci&oacute;n y Modernizaci&oacute;n de la RNT y
+                                    RGD (PAM)</option>
+                                <option value="sistrangas">Plan Quinquenal de Expansi&oacute;n del SISTRANGAS</option>
+                                <option value="petroleo">Plan Quinquenal de Expansi&oacute;n y Optimizaci&oacute;n de la
+                                    Infraestructura de Transporte y Almacenamiento de Petr&oacute;leo y
+                                    Petrol&iacute;feros</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <button type="button" id="refresh-data" class="btn-secondary">Actualizar datos</button>
+                        </div>
+                    </div>
+                    <div class="selection-details" id="selection-details">
+                        <div class="selection-panel" id="instrument-details">
+                            <p class="placeholder">Selecciona un instrumento para conocer su alcance y horizonte de
+                                planeaci&oacute;n.</p>
+                        </div>
+                        <div class="selection-panel" id="plan-details">
+                            <p class="placeholder">Selecciona un plan complementario para ver su descripci&oacute;n.</p>
+                        </div>
+                    </div>
+                    <div id="map" class="map-view" role="region" aria-label="Mapa interactivo del SNIEn"></div>
+                    <div class="card-footer">
+                        <p class="data-source">
+                            Fuente de datos: Hoja de c&aacute;lculo institucional publicada (Google Sheets).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-section">
+            <div class="container info-grid">
+                <article class="info-panel">
+                    <h2>Prop&oacute;sito</h2>
+                    <p>
+                        Este geovisor permite visualizar capas del Sistema Nacional de Informaci&oacute;n
+                        Energ&eacute;tica con
+                        mapas base personalizados MapTiler y datos abiertos que se actualizan desde Google Sheets.
+                    </p>
+                </article>
+                <article class="info-panel">
+                    <h3>Recomendaciones de uso</h3>
+                    <ul>
+                        <li>Selecciona el mapa base que mejor se adapte al an&aacute;lisis territorial.</li>
+                        <li>Usa la acci&oacute;n &ldquo;Actualizar datos&rdquo; tras editar la hoja de c&aacute;lculo.
+                        </li>
+                        <li>Acerca o aleja el mapa hasta el detalle deseado; el visor mantiene el enfoque en
+                            M&eacute;xico.</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div class="footer-logos">
+                <img src="img/logo_gob.png" alt="Gobierno de M&eacute;xico" />
+                <img src="img/logo_sener.png" alt="Secretar&iacute;a de Energ&iacute;a" />
+            </div>
+            <p>Sistema Nacional de Informaci&oacute;n Energ&eacute;tica &middot; Secretar&iacute;a de Energ&iacute;a</p>
+        </div>
+    </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Parser robusto de CSV -->
+    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.umd.min.js"></script>
+    <script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
     <script>
-        // === TU CSV PUBLICADO ===
-        const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4QU5BVBEHmewrNOLjaKoqca3qH16zYKXzvYfMwhrMiW1mR4yUHNJlbIjDhQuDmWtN803Da7r4SZV6/pub?gid=0&single=true&output=csv";
-        const REFRESH_MS = 60000; // baja a 5000 para pruebas
+        document.addEventListener('DOMContentLoaded', function () {
+            const MAP_CONTAINER_ID = 'map';
+            const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4QU5BVBEHmewrNOLjaKoqca3qH16zYKXzvYfMwhrMiW1mR4yUHNJlbIjDhQuDmWtN803Da7r4SZV6/pub?gid=0&single=true&output=csv';
+            const REFRESH_MS = 0; // Cambia a 300000 para 5 minutos, por ejemplo.
 
-        // Mapa
-        const map = L.map('map').setView([23.6, -102.5], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
-        const markers = L.layerGroup().addTo(map);
+            const mapContainer = document.getElementById(MAP_CONTAINER_ID);
+            if (!mapContainer) {
+                console.error('No se encontr&oacute; el contenedor del mapa.');
+                return;
+            }
 
-        function drawRows(rows) {
-            markers.clearLayers();
-            const pts = [];
-            rows.forEach(r => {
-                // Encabezados esperados: lat,lng,titulo,descripcion
-                const lat = parseFloat((r.lat ?? r.Lat ?? r.latitude ?? "").toString().replace(",", "."));
-                const lng = parseFloat((r.lng ?? r.Lng ?? r.lon ?? r.longitude ?? "").toString().replace(",", "."));
-                if (Number.isFinite(lat) && Number.isFinite(lng)) {
-                    const popup = `
-          <div><span class="badge">Sheet</span></div>
-          <b>${r.titulo ?? r.Titulo ?? ""}</b><br/>
-          ${r.descripcion ?? r.Descripcion ?? ""}<br/>
-          <small>(${lat.toFixed(5)}, ${lng.toFixed(5)})</small>
-        `;
-                    L.marker([lat, lng]).bindPopup(popup).addTo(markers);
-                    pts.push([lat, lng]);
+            const preloader = document.getElementById('preloader');
+            const lastUpdatedEl = document.getElementById('last-updated');
+            const refreshBtn = document.getElementById('refresh-data');
+            const basemapSelect = document.getElementById('basemap-select');
+            const instrumentSelect = document.getElementById('instrument-select');
+            const planSelect = document.getElementById('plan-select');
+            const instrumentDetails = document.getElementById('instrument-details');
+            const planDetails = document.getElementById('plan-details');
+
+            const mexicoBounds = L.latLngBounds(
+                [14.0, -118.0],
+                [33.5, -86.0]
+            );
+
+            const mapTilerKeys = {
+                personal: 'jAAFQsMBZ9a6VIm2dCwg',
+                amigo: 'xRR3xCujdkUjxkDqlNTG'
+            };
+
+            const mapTilerAttribution = '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+            const fallbackAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+            function hasMapTilerSDK() {
+                return typeof L !== 'undefined' &&
+                    typeof L.maptiler !== 'undefined' &&
+                    typeof L.maptiler.maptilerLayer === 'function';
+            }
+
+            function buildMapTilerUrl(styleId, apiKey) {
+                return 'https://api.maptiler.com/maps/' + styleId + '/256/{z}/{x}/{y}.png?key=' + apiKey;
+            }
+
+            let map;
+
+            function createMapTilerLayer(styleId, keyName, fallbackUrl, name) {
+                const apiKey = mapTilerKeys[keyName];
+                const fallbackLayer = fallbackUrl ? L.tileLayer(fallbackUrl, {
+                    attribution: fallbackAttribution,
+                    maxZoom: 18
+                }) : null;
+
+                if (!apiKey) {
+                    console.warn('No existe API key para', keyName, '; usando fallback para', name);
+                    return fallbackLayer;
+                }
+
+                if (hasMapTilerSDK()) {
+                    try {
+                        const layer = L.maptiler.maptilerLayer({
+                            apiKey: apiKey,
+                            style: styleId,
+                            maxZoom: 18
+                        });
+                        if (layer && layer.options && !layer.options.maxZoom) {
+                            layer.options.maxZoom = 18;
+                        }
+                        return layer;
+                    } catch (error) {
+                        console.warn('Error creando ' + name + ' con MapTiler SDK:', error);
+                    }
+                } else {
+                    console.warn('MapTiler SDK no disponible; usando fallback para ' + name);
+                }
+
+                if (fallbackLayer) {
+                    return fallbackLayer;
+                }
+
+                return L.tileLayer(buildMapTilerUrl(styleId, apiKey), {
+                    attribution: mapTilerAttribution,
+                    maxZoom: 18
+                });
+            }
+
+            const fallbackLight = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            const fallbackDark = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+            const instrumentDescriptions = {
+                estrategia: {
+                    title: 'Estrategia Nacional de Transici\u00F3n Energ\u00E9tica',
+                    tagline: 'Horizonte: mediano (15 a\u00F1os) y largo plazo (30 a\u00F1os)',
+                    description: 'Instrumento rector de la pol\u00EDtica nacional que gu\u00EDa la transici\u00F3n energ\u00E9tica y el aprovechamiento sustentable de la energ\u00EDa.',
+                    bullets: [
+                        'Incluye diagn\u00F3stico del sector energ\u00E9tico, metas y escenarios a mediano y largo plazo.',
+                        'Define responsabilidades institucionales y l\u00EDneas de acci\u00F3n estrat\u00E9gicas.',
+                        'Prioriza transici\u00F3n energ\u00E9tica, energ\u00EDas limpias, justicia energ\u00E9tica, innovaci\u00F3n y formaci\u00F3n de talento.'
+                    ]
+                },
+                prosener: {
+                    title: 'Programa Sectorial de Energ\u00EDa (PROSENER)',
+                    tagline: 'Horizonte: corto plazo (sexenal)',
+                    description: 'Programa que aterriza los objetivos del Plan Nacional de Desarrollo para el sector energ\u00E9tico durante la administraci\u00F3n en curso.',
+                    bullets: [
+                        'Orienta acciones y metas de corto plazo alineadas con el PND.',
+                        'Permite evaluar avances de pol\u00EDtica p\u00FAblica durante el periodo gubernamental.',
+                        'Sirve como gu\u00EDa operativa para dependencias y entidades del sector.'
+                    ]
+                },
+                platease: {
+                    title: 'Plan para la Transici\u00F3n Energ\u00E9tica y el Aprovechamiento Sustentable de la Energ\u00EDa (PLATEASE)',
+                    tagline: 'Horizonte: 15 a\u00F1os',
+                    description: 'Documento que articula programas y proyectos derivados de la Estrategia, con \u00E9nfasis en transici\u00F3n energ\u00E9tica y eficiencia.',
+                    bullets: [
+                        'Establece actividades y proyectos prioritarios derivados de la Estrategia.',
+                        'Se actualiza anualmente para mantener vigentes sus acciones.',
+                        'Coordina esfuerzos institucionales para aprovechar energ\u00EDa de manera sustentable.'
+                    ]
+                },
+                pladese: {
+                    title: 'Plan de Desarrollo del Sector El\u00E9ctrico (PLADESE)',
+                    tagline: 'Horizonte: 15 a\u00F1os',
+                    description: 'Plan para modernizar y expandir la infraestructura del sistema el\u00E9ctrico nacional.',
+                    bullets: [
+                        'Define programas vinculantes de inversi\u00F3n p\u00FAblica para generar, modernizar y retirar centrales el\u00E9ctricas.',
+                        'Establece la expansi\u00F3n de la Red Nacional de Transmisi\u00F3n y las Redes Generales de Distribuci\u00F3n.',
+                        'Integra acciones de servicios conexos, eficiencia energ\u00E9tica, sostenibilidad y transici\u00F3n energ\u00E9tica con actualizaci\u00F3n anual.'
+                    ]
+                },
+                pladeshi: {
+                    title: 'Plan de Desarrollo del Sector Hidrocarburos (PLADESHi)',
+                    tagline: 'Horizonte: 15 a\u00F1os',
+                    description: 'Documento que gu\u00EDa el desarrollo y modernizaci\u00F3n de la infraestructura de hidrocarburos.',
+                    bullets: [
+                        'Incluye programas para exploraci\u00F3n, extracci\u00F3n, almacenamiento, transporte y distribuci\u00F3n.',
+                        'Aborda gas natural, petrol\u00EDferos y petroqu\u00EDmica con enfoque a eficiencia y transici\u00F3n energ\u00E9tica.',
+                        'Se actualiza anualmente para alinear inversiones y proyectos estrat\u00E9gicos.'
+                    ]
+                }
+            };
+
+            const planDescriptions = {
+                pvirce: {
+                    title: 'Programas Vinculantes para la Instalaci\u00F3n y Retiro de Centrales El\u00E9ctricas (PVIRCE)',
+                    description: 'Instrumento que ordena, en coordinaci\u00F3n con el Estado, la instalaci\u00F3n y retiro de centrales para garantizar confiabilidad y sostenibilidad del sistema el\u00E9ctrico.'
+                },
+                pam: {
+                    title: 'Programas de Ampliaci\u00F3n y Modernizaci\u00F3n (PAM) de la RNT y RGD',
+                    description: 'Programas que detallan las inversiones necesarias para ampliar y modernizar la Red Nacional de Transmisi\u00F3n y las Redes Generales de Distribuci\u00F3n.'
+                },
+                sistrangas: {
+                    title: 'Plan Quinquenal de Expansi\u00F3n del SISTRANGAS',
+                    description: 'Plan a cinco a\u00F1os que proyecta ampliaciones del Sistema de Transporte y Almacenamiento Nacional Integrado de Gas Natural.'
+                },
+                petroleo: {
+                    title: 'Plan Quinquenal de Expansi\u00F3n y Optimizaci\u00F3n de Infraestructura de Petr\u00F3leo y Petrol\u00EDferos',
+                    description: 'Plan a cinco a\u00F1os que define la expansi\u00F3n y optimizaci\u00F3n del transporte por ducto y almacenamiento de petr\u00F3leo y petrol\u00EDferos.'
+                }
+            };
+
+            const layerConfigs = {
+                'sener-azul': {
+                    label: 'SENER Azul',
+                    layer: createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul')
+                },
+                'sener-light': {
+                    label: 'SENER Light',
+                    layer: createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light')
+                },
+                'sener-oscuro': {
+                    label: 'SENER Oscuro',
+                    layer: createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro')
+                },
+                'google-satelite': {
+                    label: 'Google Sat\u00E9lite',
+                    layer: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                        attribution: '&copy; Google',
+                        maxZoom: 20
+                    })
+                }
+            };
+
+            const baseLayers = {};
+            const baseLayersForControl = {};
+
+            Object.entries(layerConfigs).forEach(function ([key, config]) {
+                if (config.layer) {
+                    baseLayers[key] = config.layer;
+                    baseLayersForControl[config.label] = config.layer;
                 }
             });
-            if (pts.length) { map.fitBounds(L.latLngBounds(pts).pad(0.2)); }
-        }
 
-        async function loadAndRender() {
-            try {
-                const url = SHEET_CSV + (SHEET_CSV.includes('?') ? '&' : '?') + 'cb=' + Date.now(); // evita caché
-                const res = await fetch(url, { cache: 'no-store' });
-                const csv = await res.text();
-                const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
-                drawRows(parsed.data);
-            } catch (e) { console.error("Fallo de carga:", e); }
-        }
+            const baseKeys = Object.keys(baseLayers);
+            if (!baseKeys.length) {
+                console.error('No hay mapas base disponibles.');
+                return;
+            }
 
-        loadAndRender();
-        setInterval(loadAndRender, REFRESH_MS);
+            const defaultBaseKey = baseLayers['sener-azul'] ? 'sener-azul' : baseKeys[0];
+            const activeBaseLayer = baseLayers[defaultBaseKey];
+
+            map = L.map(MAP_CONTAINER_ID, {
+                center: [24.1, -102],
+                zoom: 5,
+                minZoom: 4,
+                maxZoom: 18,
+                maxBounds: mexicoBounds,
+                maxBoundsViscosity: 1,
+                layers: activeBaseLayer ? [activeBaseLayer] : [],
+                zoomControl: false,
+                preferCanvas: true
+            });
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            if (Object.keys(baseLayersForControl).length) {
+                L.control.layers(baseLayersForControl, null, { position: 'topright', collapsed: true }).addTo(map);
+            }
+
+            let currentBaseLayer = activeBaseLayer || null;
+            if (basemapSelect && defaultBaseKey) {
+                basemapSelect.value = defaultBaseKey;
+                basemapSelect.addEventListener('change', function (event) {
+                    const key = event.target.value;
+                    const nextLayer = baseLayers[key];
+                    if (!nextLayer || nextLayer === currentBaseLayer) {
+                        return;
+                    }
+                    if (currentBaseLayer) {
+                        map.removeLayer(currentBaseLayer);
+                    }
+                    nextLayer.addTo(map);
+                    currentBaseLayer = nextLayer;
+                });
+            }
+
+            map.fitBounds(mexicoBounds.pad(-0.15));
+            map.on('zoomend', function () {
+                if (map.getZoom() < 4) {
+                    map.setZoom(4);
+                }
+            });
+
+            const markersLayer = L.layerGroup().addTo(map);
+
+            function renderDetails(container, info, placeholderText) {
+                if (!container) {
+                    return;
+                }
+                container.innerHTML = '';
+
+                if (!info) {
+                    container.innerHTML = '<p class="placeholder">' + placeholderText + '</p>';
+                    return;
+                }
+
+                const title = document.createElement('h4');
+                title.textContent = info.title;
+                container.appendChild(title);
+
+                if (info.tagline) {
+                    const tagline = document.createElement('p');
+                    tagline.className = 'tagline';
+                    tagline.textContent = info.tagline;
+                    container.appendChild(tagline);
+                }
+
+                const paragraph = document.createElement('p');
+                paragraph.textContent = info.description;
+                container.appendChild(paragraph);
+
+                if (Array.isArray(info.bullets) && info.bullets.length) {
+                    const list = document.createElement('ul');
+                    info.bullets.forEach(function (item) {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        list.appendChild(li);
+                    });
+                    container.appendChild(list);
+                }
+            }
+
+            function togglePreloader(show) {
+                if (!preloader) {
+                    return;
+                }
+                preloader.classList.toggle('hidden', !show);
+            }
+
+            function updateTimestamp() {
+                if (!lastUpdatedEl) {
+                    return;
+                }
+                const now = new Date();
+                lastUpdatedEl.textContent = now.toLocaleString('es-MX', {
+                    hour12: false,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            function drawRows(rows) {
+                markersLayer.clearLayers();
+                const bounds = [];
+                rows.forEach(function (row) {
+                    const latRaw = row.lat || row.Lat || row.latitude || '';
+                    const lngRaw = row.lng || row.Lng || row.lon || row.longitude || '';
+                    const lat = parseFloat(latRaw.toString().replace(',', '.'));
+                    const lng = parseFloat(lngRaw.toString().replace(',', '.'));
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                        return;
+                    }
+                    const title = row.titulo || row.Titulo || 'Registro';
+                    const description = row.descripcion || row.Descripcion || '';
+                    const popup = [
+                        '<div><span class="badge">Hoja</span></div>',
+                        '<strong>' + title + '</strong>',
+                        description ? '<div class="description">' + description + '</div>' : '',
+                        '<small>(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</small>'
+                    ].filter(Boolean).join('');
+                    L.marker([lat, lng]).bindPopup(popup).addTo(markersLayer);
+                    bounds.push([lat, lng]);
+                });
+                if (bounds.length) {
+                    const calculatedBounds = L.latLngBounds(bounds);
+                    map.fitBounds(bounds.length === 1 ? calculatedBounds.pad(0.25) : calculatedBounds.pad(0.2));
+                }
+            }
+
+            async function loadAndRender(options) {
+                const silent = options && options.silent;
+                if (!silent) {
+                    togglePreloader(true);
+                }
+                try {
+                    const cacheBuster = 'cb=' + Date.now();
+                    const url = SHEET_CSV + (SHEET_CSV.includes('?') ? '&' : '?') + cacheBuster;
+                    const response = await fetch(url, { cache: 'no-store' });
+                    const csvText = await response.text();
+                    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+                    drawRows(parsed.data);
+                    updateTimestamp();
+                } catch (error) {
+                    console.error('Fallo de carga:', error);
+                } finally {
+                    togglePreloader(false);
+                }
+            }
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function () {
+                    loadAndRender({ silent: false });
+                });
+            }
+
+            if (instrumentSelect) {
+                instrumentSelect.addEventListener('change', function (event) {
+                    const info = instrumentDescriptions[event.target.value];
+                    renderDetails(
+                        instrumentDetails,
+                        info,
+                        'Selecciona un instrumento para conocer su alcance y horizonte de planeaci\u00F3n.'
+                    );
+                });
+            }
+
+            if (planSelect) {
+                planSelect.addEventListener('change', function (event) {
+                    const info = planDescriptions[event.target.value];
+                    renderDetails(
+                        planDetails,
+                        info,
+                        'Selecciona un plan complementario para ver su descripci\u00F3n.'
+                    );
+                });
+            }
+
+            renderDetails(
+                instrumentDetails,
+                null,
+                'Selecciona un instrumento para conocer su alcance y horizonte de planeaci\u00F3n.'
+            );
+            renderDetails(
+                planDetails,
+                null,
+                'Selecciona un plan complementario para ver su descripci\u00F3n.'
+            );
+
+            loadAndRender({ silent: false });
+
+            if (REFRESH_MS > 0) {
+                setInterval(function () {
+                    loadAndRender({ silent: true });
+                }, REFRESH_MS);
+            }
+        });
     </script>
 </body>
 
