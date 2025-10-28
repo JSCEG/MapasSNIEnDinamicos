@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Leaflet + Google Sheets (CSV publicado)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html,
+        body,
+        #map {
+            height: 100%;
+            margin: 0
+        }
+
+        .badge {
+            padding: .2rem .4rem;
+            border-radius: .4rem;
+            background: #eee;
+            font-size: .8rem
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Parser robusto de CSV -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <script>
+        // === TU CSV PUBLICADO ===
+        const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4QU5BVBEHmewrNOLjaKoqca3qH16zYKXzvYfMwhrMiW1mR4yUHNJlbIjDhQuDmWtN803Da7r4SZV6/pub?gid=0&single=true&output=csv";
+        const REFRESH_MS = 60000; // baja a 5000 para pruebas
+
+        // Mapa
+        const map = L.map('map').setView([23.6, -102.5], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        const markers = L.layerGroup().addTo(map);
+
+        function drawRows(rows) {
+            markers.clearLayers();
+            const pts = [];
+            rows.forEach(r => {
+                // Encabezados esperados: lat,lng,titulo,descripcion
+                const lat = parseFloat((r.lat ?? r.Lat ?? r.latitude ?? "").toString().replace(",", "."));
+                const lng = parseFloat((r.lng ?? r.Lng ?? r.lon ?? r.longitude ?? "").toString().replace(",", "."));
+                if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                    const popup = `
+          <div><span class="badge">Sheet</span></div>
+          <b>${r.titulo ?? r.Titulo ?? ""}</b><br/>
+          ${r.descripcion ?? r.Descripcion ?? ""}<br/>
+          <small>(${lat.toFixed(5)}, ${lng.toFixed(5)})</small>
+        `;
+                    L.marker([lat, lng]).bindPopup(popup).addTo(markers);
+                    pts.push([lat, lng]);
+                }
+            });
+            if (pts.length) { map.fitBounds(L.latLngBounds(pts).pad(0.2)); }
+        }
+
+        async function loadAndRender() {
+            try {
+                const url = SHEET_CSV + (SHEET_CSV.includes('?') ? '&' : '?') + 'cb=' + Date.now(); // evita caché
+                const res = await fetch(url, { cache: 'no-store' });
+                const csv = await res.text();
+                const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+                drawRows(parsed.data);
+            } catch (e) { console.error("Fallo de carga:", e); }
+        }
+
+        loadAndRender();
+        setInterval(loadAndRender, REFRESH_MS);
+    </script>
+</body>
+
+</html>
