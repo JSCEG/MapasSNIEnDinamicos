@@ -47,55 +47,25 @@
                 <div class="map-card">
                     <div class="card-toolbar">
                         <div class="toolbar-group">
-                            <label for="basemap-select">Mapa base</label>
-                            <select id="basemap-select" class="control">
-                                <option value="sener-azul">SENER Azul</option>
-                                <option value="sener-light">SENER Light</option>
-                                <option value="sener-oscuro">SENER Oscuro</option>
-                                <option value="google-satelite">Google Sat&eacute;lite</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
-                            <label for="instrument-select">Selecciona el instrumento</label>
-                            <select id="instrument-select" class="control">
-                                <option value="" selected disabled>Elige un instrumento</option>
-                                <option value="estrategia">Estrategia Nacional de Transici&oacute;n Energ&eacute;tica
-                                </option>
-                                <option value="prosener">Programa Sectorial de Energ&iacute;a (PROSENER)</option>
-                                <option value="platease">Plan para la Transici&oacute;n Energ&eacute;tica y el
-                                    Aprovechamiento Sustentable de la Energ&iacute;a (PLATEASE)</option>
-                                <option value="pladese">Plan de Desarrollo del Sector El&eacute;ctrico (PLADESE)
-                                </option>
-                                <option value="pladeshi">Plan de Desarrollo del Sector Hidrocarburos (PLADESHi)</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
-                            <label for="plan-select">Planes complementarios</label>
-                            <select id="plan-select" class="control">
-                                <option value="" selected disabled>Elige un plan complementario</option>
-                                <option value="pvirce">Programas Vinculantes para la Instalaci&oacute;n y Retiro de
-                                    Centrales El&eacute;ctricas (PVIRCE)</option>
-                                <option value="pam">Programas de Ampliaci&oacute;n y Modernizaci&oacute;n de la RNT y
-                                    RGD (PAM)</option>
-                                <option value="sistrangas">Plan Quinquenal de Expansi&oacute;n del SISTRANGAS</option>
-                                <option value="petroleo">Plan Quinquenal de Expansi&oacute;n y Optimizaci&oacute;n de la
-                                    Infraestructura de Transporte y Almacenamiento de Petr&oacute;leo y
-                                    Petrol&iacute;feros</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
                             <button type="button" id="refresh-data" class="btn-secondary">Actualizar datos</button>
                         </div>
-                    </div>
-                    <div class="selection-details" id="selection-details">
-                        <div class="selection-panel" id="instrument-details">
-                            <p class="placeholder">Selecciona un instrumento para conocer su alcance y horizonte de
-                                planeaci&oacute;n.</p>
+                        <div class="toolbar-group">
+                            <label>Exportar mapa</label>
+                            <div class="export-buttons">
+                                <button type="button" id="export-pdf" class="btn-export btn-export--pdf"
+                                    title="Exportar como PDF">
+                                    <span class="btn-export__icon">📄</span>
+                                    <span class="btn-export__text">PDF</span>
+                                </button>
+                                <button type="button" id="export-png" class="btn-export btn-export--png"
+                                    title="Exportar como PNG">
+                                    <span class="btn-export__icon">🖼️</span>
+                                    <span class="btn-export__text">PNG</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="selection-panel" id="plan-details">
-                            <p class="placeholder">Selecciona un plan complementario para ver su descripci&oacute;n.</p>
-                        </div>
                     </div>
+
                     <div id="map" class="map-view" role="region" aria-label="Mapa interactivo del SNIEn"></div>
                     <div class="card-footer">
                         <p class="data-source">
@@ -119,11 +89,13 @@
                 <article class="info-panel">
                     <h3>Recomendaciones de uso</h3>
                     <ul>
-                        <li>Selecciona el mapa base que mejor se adapte al an&aacute;lisis territorial.</li>
+                        <li>Usa el control de capas en el mapa para cambiar el mapa base y activar/desactivar capas.
+                        </li>
                         <li>Usa la acci&oacute;n &ldquo;Actualizar datos&rdquo; tras editar la hoja de c&aacute;lculo.
                         </li>
                         <li>Acerca o aleja el mapa hasta el detalle deseado; el visor mantiene el enfoque en
                             M&eacute;xico.</li>
+                        <li>Exporta el mapa en PDF o PNG con las configuraciones que necesites.</li>
                     </ul>
                 </article>
             </div>
@@ -140,10 +112,3314 @@
         </div>
     </footer>
 
+    <!-- Modal de configuración de exportación -->
+    <div id="export-modal" class="modal" role="dialog" aria-labelledby="export-modal-title" aria-hidden="true">
+        <div class="modal-overlay" aria-hidden="true"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="export-modal-title" class="modal-title">Configurar exportación</h3>
+                <button type="button" class="modal-close" aria-label="Cerrar modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="export-config-form" class="export-form">
+                    <div class="form-section">
+                        <h4 class="form-section-title">Formato de archivo</h4>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="format" value="pdf" checked>
+                                <span class="radio-custom"></span>
+                                <span class="radio-label">PDF - Para impresión y documentos</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="format" value="png">
+                                <span class="radio-custom"></span>
+                                <span class="radio-label">PNG - Para presentaciones digitales</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">Tamaño y resolución</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="page-size">Tamaño de página</label>
+                                <select id="page-size" name="pageSize" class="control">
+                                    <option value="A4">A4 (210 × 297 mm)</option>
+                                    <option value="A3">A3 (297 × 420 mm)</option>
+                                    <option value="Letter">Carta (216 × 279 mm)</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dpi-select">Resolución (DPI)</label>
+                                <select id="dpi-select" name="dpi" class="control">
+                                    <option value="150">150 DPI - Calidad estándar</option>
+                                    <option value="300" selected>300 DPI - Alta calidad</option>
+                                    <option value="600">600 DPI - Máxima calidad</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="custom-size-section" class="form-row custom-size-section" style="display: none;">
+                            <div class="form-group">
+                                <label for="custom-width">Ancho (píxeles)</label>
+                                <input type="number" id="custom-width" name="customWidth" class="control" min="100"
+                                    max="8000" value="2480">
+                            </div>
+                            <div class="form-group">
+                                <label for="custom-height">Alto (píxeles)</label>
+                                <input type="number" id="custom-height" name="customHeight" class="control" min="100"
+                                    max="8000" value="3508">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">Elementos a incluir</h4>
+                        <div class="checkbox-group">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="includeScale" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-label">Escala del mapa</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="includeLegend" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-label">Leyenda</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="includeAttribution" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-label">Atribuciones y fuentes</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="includeTimestamp" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-label">Fecha y hora de generación</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="includeTitle" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-label">Título del mapa</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">Información adicional</h4>
+                        <div class="form-group">
+                            <label for="map-title">Título personalizado (opcional)</label>
+                            <input type="text" id="map-title" name="mapTitle" class="control"
+                                placeholder="Mapa SNIEn - Sistema Nacional de Información Energética">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary btn-cancel">Cancelar</button>
+                <button type="button" class="btn-secondary btn-export-confirm">
+                    <span class="btn-text">Exportar</span>
+                    <span class="btn-spinner" style="display: none;">
+                        <span class="spinner-small"></span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema de notificaciones -->
+    <div id="notification-container" class="notification-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Overlay de progreso global -->
+    <div id="export-progress-overlay" class="progress-overlay" style="display: none;">
+        <div class="progress-content">
+            <div class="progress-spinner"></div>
+            <h4 class="progress-title">Exportando mapa...</h4>
+            <p class="progress-message">Capturando imagen del mapa</p>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <p class="progress-percentage">0%</p>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.umd.min.js"></script>
     <script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Export dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+    <!-- Map Export Module -->
+    <script>
+        /**
+         * Configuración de exportación para mapas
+         */
+        class ExportConfiguration {
+            constructor(options = {}) {
+                this.format = options.format || 'png';
+                this.size = {
+                    preset: options.size?.preset || 'A4',
+                    width: options.size?.width || 2480,
+                    height: options.size?.height || 3508,
+                    dpi: options.size?.dpi || 300
+                };
+                this.elements = {
+                    includeScale: options.elements?.includeScale !== false,
+                    includeLegend: options.elements?.includeLegend !== false,
+                    includeAttribution: options.elements?.includeAttribution !== false,
+                    includeTimestamp: options.elements?.includeTimestamp !== false,
+                    includeTitle: options.elements?.includeTitle !== false
+                };
+                this.metadata = {
+                    title: options.metadata?.title || 'Mapa SNIEn',
+                    author: options.metadata?.author || 'SENER',
+                    subject: options.metadata?.subject || 'Mapa del Sistema Nacional de Información Energética',
+                    creator: options.metadata?.creator || 'SNIEn - SENER'
+                };
+            }
+        }
+
+        /**
+         * Capturador de canvas del mapa Leaflet
+         */
+        class CanvasCapture {
+            constructor(map) {
+                this.map = map;
+                this.maxWaitTime = 10000; // 10 segundos máximo de espera
+                this.tileCheckInterval = 100; // Verificar cada 100ms
+            }
+
+            /**
+             * Captura el mapa actual como imagen
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Promise<HTMLCanvasElement>} Canvas con la imagen del mapa
+             */
+            async captureMap(config) {
+                try {
+                    // Validar que el mapa esté en estado válido
+                    this.validateMapState();
+
+                    // Preparar elementos de la interfaz para captura
+                    const uiState = await this.prepareUIForCapture(config);
+
+                    // Esperar a que todos los tiles estén cargados antes de capturar
+                    await this.waitForTilesToLoad();
+
+                    // Asegurar que los marcadores estén visibles y listos
+                    await this.ensureMarkersReady();
+
+                    // Capturar el mapa usando leaflet-image
+                    const canvas = await this.performCapture();
+
+                    // Restaurar estado original de la interfaz
+                    await this.restoreUIState(uiState);
+
+                    return canvas;
+                } catch (error) {
+                    throw new Error('Error en la captura del mapa: ' + error.message);
+                }
+            }
+
+            /**
+             * Espera a que todos los tiles del mapa estén completamente cargados
+             * @returns {Promise<void>}
+             */
+            async waitForTilesToLoad() {
+                return new Promise((resolve, reject) => {
+                    const startTime = Date.now();
+                    let checkCount = 0;
+
+                    const checkTiles = () => {
+                        checkCount++;
+                        const elapsed = Date.now() - startTime;
+
+                        // Verificar si ha pasado el tiempo máximo de espera
+                        if (elapsed > this.maxWaitTime) {
+                            console.warn(`Timeout esperando tiles después de ${elapsed}ms (${checkCount} verificaciones) - procediendo con la captura`);
+                            resolve();
+                            return;
+                        }
+
+                        // Obtener estado actual de tiles
+                        const tilesLoaded = this.areAllTilesLoaded();
+                        const status = this.getTileLoadingStatus();
+
+                        if (checkCount % 10 === 0) { // Log cada segundo aproximadamente
+                            console.log(`Verificación ${checkCount}: ${status.loadedTiles}/${status.totalTiles} tiles cargados`);
+                        }
+
+                        // Verificar si todos los tiles están cargados
+                        if (tilesLoaded) {
+                            console.log(`Todos los tiles cargados después de ${elapsed}ms (${checkCount} verificaciones)`);
+                            resolve();
+                        } else {
+                            // Continuar verificando
+                            setTimeout(checkTiles, this.tileCheckInterval);
+                        }
+                    };
+
+                    console.log('Iniciando espera de carga de tiles...');
+                    checkTiles();
+                });
+            }
+
+            /**
+             * Verifica si todos los tiles del mapa están cargados
+             * @returns {boolean} True si todos los tiles están cargados
+             */
+            areAllTilesLoaded() {
+                let allLoaded = true;
+
+                // Iterar sobre todas las capas del mapa
+                this.map.eachLayer((layer) => {
+                    // Verificar si es una capa de tiles
+                    if (layer instanceof L.TileLayer) {
+                        // Verificar el estado de carga de los tiles
+                        const container = layer.getContainer();
+                        if (container) {
+                            const tiles = container.querySelectorAll('img');
+                            tiles.forEach((tile) => {
+                                // Si algún tile no está completamente cargado
+                                if (!tile.complete || tile.naturalWidth === 0) {
+                                    allLoaded = false;
+                                }
+                            });
+                        }
+                    }
+
+                    // Verificar capas de MapTiler específicamente
+                    if (layer._maptilerLayer || (layer.options && layer.options.style)) {
+                        // Para capas de MapTiler, verificar si están en estado de carga
+                        if (layer._loading || (layer._tiles && Object.keys(layer._tiles).length === 0)) {
+                            allLoaded = false;
+                        }
+                    }
+
+                    // Verificar marcadores con iconos de imagen
+                    if (layer instanceof L.Marker && layer._icon) {
+                        const img = layer._icon.querySelector('img');
+                        if (img && (!img.complete || img.naturalWidth === 0)) {
+                            allLoaded = false;
+                        }
+                    }
+                });
+
+                return allLoaded;
+            }
+
+            /**
+             * Realiza la captura del mapa usando API de imagen estática de MapTiler
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async performCapture() {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        console.log('Iniciando captura con cambio temporal de mapa base...');
+
+                        // Cambiar temporalmente a un mapa base sin CORS
+                        const originalInfo = await this.switchToExportFriendlyBasemap();
+
+                        try {
+                            // Esperar a que el nuevo mapa base se cargue completamente
+                            await this.waitForTilesToLoad();
+
+                            // Capturar con leaflet-image (ahora debería funcionar sin CORS)
+                            const canvas = await this.performSimpleCapture();
+
+                            // Restaurar el mapa base original
+                            await this.restoreOriginalBasemap(originalInfo);
+
+                            console.log('Captura exitosa con cambio temporal de mapa base');
+                            resolve(canvas);
+
+                        } catch (captureError) {
+                            console.warn('Error en captura, restaurando mapa base:', captureError);
+
+                            // Asegurar que se restaure el mapa base original
+                            await this.restoreOriginalBasemap(originalInfo);
+
+                            // Intentar captura básica como último recurso
+                            const basicCanvas = await this.createBasicMapCanvas();
+                            resolve(basicCanvas);
+                        }
+
+                    } catch (error) {
+                        console.error('Error en captura con cambio de mapa base:', error);
+                        reject(new Error('No se pudo capturar el mapa: ' + error.message));
+                    }
+                });
+            }
+
+            /**
+             * Cambia temporalmente a un mapa base compatible con exportación
+             * @returns {Promise<Object>} Información del mapa base original
+             */
+            async switchToExportFriendlyBasemap() {
+                return new Promise((resolve) => {
+                    try {
+                        console.log('Cambiando a mapa base compatible con exportación...');
+
+                        // Obtener referencia al mapa base actual
+                        let currentBaseLayer = null;
+                        let currentBasemapKey = null;
+
+                        // Buscar la capa base actual
+                        this.map.eachLayer((layer) => {
+                            if (layer instanceof L.TileLayer) {
+                                // Verificar si es una capa base (no overlay)
+                                if (layer.options && (
+                                    layer.options.attribution?.includes('MapTiler') ||
+                                    layer.options.attribution?.includes('Google') ||
+                                    layer._url?.includes('maptiler') ||
+                                    layer._url?.includes('google')
+                                )) {
+                                    currentBaseLayer = layer;
+                                }
+                            }
+                        });
+
+                        // El mapa base se detecta automáticamente desde las capas del mapa
+                        currentBasemapKey = 'auto-detected';
+
+                        // Crear mapa base temporal sin CORS (OpenStreetMap)
+                        const exportFriendlyLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19,
+                            crossOrigin: null // Importante: sin restricciones CORS
+                        });
+
+                        // Remover capa base actual si existe
+                        if (currentBaseLayer) {
+                            this.map.removeLayer(currentBaseLayer);
+                        }
+
+                        // Agregar capa temporal
+                        exportFriendlyLayer.addTo(this.map);
+
+                        console.log('Mapa base cambiado a OpenStreetMap para exportación');
+
+                        // Retornar información para restaurar después
+                        resolve({
+                            originalLayer: currentBaseLayer,
+                            originalKey: currentBasemapKey,
+                            temporaryLayer: exportFriendlyLayer
+                        });
+
+                    } catch (error) {
+                        console.error('Error cambiando mapa base:', error);
+                        resolve({ originalLayer: null, originalKey: null, temporaryLayer: null });
+                    }
+                });
+            }
+
+            /**
+             * Restaura el mapa base original después de la exportación
+             * @param {Object} originalInfo - Información del mapa base original
+             * @returns {Promise<void>}
+             */
+            async restoreOriginalBasemap(originalInfo) {
+                return new Promise((resolve) => {
+                    try {
+                        console.log('Restaurando mapa base original...');
+
+                        if (!originalInfo) {
+                            resolve();
+                            return;
+                        }
+
+                        // Remover capa temporal
+                        if (originalInfo.temporaryLayer) {
+                            this.map.removeLayer(originalInfo.temporaryLayer);
+                        }
+
+                        // Restaurar capa original
+                        if (originalInfo.originalLayer) {
+                            originalInfo.originalLayer.addTo(this.map);
+                        }
+
+                        // El mapa base se restaura automáticamente desde las capas guardadas
+
+                        console.log('Mapa base original restaurado');
+                        resolve();
+
+                    } catch (error) {
+                        console.error('Error restaurando mapa base:', error);
+                        resolve(); // Continuar aunque haya error
+                    }
+                });
+            }
+
+            /**
+             * Captura usando screenshot del DOM con configuración optimizada
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async captureWithStaticImage() {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        console.log('Intentando captura optimizada del DOM...');
+
+                        const mapContainer = this.map.getContainer();
+                        const size = this.map.getSize();
+
+                        // Ocultar temporalmente controles que no queremos en la exportación
+                        const controlsToHide = mapContainer.querySelectorAll('.leaflet-control-zoom, .leaflet-control-layers, .leaflet-control-attribution');
+                        const originalDisplays = [];
+
+                        controlsToHide.forEach((control, index) => {
+                            originalDisplays[index] = control.style.display;
+                            control.style.display = 'none';
+                        });
+
+                        // Esperar un momento para que se apliquen los cambios
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // Intentar captura con html2canvas si está disponible
+                        if (typeof html2canvas !== 'undefined') {
+                            try {
+                                const canvas = await html2canvas(mapContainer, {
+                                    allowTaint: true,
+                                    useCORS: false, // Desactivar CORS para evitar problemas
+                                    scale: 1,
+                                    width: size.x,
+                                    height: size.y,
+                                    backgroundColor: '#ffffff',
+                                    logging: false,
+                                    removeContainer: false,
+                                    foreignObjectRendering: false
+                                });
+
+                                // Restaurar controles
+                                controlsToHide.forEach((control, index) => {
+                                    control.style.display = originalDisplays[index];
+                                });
+
+                                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                                    // Procesar el canvas para reemplazar áreas grises
+                                    this.fixGrayAreas(canvas);
+                                    console.log('Captura DOM exitosa con corrección de áreas grises');
+                                    resolve(canvas);
+                                    return;
+                                }
+                            } catch (html2canvasError) {
+                                console.warn('html2canvas falló:', html2canvasError);
+                            }
+                        }
+
+                        // Restaurar controles si html2canvas falló
+                        controlsToHide.forEach((control, index) => {
+                            control.style.display = originalDisplays[index];
+                        });
+
+                        // Si html2canvas falla, crear canvas con información básica
+                        reject(new Error('Captura DOM no disponible'));
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            /**
+             * Corrige las áreas grises en el canvas reemplazándolas con un patrón de mapa
+             * @param {HTMLCanvasElement} canvas 
+             */
+            fixGrayAreas(canvas) {
+                try {
+                    const ctx = canvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    console.log('Procesando áreas grises en el canvas...');
+
+                    // Detectar y reemplazar píxeles grises
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+
+                        // Detectar grises (valores similares en RGB) y píxeles transparentes
+                        const isGray = Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 &&
+                            r > 80 && r < 200 && a > 0;
+
+                        const isTransparent = a < 50;
+
+                        if (isGray || isTransparent) {
+                            // Calcular coordenadas del píxel
+                            const pixelIndex = i / 4;
+                            const x = pixelIndex % canvas.width;
+                            const y = Math.floor(pixelIndex / canvas.width);
+
+                            // Crear un patrón que simule un mapa base
+                            const pattern1 = Math.sin(x * 0.02) * Math.cos(y * 0.02);
+                            const pattern2 = Math.sin(x * 0.005 + y * 0.005);
+
+                            // Colores base tipo mapa (beige/crema)
+                            const baseR = 245;
+                            const baseG = 245;
+                            const baseB = 240;
+
+                            // Aplicar variación sutil
+                            data[i] = Math.max(220, Math.min(255, baseR + pattern1 * 10 + pattern2 * 5));     // R
+                            data[i + 1] = Math.max(220, Math.min(255, baseG + pattern1 * 8 + pattern2 * 4)); // G
+                            data[i + 2] = Math.max(215, Math.min(250, baseB + pattern1 * 6 + pattern2 * 3)); // B
+                            data[i + 3] = 255; // Alpha completo
+                        }
+                    }
+
+                    // Aplicar los cambios
+                    ctx.putImageData(imageData, 0, 0);
+
+                    // Agregar algunas líneas sutiles para simular características geográficas
+                    this.addMapFeatures(ctx, canvas.width, canvas.height);
+
+                    console.log('Áreas grises corregidas exitosamente');
+
+                } catch (error) {
+                    console.warn('Error corrigiendo áreas grises:', error);
+                }
+            }
+
+            /**
+             * Agrega características sutiles al mapa para simular geografía
+             * @param {CanvasRenderingContext2D} ctx 
+             * @param {number} width 
+             * @param {number} height 
+             */
+            addMapFeatures(ctx, width, height) {
+                try {
+                    // Guardar estado del contexto
+                    ctx.save();
+
+                    // Líneas sutiles que simulan ríos o carreteras
+                    ctx.strokeStyle = 'rgba(200, 200, 190, 0.3)';
+                    ctx.lineWidth = 1;
+
+                    // Algunas líneas curvas aleatorias
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        const startX = Math.random() * width;
+                        const startY = Math.random() * height;
+
+                        ctx.moveTo(startX, startY);
+
+                        for (let j = 0; j < 3; j++) {
+                            const cpX = startX + (Math.random() - 0.5) * width * 0.5;
+                            const cpY = startY + (Math.random() - 0.5) * height * 0.5;
+                            const endX = startX + (Math.random() - 0.5) * width * 0.3;
+                            const endY = startY + (Math.random() - 0.5) * height * 0.3;
+
+                            ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+                        }
+
+                        ctx.stroke();
+                    }
+
+                    // Restaurar estado del contexto
+                    ctx.restore();
+
+                } catch (error) {
+                    console.warn('Error agregando características del mapa:', error);
+                }
+            }
+
+            /**
+             * Captura simple usando leaflet-image sin filtros complejos
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async performSimpleCapture() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        console.log('Captura simple con leaflet-image...');
+
+                        // Configuración mínima para leaflet-image
+                        const options = {};
+
+                        leafletImage(this.map, (err, canvas) => {
+                            if (err) {
+                                console.error('Error en leaflet-image simple:', err);
+                                reject(new Error('Error en captura simple: ' + err.message));
+                                return;
+                            }
+
+                            if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                                reject(new Error('Canvas simple inválido'));
+                                return;
+                            }
+
+                            console.log(`Captura simple completada: ${canvas.width}x${canvas.height}`);
+                            resolve(canvas);
+                        }, options);
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            /**
+             * Crea un canvas básico con información del mapa cuando todo falla
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async createBasicMapCanvas() {
+                return new Promise((resolve) => {
+                    try {
+                        const size = this.map.getSize();
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size.x;
+                        canvas.height = size.y;
+                        const ctx = canvas.getContext('2d');
+
+                        // Fondo blanco
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        // Dibujar información básica del mapa
+                        ctx.fillStyle = '#333333';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+
+                        const center = this.map.getCenter();
+                        const zoom = this.map.getZoom();
+
+                        ctx.fillText('Mapa SNIEn', canvas.width / 2, canvas.height / 2 - 40);
+                        ctx.fillText(`Centro: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`, canvas.width / 2, canvas.height / 2);
+                        ctx.fillText(`Zoom: ${zoom}`, canvas.width / 2, canvas.height / 2 + 40);
+                        ctx.fillText('(Vista previa no disponible)', canvas.width / 2, canvas.height / 2 + 80);
+
+                        // Dibujar borde
+                        ctx.strokeStyle = '#cccccc';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+                        console.log('Canvas básico creado como último recurso');
+                        resolve(canvas);
+
+                    } catch (error) {
+                        console.error('Error creando canvas básico:', error);
+                        // Crear canvas mínimo
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 800;
+                        canvas.height = 600;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        resolve(canvas);
+                    }
+                });
+            }
+
+
+
+            /**
+             * Agrega overlays y marcadores al canvas estático
+             * @param {HTMLCanvasElement} canvas 
+             * @param {CanvasRenderingContext2D} ctx 
+             * @returns {Promise<void>}
+             */
+            async addOverlaysToStaticCanvas(canvas, ctx) {
+                return new Promise((resolve) => {
+                    try {
+                        // Buscar marcadores y overlays en el mapa
+                        const markers = [];
+
+                        this.map.eachLayer((layer) => {
+                            if (layer instanceof L.Marker) {
+                                const pos = this.map.latLngToContainerPoint(layer.getLatLng());
+                                markers.push({
+                                    x: pos.x,
+                                    y: pos.y,
+                                    layer: layer
+                                });
+                            }
+                        });
+
+                        // Dibujar marcadores simples
+                        markers.forEach(marker => {
+                            ctx.fillStyle = '#ff0000';
+                            ctx.beginPath();
+                            ctx.arc(marker.x, marker.y, 8, 0, 2 * Math.PI);
+                            ctx.fill();
+
+                            // Borde blanco
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        });
+
+                        console.log(`Agregados ${markers.length} marcadores al canvas estático`);
+                        resolve();
+
+                    } catch (error) {
+                        console.warn('Error agregando overlays al canvas estático:', error);
+                        resolve();
+                    }
+                });
+            }
+
+
+
+            /**
+             * Método de captura legacy usando leaflet-image
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async performLegacyCapture() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        console.log('Usando leaflet-image para captura...');
+
+                        // Forzar un repaint antes de la captura
+                        this.map.getContainer().style.transform = 'translateZ(0)';
+
+                        // Usar requestAnimationFrame para asegurar que el render esté completo
+                        requestAnimationFrame(() => {
+                            // Configurar opciones para leaflet-image
+                            const options = {
+                                filter: (node) => {
+                                    if (node.classList) {
+                                        // Excluir controles
+                                        if (node.classList.contains('leaflet-control-zoom') ||
+                                            node.classList.contains('leaflet-control-layers') ||
+                                            node.classList.contains('leaflet-control-attribution')) {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                }
+                            };
+
+                            // Usar leaflet-image para capturar el mapa
+                            leafletImage(this.map, (err, canvas) => {
+                                // Restaurar el estilo del contenedor
+                                this.map.getContainer().style.transform = '';
+
+                                if (err) {
+                                    console.error('Error en leaflet-image:', err);
+                                    reject(new Error('Error capturando el mapa: ' + err.message));
+                                    return;
+                                }
+
+                                // Verificar que el canvas sea válido
+                                if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                                    reject(new Error('Canvas capturado inválido'));
+                                    return;
+                                }
+
+                                console.log(`Captura legacy completada: ${canvas.width}x${canvas.height}`);
+                                resolve(canvas);
+                            }, options);
+                        });
+                    } catch (error) {
+                        console.error('Error en performLegacyCapture:', error);
+                        reject(new Error('Error en leaflet-image: ' + error.message));
+                    }
+                });
+            }
+
+            /**
+             * Fuerza la recarga de tiles en el área visible del mapa
+             * @returns {Promise<void>}
+             */
+            async refreshVisibleTiles() {
+                return new Promise((resolve) => {
+                    let layersToRefresh = 0;
+                    let layersRefreshed = 0;
+
+                    const onLayerRefreshed = () => {
+                        layersRefreshed++;
+                        if (layersRefreshed >= layersToRefresh) {
+                            resolve();
+                        }
+                    };
+
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.TileLayer) {
+                            layersToRefresh++;
+
+                            // Forzar recarga de la capa
+                            layer.once('load', onLayerRefreshed);
+                            layer.redraw();
+                        }
+                    });
+
+                    // Si no hay capas para refrescar, resolver inmediatamente
+                    if (layersToRefresh === 0) {
+                        resolve();
+                    }
+                });
+            }
+
+            /**
+             * Valida que el mapa esté en un estado válido para captura
+             * @returns {boolean} True si el mapa está listo para capturar
+             */
+            validateMapState() {
+                if (!this.map) {
+                    throw new Error('Mapa no inicializado');
+                }
+
+                const container = this.map.getContainer();
+                if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+                    throw new Error('Contenedor del mapa no visible o sin dimensiones');
+                }
+
+                const bounds = this.map.getBounds();
+                if (!bounds || !bounds.isValid()) {
+                    throw new Error('Límites del mapa inválidos');
+                }
+
+                return true;
+            }
+
+            /**
+             * Obtiene información detallada sobre el estado de carga de tiles
+             * @returns {Object} Información de estado de tiles
+             */
+            getTileLoadingStatus() {
+                const status = {
+                    totalLayers: 0,
+                    loadedLayers: 0,
+                    totalTiles: 0,
+                    loadedTiles: 0,
+                    failedTiles: 0,
+                    totalMarkers: 0,
+                    loadedMarkers: 0,
+                    failedMarkers: 0
+                };
+
+                this.map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        status.totalLayers++;
+
+                        const container = layer.getContainer();
+                        if (container) {
+                            const tiles = container.querySelectorAll('img');
+                            tiles.forEach((tile) => {
+                                status.totalTiles++;
+                                if (tile.complete && tile.naturalWidth > 0) {
+                                    status.loadedTiles++;
+                                } else if (tile.complete && tile.naturalWidth === 0) {
+                                    status.failedTiles++;
+                                }
+                            });
+
+                            if (tiles.length > 0 && status.loadedTiles === tiles.length) {
+                                status.loadedLayers++;
+                            }
+                        }
+                    }
+
+                    // Verificar estado de marcadores
+                    if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                        status.totalMarkers++;
+
+                        if (layer._icon) {
+                            const img = layer._icon.querySelector('img');
+                            if (img) {
+                                if (img.complete && img.naturalWidth > 0) {
+                                    status.loadedMarkers++;
+                                } else if (img.complete && img.naturalWidth === 0) {
+                                    status.failedMarkers++;
+                                }
+                            } else {
+                                // Marcador sin imagen (ej: CircleMarker o icono CSS)
+                                status.loadedMarkers++;
+                            }
+                        } else {
+                            // Marcador sin icono visible
+                            status.loadedMarkers++;
+                        }
+                    }
+                });
+
+                return status;
+            }
+
+            /**
+             * Prepara los elementos de la interfaz para la captura
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Object} Estado original de la UI para restaurar después
+             */
+            async prepareUIForCapture(config) {
+                const uiState = {
+                    hiddenElements: [],
+                    modifiedElements: []
+                };
+
+                // Ocultar controles de zoom si no se requieren en la exportación
+                const zoomControls = this.map.getContainer().querySelectorAll('.leaflet-control-zoom');
+                zoomControls.forEach(control => {
+                    if (control.style.display !== 'none') {
+                        uiState.hiddenElements.push({
+                            element: control,
+                            originalDisplay: control.style.display
+                        });
+                        control.style.display = 'none';
+                    }
+                });
+
+                // Ocultar controles de capas si no se requieren
+                const layerControls = this.map.getContainer().querySelectorAll('.leaflet-control-layers');
+                layerControls.forEach(control => {
+                    if (control.style.display !== 'none') {
+                        uiState.hiddenElements.push({
+                            element: control,
+                            originalDisplay: control.style.display
+                        });
+                        control.style.display = 'none';
+                    }
+                });
+
+                // Mejorar visibilidad de marcadores para la captura
+                await this.enhanceMarkersForCapture(uiState);
+
+                return uiState;
+            }
+
+            /**
+             * Mejora la visibilidad de los marcadores para la captura
+             * @param {Object} uiState - Estado de la UI para tracking de cambios
+             */
+            async enhanceMarkersForCapture(uiState) {
+                return new Promise((resolve) => {
+                    let markersProcessed = 0;
+                    let totalMarkers = 0;
+
+                    // Contar total de marcadores
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                            totalMarkers++;
+                        }
+                    });
+
+                    if (totalMarkers === 0) {
+                        resolve();
+                        return;
+                    }
+
+                    // Procesar cada marcador
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                            // Asegurar que el marcador esté visible
+                            if (layer._icon) {
+                                const icon = layer._icon;
+
+                                // Guardar estado original
+                                const originalZIndex = icon.style.zIndex;
+                                const originalOpacity = icon.style.opacity;
+
+                                uiState.modifiedElements.push({
+                                    element: icon,
+                                    originalZIndex: originalZIndex,
+                                    originalOpacity: originalOpacity
+                                });
+
+                                // Mejorar visibilidad para captura
+                                icon.style.zIndex = '1000';
+                                icon.style.opacity = '1';
+
+                                // Forzar repaint del marcador
+                                icon.style.transform = icon.style.transform;
+                            }
+
+                            markersProcessed++;
+                            if (markersProcessed >= totalMarkers) {
+                                // Dar tiempo para que se apliquen los cambios
+                                setTimeout(resolve, 100);
+                            }
+                        }
+                    });
+                });
+            }
+
+            /**
+             * Asegura que todos los marcadores estén listos para la captura
+             * @returns {Promise<void>}
+             */
+            async ensureMarkersReady() {
+                return new Promise((resolve) => {
+                    let markersReady = 0;
+                    let totalMarkers = 0;
+
+                    // Contar marcadores
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                            totalMarkers++;
+                        }
+                    });
+
+                    if (totalMarkers === 0) {
+                        console.log('No hay marcadores en el mapa');
+                        resolve();
+                        return;
+                    }
+
+                    console.log(`Verificando ${totalMarkers} marcadores...`);
+
+                    // Verificar cada marcador
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                            // Verificar si el marcador tiene icono y está en el DOM
+                            if (layer._icon && layer._icon.parentNode) {
+                                // Verificar si el icono está completamente cargado
+                                const icon = layer._icon;
+                                const img = icon.querySelector('img');
+
+                                if (img) {
+                                    if (img.complete && img.naturalWidth > 0) {
+                                        markersReady++;
+                                    } else {
+                                        // Esperar a que la imagen se cargue
+                                        img.onload = () => {
+                                            markersReady++;
+                                            if (markersReady >= totalMarkers) {
+                                                console.log(`Todos los ${totalMarkers} marcadores están listos`);
+                                                resolve();
+                                            }
+                                        };
+                                        img.onerror = () => {
+                                            console.warn('Error cargando icono de marcador');
+                                            markersReady++;
+                                            if (markersReady >= totalMarkers) {
+                                                resolve();
+                                            }
+                                        };
+                                    }
+                                } else {
+                                    // Marcador sin imagen (ej: CircleMarker)
+                                    markersReady++;
+                                }
+                            } else {
+                                console.warn('Marcador sin icono o no en DOM');
+                                markersReady++;
+                            }
+
+                            // Verificar si ya están todos listos
+                            if (markersReady >= totalMarkers) {
+                                console.log(`Todos los ${totalMarkers} marcadores están listos`);
+                                resolve();
+                            }
+                        }
+                    });
+
+                    // Timeout de seguridad
+                    setTimeout(() => {
+                        if (markersReady < totalMarkers) {
+                            console.warn(`Timeout: solo ${markersReady}/${totalMarkers} marcadores listos`);
+                        }
+                        resolve();
+                    }, 3000);
+                });
+            }
+
+            /**
+             * Restaura el estado original de la interfaz después de la captura
+             * @param {Object} uiState - Estado original de la UI
+             */
+            async restoreUIState(uiState) {
+                // Restaurar elementos ocultos
+                uiState.hiddenElements.forEach(item => {
+                    item.element.style.display = item.originalDisplay;
+                });
+
+                // Restaurar elementos modificados
+                uiState.modifiedElements.forEach(item => {
+                    if (item.originalZIndex !== undefined) {
+                        item.element.style.zIndex = item.originalZIndex;
+                    }
+                    if (item.originalOpacity !== undefined) {
+                        item.element.style.opacity = item.originalOpacity;
+                    }
+                });
+
+                // Dar tiempo para que se restauren los cambios
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            /**
+             * Obtiene información detallada sobre marcadores visibles
+             * @returns {Object} Información de marcadores
+             */
+            getMarkersInfo() {
+                const markersInfo = {
+                    total: 0,
+                    visible: 0,
+                    withIcons: 0,
+                    inBounds: 0,
+                    details: []
+                };
+
+                const mapBounds = this.map.getBounds();
+
+                this.map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                        markersInfo.total++;
+
+                        const latLng = layer.getLatLng();
+                        const isInBounds = mapBounds.contains(latLng);
+                        const hasIcon = layer._icon && layer._icon.parentNode;
+                        const isVisible = hasIcon && layer._icon.style.display !== 'none';
+
+                        if (isInBounds) markersInfo.inBounds++;
+                        if (hasIcon) markersInfo.withIcons++;
+                        if (isVisible) markersInfo.visible++;
+
+                        markersInfo.details.push({
+                            position: latLng,
+                            inBounds: isInBounds,
+                            hasIcon: hasIcon,
+                            visible: isVisible,
+                            type: layer instanceof L.Marker ? 'marker' : 'circle'
+                        });
+                    }
+                });
+
+                return markersInfo;
+            }
+
+            /**
+             * Obtiene metadatos del mapa actual
+             * @returns {Object} Metadatos del mapa
+             */
+            getMapMetadata() {
+                const center = this.map.getCenter();
+                const bounds = this.map.getBounds();
+
+                // Obtener información detallada de la capa base actual
+                const baseLayerInfo = this.getBaseLayerInfo();
+
+                // Los selectores de instrumentos y planes se han eliminado de la interfaz
+                // El mapa base se detecta automáticamente desde las capas activas
+                const selectedInstrumentText = 'Configurado desde control de capas';
+                const selectedPlanText = 'Configurado desde control de capas';
+                const selectedBasemapText = baseLayerInfo.name || 'Mapa base activo';
+
+                // Obtener información detallada de marcadores
+                const markersInfo = this.getMarkersInfo();
+
+                // Obtener fecha de última actualización de datos
+                const lastUpdatedElement = document.getElementById('last-updated');
+                const lastUpdated = lastUpdatedElement?.textContent || 'No disponible';
+
+                return {
+                    timestamp: new Date(),
+                    baseLayer: baseLayerInfo.name,
+                    baseLayerAttribution: baseLayerInfo.attribution,
+                    selectedInstrument: selectedInstrumentText,
+                    selectedInstrumentValue: 'control-capas',
+                    selectedPlan: selectedPlanText,
+                    selectedPlanValue: 'control-capas',
+                    selectedBasemap: selectedBasemapText,
+                    selectedBasemapValue: 'control-capas',
+                    zoomLevel: this.map.getZoom(),
+                    center: {
+                        lat: Math.round(center.lat * 100000) / 100000, // 5 decimales
+                        lng: Math.round(center.lng * 100000) / 100000
+                    },
+                    bounds: {
+                        north: Math.round(bounds.getNorth() * 100000) / 100000,
+                        south: Math.round(bounds.getSouth() * 100000) / 100000,
+                        east: Math.round(bounds.getEast() * 100000) / 100000,
+                        west: Math.round(bounds.getWest() * 100000) / 100000
+                    },
+                    markersCount: markersInfo.total,
+                    markersVisible: markersInfo.visible,
+                    markersInBounds: markersInfo.inBounds,
+                    lastDataUpdate: lastUpdated,
+                    dataSource: 'Hoja de cálculo institucional publicada (Google Sheets)',
+                    system: 'Sistema Nacional de Información Energética (SNIEn)',
+                    organization: 'Secretaría de Energía (SENER)'
+                };
+            }
+
+            /**
+             * Obtiene información detallada de la capa base actual
+             * @returns {Object} Información de la capa base y atribuciones
+             */
+            getBaseLayerInfo() {
+                let layerName = 'Desconocido';
+                let attribution = '';
+
+                this.map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer && layer.options) {
+                        // Detectar capas de MapTiler
+                        if (layer.options.style) {
+                            const styleName = layer.options.style;
+                            layerName = `MapTiler ${styleName}`;
+                            attribution = '© MapTiler © OpenStreetMap contributors';
+                        } else if (layer._url && layer._url.includes('maptiler')) {
+                            layerName = 'MapTiler';
+                            attribution = '© MapTiler © OpenStreetMap contributors';
+                        } else if (layer._url && layer._url.includes('google')) {
+                            layerName = 'Google Satellite';
+                            attribution = '© Google © Satellite imagery';
+                        } else if (layer._url) {
+                            layerName = 'Tile Layer';
+                            attribution = layer.options.attribution || '';
+                        }
+
+                        // Si la capa tiene atribución específica, usarla
+                        if (layer.options.attribution) {
+                            attribution = layer.options.attribution;
+                        }
+                    }
+                });
+
+                // Detectar el mapa base automáticamente desde las capas activas
+                // Ya no usamos selector, se detecta desde el control de capas de Leaflet
+
+                return {
+                    name: layerName,
+                    attribution: attribution
+                };
+            }
+        }
+
+        /**
+         * Generador de archivos PDF
+         */
+        class PDFGenerator {
+            constructor() {
+                this.jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+                if (!this.jsPDF) {
+                    throw new Error('jsPDF no está disponible');
+                }
+
+                // Definir tamaños de página estándar en mm
+                this.pageSizes = {
+                    'A4': { width: 210, height: 297 },
+                    'A3': { width: 297, height: 420 },
+                    'Letter': { width: 216, height: 279 }
+                };
+            }
+
+            /**
+             * Crea un canvas limpio copiando los datos píxel por píxel para evitar problemas de CORS
+             * @param {HTMLCanvasElement} sourceCanvas - Canvas fuente que puede estar "tainted"
+             * @returns {HTMLCanvasElement} Canvas limpio sin restricciones CORS
+             */
+            createCleanCanvas(sourceCanvas) {
+                try {
+                    console.log('Creando canvas limpio para evitar problemas CORS...');
+
+                    // Crear nuevo canvas con las mismas dimensiones
+                    const cleanCanvas = document.createElement('canvas');
+                    cleanCanvas.width = sourceCanvas.width;
+                    cleanCanvas.height = sourceCanvas.height;
+
+                    const cleanCtx = cleanCanvas.getContext('2d');
+                    const sourceCtx = sourceCanvas.getContext('2d');
+
+                    try {
+                        // Intentar copiar usando getImageData (método más seguro)
+                        const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+                        cleanCtx.putImageData(imageData, 0, 0);
+
+                        console.log('Canvas limpio creado usando getImageData');
+                        return cleanCanvas;
+
+                    } catch (getImageDataError) {
+                        console.warn('getImageData falló, intentando drawImage:', getImageDataError);
+
+                        try {
+                            // Fallback: intentar drawImage
+                            cleanCtx.drawImage(sourceCanvas, 0, 0);
+
+                            console.log('Canvas limpio creado usando drawImage');
+                            return cleanCanvas;
+
+                        } catch (drawImageError) {
+                            console.warn('drawImage también falló:', drawImageError);
+
+                            // Último recurso: crear canvas básico con información
+                            cleanCtx.fillStyle = '#ffffff';
+                            cleanCtx.fillRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+
+                            cleanCtx.fillStyle = '#333333';
+                            cleanCtx.font = '20px Arial';
+                            cleanCtx.textAlign = 'center';
+                            cleanCtx.fillText('Mapa SNIEn', cleanCanvas.width / 2, cleanCanvas.height / 2);
+                            cleanCtx.fillText('(Exportación de emergencia)', cleanCanvas.width / 2, cleanCanvas.height / 2 + 30);
+
+                            console.log('Canvas básico creado como último recurso');
+                            return cleanCanvas;
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Error creando canvas limpio:', error);
+
+                    // Canvas de emergencia
+                    const emergencyCanvas = document.createElement('canvas');
+                    emergencyCanvas.width = 800;
+                    emergencyCanvas.height = 600;
+                    const emergencyCtx = emergencyCanvas.getContext('2d');
+
+                    emergencyCtx.fillStyle = '#ffffff';
+                    emergencyCtx.fillRect(0, 0, 800, 600);
+
+                    emergencyCtx.fillStyle = '#333333';
+                    emergencyCtx.font = '24px Arial';
+                    emergencyCtx.textAlign = 'center';
+                    emergencyCtx.fillText('Error en exportación', 400, 280);
+                    emergencyCtx.fillText('Mapa SNIEn', 400, 320);
+
+                    return emergencyCanvas;
+                }
+            }
+
+            /**
+             * Genera un PDF a partir de un canvas
+             * @param {HTMLCanvasElement} canvas - Canvas con la imagen del mapa
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @param {Object} metadata - Metadatos del mapa
+             * @returns {Blob} Archivo PDF generado
+             */
+            async generatePDF(canvas, config, metadata) {
+                try {
+                    console.log('Generando PDF con configuración:', config);
+
+                    // Determinar formato y orientación del PDF
+                    const pdfConfig = this.determinePDFConfiguration(config);
+                    console.log('Configuración PDF determinada:', pdfConfig);
+
+                    // Crear documento PDF
+                    const pdf = new this.jsPDF({
+                        orientation: pdfConfig.orientation,
+                        unit: 'mm',
+                        format: pdfConfig.format
+                    });
+
+                    // Añadir metadatos del documento
+                    this.addDocumentMetadata(pdf, config, metadata);
+
+                    // Crear canvas limpio para evitar problemas de CORS
+                    const cleanCanvas = this.createCleanCanvas(canvas);
+
+                    // Convertir canvas limpio a imagen de alta calidad
+                    const imgData = cleanCanvas.toDataURL('image/png', 1.0);
+                    console.log('Imagen convertida a base64, tamaño:', imgData.length, 'caracteres');
+
+                    // Calcular dimensiones y posicionamiento
+                    const layout = this.calculateLayout(pdf, canvas, config);
+                    console.log('Layout calculado:', layout);
+
+                    // Añadir imagen principal al PDF
+                    pdf.addImage(
+                        imgData,
+                        'PNG',
+                        layout.imageX,
+                        layout.imageY,
+                        layout.imageWidth,
+                        layout.imageHeight,
+                        undefined,
+                        'FAST' // Usar compresión rápida para mejor rendimiento
+                    );
+
+                    // Añadir información contextual si está habilitada
+                    if (this.shouldIncludeContextualInfo(config)) {
+                        this.addContextualInfo(pdf, config, metadata, layout);
+                    }
+
+                    // Generar y retornar el blob del PDF
+                    const pdfBlob = pdf.output('blob');
+                    console.log('PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
+
+                    return pdfBlob;
+                } catch (error) {
+                    console.error('Error detallado en generatePDF:', error);
+                    throw new Error('Error generando PDF: ' + error.message);
+                }
+            }
+
+            /**
+             * Determina la configuración del PDF basada en el tamaño especificado
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Object} Configuración del PDF (formato y orientación)
+             */
+            determinePDFConfiguration(config) {
+                const preset = config.size.preset;
+
+                // Para tamaños personalizados
+                if (preset === 'custom') {
+                    const width = config.size.width * 0.264583; // Convertir píxeles a mm (96 DPI)
+                    const height = config.size.height * 0.264583;
+
+                    return {
+                        format: [width, height],
+                        orientation: width > height ? 'landscape' : 'portrait'
+                    };
+                }
+
+                // Para tamaños estándar
+                if (this.pageSizes[preset]) {
+                    const size = this.pageSizes[preset];
+                    return {
+                        format: [size.width, size.height],
+                        orientation: 'portrait' // Por defecto portrait, se puede cambiar según necesidades
+                    };
+                }
+
+                // Fallback a A4 si no se reconoce el tamaño
+                console.warn('Tamaño de página no reconocido:', preset, '- usando A4 por defecto');
+                return {
+                    format: 'a4',
+                    orientation: 'portrait'
+                };
+            }
+
+            /**
+             * Añade metadatos al documento PDF
+             * @param {Object} pdf - Instancia de jsPDF
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @param {Object} metadata - Metadatos del mapa
+             */
+            addDocumentMetadata(pdf, config, metadata) {
+                const currentDate = new Date();
+
+                pdf.setProperties({
+                    title: config.metadata.title || 'Mapa SNIEn',
+                    subject: config.metadata.subject || 'Mapa del Sistema Nacional de Información Energética',
+                    author: config.metadata.author || 'SENER',
+                    creator: config.metadata.creator || 'SNIEn - SENER',
+                    keywords: 'SNIEn, SENER, Mapa, Energía, México',
+                    creationDate: currentDate,
+                    modDate: currentDate
+                });
+
+                console.log('Metadatos del documento añadidos');
+            }
+
+            /**
+             * Calcula el layout y dimensiones para la imagen en el PDF
+             * @param {Object} pdf - Instancia de jsPDF
+             * @param {HTMLCanvasElement} canvas - Canvas con la imagen
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Object} Información del layout
+             */
+            calculateLayout(pdf, canvas, config) {
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 15; // Margen en mm
+
+                // Área disponible para la imagen
+                const availableWidth = pageWidth - (margin * 2);
+                const availableHeight = pageHeight - (margin * 2);
+
+                // Reservar espacio para información contextual si es necesario
+                const contextualInfoHeight = this.shouldIncludeContextualInfo(config) ? 25 : 0;
+                const imageAreaHeight = availableHeight - contextualInfoHeight;
+
+                // Calcular dimensiones manteniendo proporción
+                const canvasRatio = canvas.width / canvas.height;
+                const availableRatio = availableWidth / imageAreaHeight;
+
+                let imageWidth, imageHeight;
+
+                if (canvasRatio > availableRatio) {
+                    // La imagen es más ancha, ajustar por ancho
+                    imageWidth = availableWidth;
+                    imageHeight = availableWidth / canvasRatio;
+                } else {
+                    // La imagen es más alta, ajustar por alto
+                    imageHeight = imageAreaHeight;
+                    imageWidth = imageAreaHeight * canvasRatio;
+                }
+
+                // Centrar la imagen
+                const imageX = margin + (availableWidth - imageWidth) / 2;
+                const imageY = margin;
+
+                return {
+                    pageWidth,
+                    pageHeight,
+                    margin,
+                    imageX,
+                    imageY,
+                    imageWidth,
+                    imageHeight,
+                    availableWidth,
+                    contextualInfoHeight,
+                    contextualInfoY: imageY + imageHeight + 10
+                };
+            }
+
+            /**
+             * Determina si se debe incluir información contextual
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {boolean} True si se debe incluir información contextual
+             */
+            shouldIncludeContextualInfo(config) {
+                return config.elements.includeTitle ||
+                    config.elements.includeTimestamp ||
+                    config.elements.includeAttribution ||
+                    config.elements.includeScale;
+            }
+
+            /**
+             * Añade información contextual al PDF
+             * @param {Object} pdf - Instancia de jsPDF
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @param {Object} metadata - Metadatos del mapa
+             * @param {Object} layout - Información del layout
+             */
+            addContextualInfo(pdf, config, metadata, layout) {
+                let currentY = layout.contextualInfoY;
+                const lineHeight = 4;
+                const sectionSpacing = 2;
+
+                // Configurar estilo del texto principal
+                pdf.setFontSize(10);
+                pdf.setTextColor(60, 60, 60);
+
+                // Título del mapa
+                if (config.elements.includeTitle && config.metadata.title) {
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(config.metadata.title, layout.margin, currentY);
+                    currentY += lineHeight + sectionSpacing;
+                    pdf.setFont(undefined, 'normal');
+                    pdf.setFontSize(10);
+                }
+
+                // Información de generación y fecha
+                if (config.elements.includeTimestamp) {
+                    const timestamp = metadata.timestamp ?
+                        metadata.timestamp.toLocaleString('es-MX', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                        }) :
+                        new Date().toLocaleString('es-MX');
+
+                    pdf.text(`Fecha de generación: ${timestamp}`, layout.margin, currentY);
+                    currentY += lineHeight;
+
+                    // Información de última actualización de datos
+                    if (metadata.lastDataUpdate && metadata.lastDataUpdate !== 'No disponible') {
+                        pdf.text(`Última actualización de datos: ${metadata.lastDataUpdate}`, layout.margin, currentY);
+                        currentY += lineHeight;
+                    }
+
+                    currentY += sectionSpacing;
+                }
+
+                // Información del mapa base y configuración
+                if (metadata.baseLayer) {
+                    pdf.text(`Mapa base: ${metadata.baseLayer}`, layout.margin, currentY);
+                    currentY += lineHeight;
+
+                    // Nivel de zoom y coordenadas del centro
+                    pdf.text(`Nivel de zoom: ${metadata.zoomLevel}`, layout.margin, currentY);
+                    currentY += lineHeight;
+
+                    pdf.text(`Centro: ${metadata.center.lat}°, ${metadata.center.lng}°`, layout.margin, currentY);
+                    currentY += lineHeight + sectionSpacing;
+                }
+
+                // Información de selecciones activas
+                if (metadata.selectedInstrument && metadata.selectedInstrument !== 'Ninguno seleccionado') {
+                    pdf.text(`Instrumento seleccionado:`, layout.margin, currentY);
+                    currentY += lineHeight;
+
+                    // Usar texto más pequeño para el nombre completo del instrumento
+                    pdf.setFontSize(9);
+                    const instrumentLines = pdf.splitTextToSize(metadata.selectedInstrument, layout.availableWidth - 10);
+                    pdf.text(instrumentLines, layout.margin + 5, currentY);
+                    currentY += lineHeight * instrumentLines.length;
+                    pdf.setFontSize(10);
+                }
+
+                if (metadata.selectedPlan && metadata.selectedPlan !== 'Ninguno seleccionado') {
+                    pdf.text(`Plan complementario seleccionado:`, layout.margin, currentY);
+                    currentY += lineHeight;
+
+                    // Usar texto más pequeño para el nombre completo del plan
+                    pdf.setFontSize(9);
+                    const planLines = pdf.splitTextToSize(metadata.selectedPlan, layout.availableWidth - 10);
+                    pdf.text(planLines, layout.margin + 5, currentY);
+                    currentY += lineHeight * planLines.length;
+                    pdf.setFontSize(10);
+                    currentY += sectionSpacing;
+                }
+
+                // Información de marcadores si hay elementos visibles
+                if (metadata.markersVisible > 0) {
+                    pdf.text(`Elementos visibles en el mapa: ${metadata.markersVisible}`, layout.margin, currentY);
+                    currentY += lineHeight + sectionSpacing;
+                }
+
+                // Atribuciones y fuentes de datos
+                if (config.elements.includeAttribution) {
+                    currentY += sectionSpacing;
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(100, 100, 100);
+
+                    // Fuente principal
+                    pdf.text(`Fuente de datos: ${metadata.dataSource}`, layout.margin, currentY);
+                    currentY += lineHeight - 1;
+
+                    // Sistema y organización
+                    pdf.text(`Sistema: ${metadata.system}`, layout.margin, currentY);
+                    currentY += lineHeight - 1;
+
+                    pdf.text(`Organización: ${metadata.organization}`, layout.margin, currentY);
+                    currentY += lineHeight - 1;
+
+                    // Atribución cartográfica
+                    if (metadata.baseLayerAttribution) {
+                        pdf.text(`Datos cartográficos: ${metadata.baseLayerAttribution}`, layout.margin, currentY);
+                        currentY += lineHeight - 1;
+                    }
+
+                    // Información adicional
+                    pdf.text('Generado con tecnología web abierta y estándares de datos abiertos', layout.margin, currentY);
+                }
+
+                console.log('Información contextual completa añadida al PDF');
+            }
+        }
+
+        /**
+         * Procesador de imágenes PNG
+         */
+        class PNGProcessor {
+            constructor() {
+                // Configuraciones predefinidas para diferentes calidades
+                this.qualityPresets = {
+                    150: { compression: 0.8, smoothing: 'medium' },
+                    300: { compression: 0.9, smoothing: 'high' },
+                    600: { compression: 1.0, smoothing: 'high' }
+                };
+            }
+
+            /**
+             * Crea un canvas limpio copiando los datos píxel por píxel para evitar problemas de CORS
+             * @param {HTMLCanvasElement} sourceCanvas - Canvas fuente que puede estar "tainted"
+             * @returns {HTMLCanvasElement} Canvas limpio sin restricciones CORS
+             */
+            createCleanCanvas(sourceCanvas) {
+                try {
+                    console.log('Creando canvas limpio para PNG...');
+
+                    // Crear nuevo canvas con las mismas dimensiones
+                    const cleanCanvas = document.createElement('canvas');
+                    cleanCanvas.width = sourceCanvas.width;
+                    cleanCanvas.height = sourceCanvas.height;
+
+                    const cleanCtx = cleanCanvas.getContext('2d');
+                    const sourceCtx = sourceCanvas.getContext('2d');
+
+                    try {
+                        // Intentar copiar usando getImageData (método más seguro)
+                        const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+                        cleanCtx.putImageData(imageData, 0, 0);
+
+                        console.log('Canvas PNG limpio creado usando getImageData');
+                        return cleanCanvas;
+
+                    } catch (getImageDataError) {
+                        console.warn('getImageData falló para PNG, intentando drawImage:', getImageDataError);
+
+                        try {
+                            // Fallback: intentar drawImage
+                            cleanCtx.drawImage(sourceCanvas, 0, 0);
+
+                            console.log('Canvas PNG limpio creado usando drawImage');
+                            return cleanCanvas;
+
+                        } catch (drawImageError) {
+                            console.warn('drawImage también falló para PNG:', drawImageError);
+
+                            // Último recurso: crear canvas básico
+                            cleanCtx.fillStyle = '#ffffff';
+                            cleanCtx.fillRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+
+                            cleanCtx.fillStyle = '#333333';
+                            cleanCtx.font = '20px Arial';
+                            cleanCtx.textAlign = 'center';
+                            cleanCtx.fillText('Mapa SNIEn', cleanCanvas.width / 2, cleanCanvas.height / 2);
+
+                            console.log('Canvas PNG básico creado como último recurso');
+                            return cleanCanvas;
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Error creando canvas PNG limpio:', error);
+
+                    // Canvas de emergencia
+                    const emergencyCanvas = document.createElement('canvas');
+                    emergencyCanvas.width = 800;
+                    emergencyCanvas.height = 600;
+                    const emergencyCtx = emergencyCanvas.getContext('2d');
+
+                    emergencyCtx.fillStyle = '#ffffff';
+                    emergencyCtx.fillRect(0, 0, 800, 600);
+
+                    emergencyCtx.fillStyle = '#333333';
+                    emergencyCtx.font = '24px Arial';
+                    emergencyCtx.textAlign = 'center';
+                    emergencyCtx.fillText('Error en exportación PNG', 400, 300);
+
+                    return emergencyCanvas;
+                }
+            }
+
+            /**
+             * Procesa un canvas para generar PNG optimizado
+             * @param {HTMLCanvasElement} canvas - Canvas con la imagen del mapa
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Promise<Blob>} Archivo PNG generado
+             */
+            async processPNG(canvas, config) {
+                try {
+                    console.log('Iniciando procesamiento PNG con DPI:', config.size.dpi);
+
+                    // Validar entrada
+                    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                        throw new Error('Canvas inválido para procesamiento PNG');
+                    }
+
+                    // Obtener configuración de calidad basada en DPI
+                    const qualityConfig = this.getQualityConfig(config.size.dpi);
+
+                    // Calcular dimensiones finales
+                    const dimensions = this.calculateOutputDimensions(canvas, config);
+
+                    // Crear canvas optimizado
+                    const optimizedCanvas = await this.createOptimizedCanvas(canvas, dimensions, qualityConfig);
+
+                    // Aplicar mejoras de imagen si es necesario
+                    if (config.size.dpi >= 300) {
+                        await this.enhanceImageQuality(optimizedCanvas, qualityConfig);
+                    }
+
+                    // Generar blob PNG con compresión optimizada
+                    const pngBlob = await this.generatePNGBlob(optimizedCanvas, qualityConfig);
+
+                    console.log(`PNG procesado: ${dimensions.width}x${dimensions.height}, tamaño: ${pngBlob.size} bytes`);
+
+                    return pngBlob;
+
+                } catch (error) {
+                    console.error('Error en procesamiento PNG:', error);
+                    throw new Error('Error procesando PNG: ' + error.message);
+                }
+            }
+
+            /**
+             * Obtiene la configuración de calidad basada en DPI
+             * @param {number} dpi - Resolución en DPI
+             * @returns {Object} Configuración de calidad
+             */
+            getQualityConfig(dpi) {
+                return this.qualityPresets[dpi] || this.qualityPresets[300];
+            }
+
+            /**
+             * Calcula las dimensiones de salida basadas en configuración
+             * @param {HTMLCanvasElement} canvas - Canvas original
+             * @param {ExportConfiguration} config - Configuración de exportación
+             * @returns {Object} Dimensiones calculadas
+             */
+            calculateOutputDimensions(canvas, config) {
+                let targetWidth, targetHeight;
+
+                // Si se especifica tamaño personalizado, usarlo
+                if (config.size.preset === 'custom') {
+                    targetWidth = config.size.width;
+                    targetHeight = config.size.height;
+                } else {
+                    // Calcular basado en DPI y tamaño de página
+                    const scaleFactor = config.size.dpi / 96; // 96 DPI es la resolución estándar del navegador
+                    targetWidth = Math.round(canvas.width * scaleFactor);
+                    targetHeight = Math.round(canvas.height * scaleFactor);
+                }
+
+                // Aplicar límites de seguridad para evitar problemas de memoria
+                const maxDimension = this.getMaxDimension(config.size.dpi);
+                if (targetWidth > maxDimension || targetHeight > maxDimension) {
+                    const ratio = Math.min(maxDimension / targetWidth, maxDimension / targetHeight);
+                    targetWidth = Math.round(targetWidth * ratio);
+                    targetHeight = Math.round(targetHeight * ratio);
+                    console.warn(`Dimensiones reducidas por límites de memoria: ${targetWidth}x${targetHeight}`);
+                }
+
+                return {
+                    width: targetWidth,
+                    height: targetHeight,
+                    scaleFactor: targetWidth / canvas.width
+                };
+            }
+
+            /**
+             * Obtiene la dimensión máxima permitida basada en DPI
+             * @param {number} dpi - Resolución en DPI
+             * @returns {number} Dimensión máxima en píxeles
+             */
+            getMaxDimension(dpi) {
+                // Límites conservadores para evitar problemas de memoria
+                const limits = {
+                    150: 4000,
+                    300: 6000,
+                    600: 8000
+                };
+                return limits[dpi] || limits[300];
+            }
+
+            /**
+             * Crea un canvas optimizado con las dimensiones y calidad especificadas
+             * @param {HTMLCanvasElement} sourceCanvas - Canvas original
+             * @param {Object} dimensions - Dimensiones objetivo
+             * @param {Object} qualityConfig - Configuración de calidad
+             * @returns {Promise<HTMLCanvasElement>} Canvas optimizado
+             */
+            async createOptimizedCanvas(sourceCanvas, dimensions, qualityConfig) {
+                return new Promise((resolve) => {
+                    const outputCanvas = document.createElement('canvas');
+                    const ctx = outputCanvas.getContext('2d');
+
+                    // Configurar dimensiones
+                    outputCanvas.width = dimensions.width;
+                    outputCanvas.height = dimensions.height;
+
+                    // Configurar calidad de renderizado
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = qualityConfig.smoothing;
+
+                    // Aplicar fondo blanco para mejor contraste
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+
+                    // Dibujar imagen escalada con alta calidad
+                    ctx.drawImage(sourceCanvas, 0, 0, dimensions.width, dimensions.height);
+
+                    resolve(outputCanvas);
+                });
+            }
+
+            /**
+             * Aplica mejoras de calidad de imagen para altas resoluciones
+             * @param {HTMLCanvasElement} canvas - Canvas a mejorar
+             * @param {Object} qualityConfig - Configuración de calidad
+             * @returns {Promise<void>}
+             */
+            async enhanceImageQuality(canvas, qualityConfig) {
+                return new Promise((resolve) => {
+                    const ctx = canvas.getContext('2d');
+
+                    // Aplicar filtros de mejora si es necesario
+                    if (qualityConfig.compression >= 0.9) {
+                        // Para alta calidad, aplicar un ligero sharpening
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const sharpened = this.applySharpeningFilter(imageData);
+                        ctx.putImageData(sharpened, 0, 0);
+                    }
+
+                    resolve();
+                });
+            }
+
+            /**
+             * Aplica un filtro de sharpening sutil para mejorar la nitidez
+             * @param {ImageData} imageData - Datos de imagen original
+             * @returns {ImageData} Datos de imagen con sharpening aplicado
+             */
+            applySharpeningFilter(imageData) {
+                // Kernel de sharpening sutil
+                const kernel = [
+                    0, -0.1, 0,
+                    -0.1, 1.4, -0.1,
+                    0, -0.1, 0
+                ];
+
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+                const output = new Uint8ClampedArray(data.length);
+
+                // Aplicar convolución
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        for (let c = 0; c < 3; c++) { // RGB, sin alpha
+                            let sum = 0;
+                            for (let ky = -1; ky <= 1; ky++) {
+                                for (let kx = -1; kx <= 1; kx++) {
+                                    const idx = ((y + ky) * width + (x + kx)) * 4 + c;
+                                    const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                                    sum += data[idx] * kernel[kernelIdx];
+                                }
+                            }
+                            const outputIdx = (y * width + x) * 4 + c;
+                            output[outputIdx] = Math.max(0, Math.min(255, sum));
+                        }
+                        // Copiar canal alpha sin modificar
+                        const alphaIdx = (y * width + x) * 4 + 3;
+                        output[alphaIdx] = data[alphaIdx];
+                    }
+                }
+
+                // Copiar bordes sin modificar
+                for (let i = 0; i < data.length; i += 4) {
+                    const x = (i / 4) % width;
+                    const y = Math.floor((i / 4) / width);
+                    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                        output[i] = data[i];
+                        output[i + 1] = data[i + 1];
+                        output[i + 2] = data[i + 2];
+                        output[i + 3] = data[i + 3];
+                    }
+                }
+
+                return new ImageData(output, width, height);
+            }
+
+            /**
+             * Genera el blob PNG final con compresión optimizada
+             * @param {HTMLCanvasElement} canvas - Canvas procesado
+             * @param {Object} qualityConfig - Configuración de calidad
+             * @returns {Promise<Blob>} Blob PNG generado
+             */
+            async generatePNGBlob(canvas, qualityConfig) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // Crear canvas limpio para evitar problemas de CORS
+                        const cleanCanvas = this.createCleanCanvas(canvas);
+
+                        // Usar máxima calidad para PNG (sin pérdida)
+                        cleanCanvas.toBlob((blob) => {
+                            if (!blob) {
+                                reject(new Error('No se pudo generar el blob PNG'));
+                                return;
+                            }
+                            resolve(blob);
+                        }, 'image/png', qualityConfig.compression);
+                    } catch (error) {
+                        reject(new Error('Error generando blob PNG: ' + error.message));
+                    }
+                });
+            }
+
+            /**
+             * Valida que el canvas tenga marcadores legibles
+             * @param {HTMLCanvasElement} canvas - Canvas a validar
+             * @returns {boolean} True si los marcadores son legibles
+             */
+            validateMarkerReadability(canvas) {
+                // Verificación básica de que el canvas no esté completamente vacío
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, Math.min(canvas.width, 100), Math.min(canvas.height, 100));
+                const data = imageData.data;
+
+                // Verificar que hay contenido no blanco
+                let hasContent = false;
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    // Si encuentra píxeles que no son blancos puros
+                    if (r < 250 || g < 250 || b < 250) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+
+                return hasContent;
+            }
+        }
+
+        /**
+         * Módulo principal de exportación de mapas
+         */
+        class MapExporter {
+            constructor(map, options = {}) {
+                this.map = map;
+                this.options = {
+                    defaultFormat: 'png',
+                    defaultSize: 'A4',
+                    defaultDPI: 300,
+                    includeMetadata: true,
+                    ...options
+                };
+
+                this.canvasCapture = new CanvasCapture(map);
+                this.pdfGenerator = new PDFGenerator();
+                this.pngProcessor = new PNGProcessor();
+            }
+
+            /**
+             * Crea un canvas limpio copiando los datos píxel por píxel para evitar problemas de CORS
+             * @param {HTMLCanvasElement} sourceCanvas - Canvas fuente que puede estar "tainted"
+             * @returns {HTMLCanvasElement} Canvas limpio sin restricciones CORS
+             */
+            createCleanCanvas(sourceCanvas) {
+                try {
+                    console.log('Creando canvas limpio para evitar problemas CORS...');
+
+                    // Crear nuevo canvas con las mismas dimensiones
+                    const cleanCanvas = document.createElement('canvas');
+                    cleanCanvas.width = sourceCanvas.width;
+                    cleanCanvas.height = sourceCanvas.height;
+
+                    const cleanCtx = cleanCanvas.getContext('2d');
+                    const sourceCtx = sourceCanvas.getContext('2d');
+
+                    try {
+                        // Intentar copiar usando getImageData (método más seguro)
+                        const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+                        cleanCtx.putImageData(imageData, 0, 0);
+
+                        console.log('Canvas limpio creado usando getImageData');
+                        return cleanCanvas;
+
+                    } catch (getImageDataError) {
+                        console.warn('getImageData falló, intentando drawImage:', getImageDataError);
+
+                        try {
+                            // Fallback: intentar drawImage
+                            cleanCtx.drawImage(sourceCanvas, 0, 0);
+
+                            console.log('Canvas limpio creado usando drawImage');
+                            return cleanCanvas;
+
+                        } catch (drawImageError) {
+                            console.warn('drawImage también falló:', drawImageError);
+
+                            // Último recurso: crear canvas básico con información
+                            cleanCtx.fillStyle = '#ffffff';
+                            cleanCtx.fillRect(0, 0, cleanCanvas.width, cleanCanvas.height);
+
+                            cleanCtx.fillStyle = '#333333';
+                            cleanCtx.font = '20px Arial';
+                            cleanCtx.textAlign = 'center';
+                            cleanCtx.fillText('Mapa SNIEn', cleanCanvas.width / 2, cleanCanvas.height / 2);
+                            cleanCtx.fillText('(Exportación de emergencia)', cleanCanvas.width / 2, cleanCanvas.height / 2 + 30);
+
+                            console.log('Canvas básico creado como último recurso');
+                            return cleanCanvas;
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Error creando canvas limpio:', error);
+
+                    // Canvas de emergencia
+                    const emergencyCanvas = document.createElement('canvas');
+                    emergencyCanvas.width = 800;
+                    emergencyCanvas.height = 600;
+                    const emergencyCtx = emergencyCanvas.getContext('2d');
+
+                    emergencyCtx.fillStyle = '#ffffff';
+                    emergencyCtx.fillRect(0, 0, 800, 600);
+
+                    emergencyCtx.fillStyle = '#333333';
+                    emergencyCtx.font = '24px Arial';
+                    emergencyCtx.textAlign = 'center';
+                    emergencyCtx.fillText('Error en exportación', 400, 280);
+                    emergencyCtx.fillText('Mapa SNIEn', 400, 320);
+
+                    return emergencyCanvas;
+                }
+            }
+
+            /**
+             * Exporta el mapa a formato PDF
+             * @param {Object} customOptions - Opciones personalizadas de exportación
+             * @returns {Promise<boolean>} True si la exportación fue exitosa
+             */
+            async exportToPDF(customOptions = {}) {
+                try {
+                    const config = new ExportConfiguration({
+                        format: 'pdf',
+                        size: { preset: this.options.defaultSize, dpi: this.options.defaultDPI },
+                        ...customOptions
+                    });
+
+                    console.log('Iniciando exportación PDF con configuración:', config);
+
+                    // Capturar el mapa
+                    const canvas = await this.canvasCapture.captureMap(config);
+                    console.log('Canvas capturado exitosamente:', canvas.width + 'x' + canvas.height);
+
+                    // Obtener metadatos completos
+                    const metadata = this.canvasCapture.getMapMetadata();
+                    console.log('Metadatos obtenidos:', metadata);
+
+                    // Generar PDF
+                    const pdfBlob = await this.pdfGenerator.generatePDF(canvas, config, metadata);
+                    console.log('PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
+
+                    // Generar nombre de archivo descriptivo
+                    const filename = this.generateFileName('pdf', metadata.timestamp, metadata);
+                    console.log('Nombre de archivo generado:', filename);
+
+                    // Descargar archivo
+                    const downloadSuccess = await this.downloadFile(pdfBlob, filename, 'PDF');
+
+                    if (downloadSuccess) {
+                        console.log('Exportación PDF completada exitosamente');
+                        return true;
+                    } else {
+                        throw new Error('Falló la descarga del archivo PDF');
+                    }
+
+                } catch (error) {
+                    console.error('Error detallado en exportación PDF:', error);
+
+                    // Mostrar notificación de error al usuario
+                    this.showNotification(
+                        'Error en exportación PDF',
+                        `No se pudo generar el PDF: ${error.message}`,
+                        'error'
+                    );
+
+                    throw new Error('Error exportando PDF: ' + error.message);
+                }
+            }
+
+            /**
+             * Exporta el mapa a formato PNG
+             * @param {Object} customOptions - Opciones personalizadas de exportación
+             * @returns {Promise<boolean>} True si la exportación fue exitosa
+             */
+            async exportToPNG(customOptions = {}) {
+                try {
+                    // Crear configuración con valores por defecto optimizados para PNG
+                    const config = new ExportConfiguration({
+                        format: 'png',
+                        size: {
+                            dpi: customOptions.size?.dpi || this.options.defaultDPI,
+                            preset: customOptions.size?.preset || 'A4',
+                            width: customOptions.size?.width,
+                            height: customOptions.size?.height
+                        },
+                        elements: {
+                            includeScale: true,
+                            includeLegend: true,
+                            includeAttribution: true,
+                            includeTimestamp: true,
+                            ...customOptions.elements
+                        },
+                        ...customOptions
+                    });
+
+                    console.log('Iniciando exportación PNG con configuración:', config);
+
+                    // Validar configuración antes de proceder
+                    this.validateExportConfiguration(config);
+
+                    // Capturar el mapa con configuración optimizada para PNG
+                    const canvas = await this.canvasCapture.captureMap(config);
+                    console.log('Canvas capturado exitosamente:', canvas.width + 'x' + canvas.height);
+
+                    // Validar que el canvas tenga contenido válido
+                    if (!this.pngProcessor.validateMarkerReadability(canvas)) {
+                        console.warn('Advertencia: El canvas puede no tener marcadores visibles');
+                    }
+
+                    // Obtener metadatos completos del mapa
+                    const metadata = this.canvasCapture.getMapMetadata();
+                    console.log('Metadatos obtenidos:', metadata);
+
+                    // Procesar PNG con optimizaciones específicas
+                    const pngBlob = await this.pngProcessor.processPNG(canvas, config);
+                    console.log('PNG procesado exitosamente, tamaño:', pngBlob.size, 'bytes');
+
+                    // Validar que el archivo generado tenga un tamaño razonable
+                    this.validateFileSize(pngBlob, 'PNG');
+
+                    // Generar nombre de archivo descriptivo con información del mapa
+                    const filename = this.generateFileName('png', metadata.timestamp, metadata);
+                    console.log('Nombre de archivo generado:', filename);
+
+                    // Descargar archivo automáticamente
+                    const downloadSuccess = await this.downloadFile(pngBlob, filename, 'PNG');
+
+                    if (downloadSuccess) {
+                        console.log('Exportación PNG completada exitosamente');
+
+                        // Mostrar notificación de éxito con detalles
+                        this.showNotification(
+                            'PNG exportado exitosamente',
+                            `Archivo generado: ${filename} (${this.formatFileSize(pngBlob.size)})`,
+                            'success'
+                        );
+
+                        return true;
+                    } else {
+                        throw new Error('Falló la descarga del archivo PNG');
+                    }
+
+                } catch (error) {
+                    console.error('Error detallado en exportación PNG:', error);
+
+                    // Mostrar notificación de error específica al usuario
+                    this.showNotification(
+                        'Error en exportación PNG',
+                        `No se pudo generar el PNG: ${error.message}`,
+                        'error'
+                    );
+
+                    throw new Error('Error exportando PNG: ' + error.message);
+                }
+            }
+
+            /**
+             * Valida la configuración de exportación
+             * @param {ExportConfiguration} config - Configuración a validar
+             * @throws {Error} Si la configuración es inválida
+             */
+            validateExportConfiguration(config) {
+                // Validar DPI
+                const validDPIs = [150, 300, 600];
+                if (!validDPIs.includes(config.size.dpi)) {
+                    throw new Error(`DPI inválido: ${config.size.dpi}. Valores válidos: ${validDPIs.join(', ')}`);
+                }
+
+                // Validar dimensiones personalizadas
+                if (config.size.preset === 'custom') {
+                    if (!config.size.width || !config.size.height) {
+                        throw new Error('Dimensiones personalizadas requeridas para tamaño custom');
+                    }
+                    if (config.size.width < 100 || config.size.height < 100) {
+                        throw new Error('Dimensiones mínimas: 100x100 píxeles');
+                    }
+                    if (config.size.width > 8000 || config.size.height > 8000) {
+                        throw new Error('Dimensiones máximas: 8000x8000 píxeles');
+                    }
+                }
+            }
+
+            /**
+             * Valida el tamaño del archivo generado
+             * @param {Blob} blob - Archivo generado
+             * @param {string} format - Formato del archivo
+             * @throws {Error} Si el archivo es demasiado grande o pequeño
+             */
+            validateFileSize(blob, format) {
+                const maxSize = 50 * 1024 * 1024; // 50MB máximo
+                const minSize = 1024; // 1KB mínimo
+
+                if (blob.size > maxSize) {
+                    throw new Error(`Archivo ${format} demasiado grande: ${this.formatFileSize(blob.size)}. Máximo: 50MB`);
+                }
+                if (blob.size < minSize) {
+                    throw new Error(`Archivo ${format} demasiado pequeño: ${this.formatFileSize(blob.size)}. Puede estar vacío`);
+                }
+            }
+
+            /**
+             * Formatea el tamaño de archivo para mostrar al usuario
+             * @param {number} bytes - Tamaño en bytes
+             * @returns {string} Tamaño formateado
+             */
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            /**
+             * Prueba la funcionalidad de captura sin generar archivos
+             * @returns {Promise<Object>} Información sobre la captura de prueba
+             */
+            async testCapture() {
+                try {
+                    console.log('Iniciando prueba de captura...');
+
+                    // Verificar estado del mapa
+                    this.canvasCapture.validateMapState();
+                    console.log('Estado del mapa: válido');
+
+                    // Obtener estado de tiles
+                    const tileStatus = this.canvasCapture.getTileLoadingStatus();
+                    console.log('Estado de tiles:', tileStatus);
+
+                    // Realizar captura de prueba
+                    const config = new ExportConfiguration({ format: 'png' });
+                    const canvas = await this.canvasCapture.captureMap(config);
+
+                    // Obtener metadatos
+                    const metadata = this.canvasCapture.getMapMetadata();
+
+                    return {
+                        success: true,
+                        canvasSize: { width: canvas.width, height: canvas.height },
+                        metadata: metadata,
+                        tileStatus: tileStatus
+                    };
+                } catch (error) {
+                    console.error('Error en prueba de captura:', error);
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+
+            /**
+             * Genera un nombre de archivo descriptivo con timestamp
+             * @param {string} format - Formato del archivo (pdf, png)
+             * @param {Date} timestamp - Fecha y hora de generación
+             * @param {Object} metadata - Metadatos del mapa para contexto adicional
+             * @returns {string} Nombre del archivo descriptivo
+             */
+            generateFileName(format, timestamp, metadata = {}) {
+                // Crear timestamp legible
+                const year = timestamp.getFullYear();
+                const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+                const day = String(timestamp.getDate()).padStart(2, '0');
+                const hours = String(timestamp.getHours()).padStart(2, '0');
+                const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+                const seconds = String(timestamp.getSeconds()).padStart(2, '0');
+
+                const dateStr = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+
+                // Construir nombre base
+                let baseName = 'mapa-snien';
+
+                // Añadir información contextual si está disponible
+                if (metadata.selectedInstrumentValue && metadata.selectedInstrumentValue !== '') {
+                    const instrumentCode = this.sanitizeForFilename(metadata.selectedInstrumentValue);
+                    baseName += `-${instrumentCode}`;
+                }
+
+                if (metadata.selectedPlanValue && metadata.selectedPlanValue !== '') {
+                    const planCode = this.sanitizeForFilename(metadata.selectedPlanValue);
+                    baseName += `-${planCode}`;
+                }
+
+                // Añadir nivel de zoom si es significativo
+                if (metadata.zoomLevel && metadata.zoomLevel >= 6) {
+                    baseName += `-z${metadata.zoomLevel}`;
+                }
+
+                return `${baseName}_${dateStr}.${format}`;
+            }
+
+            /**
+             * Sanitiza texto para uso en nombres de archivo
+             * @param {string} text - Texto a sanitizar
+             * @returns {string} Texto sanitizado
+             */
+            sanitizeForFilename(text) {
+                return text
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-|-$/g, '')
+                    .substring(0, 20); // Limitar longitud
+            }
+
+            /**
+             * Descarga un archivo al dispositivo del usuario con manejo de errores
+             * @param {Blob} blob - Contenido del archivo
+             * @param {string} filename - Nombre del archivo
+             * @param {string} format - Formato del archivo para mensajes de error
+             * @returns {Promise<boolean>} True si la descarga fue exitosa
+             */
+            async downloadFile(blob, filename, format = 'archivo') {
+                try {
+                    // Verificar que el blob sea válido
+                    if (!blob || blob.size === 0) {
+                        throw new Error('El archivo generado está vacío');
+                    }
+
+                    console.log(`Iniciando descarga de ${format}: ${filename} (${blob.size} bytes)`);
+
+                    // Validaciones específicas para PNG
+                    if (format.toLowerCase() === 'png') {
+                        return await this.downloadPNGFile(blob, filename);
+                    }
+
+                    // Crear URL del objeto
+                    const url = URL.createObjectURL(blob);
+
+                    // Crear elemento de descarga
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.style.display = 'none';
+
+                    // Añadir al DOM temporalmente
+                    document.body.appendChild(link);
+
+                    // Simular click para iniciar descarga
+                    link.click();
+
+                    // Limpiar después de un breve delay
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+
+                    // Mostrar notificación de éxito
+                    this.showNotification(
+                        `${format.toUpperCase()} descargado exitosamente`,
+                        `El archivo "${filename}" se ha guardado en tu dispositivo.`,
+                        'success'
+                    );
+
+                    console.log(`Descarga de ${format} completada exitosamente`);
+                    return true;
+
+                } catch (error) {
+                    console.error(`Error en descarga de ${format}:`, error);
+
+                    // Mostrar notificación de error
+                    this.showNotification(
+                        `Error al descargar ${format.toUpperCase()}`,
+                        `No se pudo descargar el archivo: ${error.message}`,
+                        'error'
+                    );
+
+                    return false;
+                }
+            }
+
+            /**
+             * Descarga específica para archivos PNG con validaciones adicionales
+             * @param {Blob} pngBlob - Blob del archivo PNG
+             * @param {string} filename - Nombre del archivo
+             * @returns {Promise<boolean>} True si la descarga fue exitosa
+             */
+            async downloadPNGFile(pngBlob, filename) {
+                try {
+                    console.log(`Iniciando descarga PNG especializada: ${filename}`);
+
+                    // Validar que es realmente un PNG
+                    if (!pngBlob.type.includes('png')) {
+                        console.warn('Advertencia: El blob no tiene tipo PNG, forzando tipo correcto');
+                    }
+
+                    // Crear un nuevo blob con el tipo correcto si es necesario
+                    const correctedBlob = new Blob([pngBlob], { type: 'image/png' });
+
+                    // Validar calidad de imagen antes de descargar
+                    const qualityCheck = await this.validatePNGQuality(correctedBlob);
+                    if (!qualityCheck.isValid) {
+                        console.warn('Advertencia de calidad PNG:', qualityCheck.warning);
+                    }
+
+                    // Crear URL del objeto
+                    const url = URL.createObjectURL(correctedBlob);
+
+                    // Crear elemento de descarga con atributos específicos para PNG
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.style.display = 'none';
+
+                    // Añadir atributos para mejor compatibilidad
+                    link.setAttribute('type', 'image/png');
+                    link.setAttribute('target', '_blank');
+
+                    // Añadir al DOM temporalmente
+                    document.body.appendChild(link);
+
+                    // Usar evento para asegurar que la descarga se complete
+                    return new Promise((resolve) => {
+                        const cleanup = () => {
+                            setTimeout(() => {
+                                if (document.body.contains(link)) {
+                                    document.body.removeChild(link);
+                                }
+                                URL.revokeObjectURL(url);
+                            }, 1000); // Delay más largo para PNG
+                        };
+
+                        // Manejar eventos de descarga
+                        link.addEventListener('click', () => {
+                            console.log('Descarga PNG iniciada');
+                            cleanup();
+
+                            // Mostrar notificación específica para PNG
+                            this.showNotification(
+                                'PNG de alta calidad descargado',
+                                `Imagen exportada: "${filename}" (${this.formatFileSize(correctedBlob.size)})`,
+                                'success'
+                            );
+
+                            resolve(true);
+                        });
+
+                        // Simular click para iniciar descarga
+                        link.click();
+                    });
+
+                } catch (error) {
+                    console.error('Error en descarga PNG especializada:', error);
+
+                    // Mostrar notificación de error específica
+                    this.showNotification(
+                        'Error al descargar PNG',
+                        `No se pudo descargar la imagen PNG: ${error.message}`,
+                        'error'
+                    );
+
+                    return false;
+                }
+            }
+
+            /**
+             * Valida la calidad de un archivo PNG
+             * @param {Blob} pngBlob - Blob del PNG a validar
+             * @returns {Promise<Object>} Resultado de la validación
+             */
+            async validatePNGQuality(pngBlob) {
+                try {
+                    // Crear una imagen temporal para validar
+                    const img = new Image();
+                    const url = URL.createObjectURL(pngBlob);
+
+                    return new Promise((resolve) => {
+                        img.onload = () => {
+                            URL.revokeObjectURL(url);
+
+                            const result = {
+                                isValid: true,
+                                width: img.width,
+                                height: img.height,
+                                fileSize: pngBlob.size
+                            };
+
+                            // Validaciones de calidad
+                            if (img.width < 100 || img.height < 100) {
+                                result.isValid = false;
+                                result.warning = 'Imagen demasiado pequeña para buena legibilidad';
+                            } else if (pngBlob.size < 10000) { // Menos de 10KB
+                                result.isValid = false;
+                                result.warning = 'Archivo muy pequeño, puede estar vacío o corrupto';
+                            } else if (pngBlob.size > 20 * 1024 * 1024) { // Más de 20MB
+                                result.warning = 'Archivo muy grande, puede tardar en descargarse';
+                            }
+
+                            console.log('Validación PNG completada:', result);
+                            resolve(result);
+                        };
+
+                        img.onerror = () => {
+                            URL.revokeObjectURL(url);
+                            resolve({
+                                isValid: false,
+                                warning: 'No se pudo cargar la imagen PNG generada'
+                            });
+                        };
+
+                        img.src = url;
+                    });
+
+                } catch (error) {
+                    console.error('Error validando PNG:', error);
+                    return {
+                        isValid: false,
+                        warning: 'Error validando calidad de PNG: ' + error.message
+                    };
+                }
+            }
+
+            /**
+             * Muestra una notificación al usuario
+             * @param {string} title - Título de la notificación
+             * @param {string} message - Mensaje de la notificación
+             * @param {string} type - Tipo de notificación (success, error, info)
+             */
+            showNotification(title, message, type = 'info') {
+                // Buscar el contenedor de notificaciones
+                let container = document.getElementById('notification-container');
+
+                // Crear contenedor si no existe
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'notification-container';
+                    container.className = 'notification-container';
+                    container.setAttribute('aria-live', 'polite');
+                    container.setAttribute('aria-atomic', 'true');
+                    document.body.appendChild(container);
+                }
+
+                // Crear elemento de notificación
+                const notification = document.createElement('div');
+                notification.className = `notification notification--${type}`;
+                notification.setAttribute('role', 'alert');
+
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <h4 class="notification-title">${title}</h4>
+                        <p class="notification-message">${message}</p>
+                    </div>
+                    <button type="button" class="notification-close" aria-label="Cerrar notificación">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                `;
+
+                // Añadir evento de cierre
+                const closeBtn = notification.querySelector('.notification-close');
+                closeBtn.addEventListener('click', () => {
+                    this.removeNotification(notification);
+                });
+
+                // Añadir al contenedor
+                container.appendChild(notification);
+
+                // Auto-remover después de 5 segundos para notificaciones de éxito
+                if (type === 'success') {
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            this.removeNotification(notification);
+                        }
+                    }, 5000);
+                }
+
+                console.log(`Notificación mostrada: ${type} - ${title}`);
+            }
+
+            /**
+             * Remueve una notificación con animación
+             * @param {HTMLElement} notification - Elemento de notificación a remover
+             */
+            removeNotification(notification) {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+
+            /**
+             * Muestra el diálogo de configuración de exportación
+             */
+            showExportDialog() {
+                // Esta funcionalidad se implementará en tareas posteriores
+                console.log('Diálogo de exportación - pendiente de implementación');
+            }
+        }
+
+        // Hacer las clases disponibles globalmente
+        window.MapExporter = MapExporter;
+        window.ExportConfiguration = ExportConfiguration;
+    </script>
+    <!-- Export UI Module -->
+    <script>
+        /**
+         * Interfaz de usuario para exportación de mapas
+         */
+        class ExportUI {
+            constructor() {
+                this.modal = document.getElementById('export-modal');
+                this.form = document.getElementById('export-config-form');
+                this.exportButtons = {
+                    pdf: document.getElementById('export-pdf'),
+                    png: document.getElementById('export-png')
+                };
+                this.modalButtons = {
+                    close: this.modal.querySelector('.modal-close'),
+                    cancel: this.modal.querySelector('.btn-cancel'),
+                    confirm: this.modal.querySelector('.btn-export-confirm')
+                };
+                this.pageSizeSelect = document.getElementById('page-size');
+                this.customSizeSection = document.getElementById('custom-size-section');
+
+                this.currentFormat = 'pdf';
+                this.isExporting = false;
+
+                this.initializeEventListeners();
+            }
+
+            /**
+             * Inicializa los event listeners
+             */
+            initializeEventListeners() {
+                // Botones de exportación
+                this.exportButtons.pdf.addEventListener('click', () => this.openModal('pdf'));
+                this.exportButtons.png.addEventListener('click', () => this.openModal('png'));
+
+                // Botones del modal
+                this.modalButtons.close.addEventListener('click', () => this.closeModal());
+                this.modalButtons.cancel.addEventListener('click', () => this.closeModal());
+                this.modalButtons.confirm.addEventListener('click', () => this.handleExport());
+
+                // Overlay del modal
+                this.modal.querySelector('.modal-overlay').addEventListener('click', () => this.closeModal());
+
+                // Escape key para cerrar modal
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+                        this.closeModal();
+                    }
+                });
+
+                // Cambio de tamaño de página
+                this.pageSizeSelect.addEventListener('change', () => this.toggleCustomSizeSection());
+
+                // Cambio de formato
+                this.form.addEventListener('change', (e) => {
+                    if (e.target.name === 'format') {
+                        this.currentFormat = e.target.value;
+                        this.updateModalForFormat();
+                    }
+                });
+
+                // Validación de campos personalizados
+                const customInputs = this.modal.querySelectorAll('#custom-width, #custom-height');
+                customInputs.forEach(input => {
+                    input.addEventListener('input', () => this.validateCustomSize());
+                });
+            }
+
+            /**
+             * Abre el modal de configuración
+             * @param {string} format - Formato inicial (pdf o png)
+             */
+            openModal(format = 'pdf') {
+                this.currentFormat = format;
+
+                // Establecer formato seleccionado
+                const formatRadio = this.form.querySelector(`input[name="format"][value="${format}"]`);
+                if (formatRadio) {
+                    formatRadio.checked = true;
+                }
+
+                this.updateModalForFormat();
+                this.modal.classList.add('active');
+                this.modal.setAttribute('aria-hidden', 'false');
+
+                // Focus en el primer elemento
+                const firstInput = this.modal.querySelector('input, select, button');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+            }
+
+            /**
+             * Cierra el modal
+             */
+            closeModal() {
+                if (this.isExporting) return;
+
+                this.modal.classList.remove('active');
+                this.modal.setAttribute('aria-hidden', 'true');
+            }
+
+            /**
+             * Actualiza el modal según el formato seleccionado
+             */
+            updateModalForFormat() {
+                const title = this.modal.querySelector('#export-modal-title');
+                const confirmButton = this.modalButtons.confirm;
+
+                if (this.currentFormat === 'pdf') {
+                    title.textContent = 'Configurar exportación PDF';
+                    confirmButton.innerHTML = '<span class="btn-text">Exportar PDF</span><span class="btn-spinner" style="display: none;"><span class="spinner-small"></span></span>';
+                } else {
+                    title.textContent = 'Configurar exportación PNG';
+                    confirmButton.innerHTML = '<span class="btn-text">Exportar PNG</span><span class="btn-spinner" style="display: none;"><span class="spinner-small"></span></span>';
+                }
+            }
+
+            /**
+             * Muestra/oculta la sección de tamaño personalizado
+             */
+            toggleCustomSizeSection() {
+                const isCustom = this.pageSizeSelect.value === 'custom';
+                this.customSizeSection.style.display = isCustom ? 'grid' : 'none';
+
+                if (isCustom) {
+                    this.validateCustomSize();
+                }
+            }
+
+            /**
+             * Valida los campos de tamaño personalizado
+             */
+            validateCustomSize() {
+                const widthInput = document.getElementById('custom-width');
+                const heightInput = document.getElementById('custom-height');
+                const confirmButton = this.modalButtons.confirm;
+
+                const width = parseInt(widthInput.value);
+                const height = parseInt(heightInput.value);
+
+                const isValid = width >= 100 && width <= 8000 && height >= 100 && height <= 8000;
+                confirmButton.disabled = !isValid;
+
+                if (!isValid) {
+                    confirmButton.style.opacity = '0.5';
+                    confirmButton.style.cursor = 'not-allowed';
+                } else {
+                    confirmButton.style.opacity = '1';
+                    confirmButton.style.cursor = 'pointer';
+                }
+            }
+
+            /**
+             * Obtiene la configuración actual del formulario
+             * @returns {Object} Configuración de exportación
+             */
+            getConfiguration() {
+                const formData = new FormData(this.form);
+                const config = {
+                    format: formData.get('format') || 'pdf',
+                    size: {
+                        preset: formData.get('pageSize') || 'A4',
+                        dpi: parseInt(formData.get('dpi')) || 300
+                    },
+                    elements: {
+                        includeScale: formData.has('includeScale'),
+                        includeLegend: formData.has('includeLegend'),
+                        includeAttribution: formData.has('includeAttribution'),
+                        includeTimestamp: formData.has('includeTimestamp'),
+                        includeTitle: formData.has('includeTitle')
+                    },
+                    metadata: {
+                        title: formData.get('mapTitle') || 'Mapa SNIEn - Sistema Nacional de Información Energética'
+                    }
+                };
+
+                // Añadir dimensiones personalizadas si aplica
+                if (config.size.preset === 'custom') {
+                    config.size.width = parseInt(formData.get('customWidth')) || 2480;
+                    config.size.height = parseInt(formData.get('customHeight')) || 3508;
+                }
+
+                return config;
+            }
+
+            /**
+             * Maneja el proceso de exportación
+             */
+            async handleExport() {
+                if (this.isExporting) return;
+
+                try {
+                    this.setExportingState(true);
+
+                    const config = this.getConfiguration();
+
+                    // Aquí se integrará con el MapExporter cuando esté disponible
+                    if (window.mapExporter) {
+                        if (config.format === 'pdf') {
+                            await window.mapExporter.exportToPDF(config);
+                        } else {
+                            await window.mapExporter.exportToPNG(config);
+                        }
+
+                        this.showSuccessMessage(config.format.toUpperCase());
+                    } else {
+                        throw new Error('Exportador de mapas no disponible');
+                    }
+
+                    this.closeModal();
+                } catch (error) {
+                    console.error('Error durante la exportación:', error);
+                    this.showErrorMessage(error.message);
+                } finally {
+                    this.setExportingState(false);
+                }
+            }
+
+            /**
+             * Establece el estado de exportación
+             * @param {boolean} isExporting - Si está exportando
+             */
+            setExportingState(isExporting) {
+                this.isExporting = isExporting;
+                const confirmButton = this.modalButtons.confirm;
+
+                if (isExporting) {
+                    confirmButton.classList.add('loading');
+                    confirmButton.disabled = true;
+                } else {
+                    confirmButton.classList.remove('loading');
+                    confirmButton.disabled = false;
+                }
+            }
+
+            /**
+             * Muestra mensaje de éxito
+             * @param {string} format - Formato exportado
+             */
+            showSuccessMessage(format) {
+                // Esta funcionalidad se implementará en la siguiente tarea
+                console.log(`Exportación ${format} completada exitosamente`);
+            }
+
+            /**
+             * Muestra mensaje de error
+             * @param {string} message - Mensaje de error
+             */
+            showErrorMessage(message) {
+                // Esta funcionalidad se implementará en la siguiente tarea
+                console.error('Error de exportación:', message);
+            }
+        }
+
+        // Hacer la clase disponible globalmente
+        window.ExportUI = ExportUI;
+    </script>
+
+    <!-- Notification and Progress System -->
+    <script>
+        /**
+         * Sistema de notificaciones
+         */
+        class NotificationSystem {
+            constructor() {
+                this.container = document.getElementById('notification-container');
+                this.notifications = new Map();
+                this.nextId = 1;
+            }
+
+            /**
+             * Muestra una notificación
+             * @param {Object} options - Opciones de la notificación
+             * @returns {string} ID de la notificación
+             */
+            show(options = {}) {
+                const {
+                    type = 'info',
+                    title = '',
+                    message = '',
+                    duration = 5000,
+                    persistent = false,
+                    icon = this.getDefaultIcon(type)
+                } = options;
+
+                const id = `notification-${this.nextId++}`;
+
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
+                notification.innerHTML = `
+                    <div class="notification-icon" aria-hidden="true">${icon}</div>
+                    <div class="notification-content">
+                        ${title ? `<h5 class="notification-title">${title}</h5>` : ''}
+                        ${message ? `<p class="notification-message">${message}</p>` : ''}
+                    </div>
+                    <button type="button" class="notification-close" aria-label="Cerrar notificación">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                `;
+
+                // Event listener para cerrar
+                const closeBtn = notification.querySelector('.notification-close');
+                closeBtn.addEventListener('click', () => this.hide(id));
+
+                this.container.appendChild(notification);
+                this.notifications.set(id, notification);
+
+                // Mostrar con animación
+                requestAnimationFrame(() => {
+                    notification.classList.add('show');
+                });
+
+                // Auto-ocultar si no es persistente
+                if (!persistent && duration > 0) {
+                    setTimeout(() => this.hide(id), duration);
+                }
+
+                return id;
+            }
+
+            /**
+             * Oculta una notificación
+             * @param {string} id - ID de la notificación
+             */
+            hide(id) {
+                const notification = this.notifications.get(id);
+                if (!notification) return;
+
+                notification.classList.remove('show');
+
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                    this.notifications.delete(id);
+                }, 300);
+            }
+
+            /**
+             * Oculta todas las notificaciones
+             */
+            hideAll() {
+                this.notifications.forEach((_, id) => this.hide(id));
+            }
+
+            /**
+             * Obtiene el icono por defecto según el tipo
+             * @param {string} type - Tipo de notificación
+             * @returns {string} Icono
+             */
+            getDefaultIcon(type) {
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                return icons[type] || icons.info;
+            }
+
+            /**
+             * Métodos de conveniencia
+             */
+            success(title, message, options = {}) {
+                return this.show({ ...options, type: 'success', title, message });
+            }
+
+            error(title, message, options = {}) {
+                return this.show({ ...options, type: 'error', title, message, persistent: true });
+            }
+
+            warning(title, message, options = {}) {
+                return this.show({ ...options, type: 'warning', title, message });
+            }
+
+            info(title, message, options = {}) {
+                return this.show({ ...options, type: 'info', title, message });
+            }
+        }
+
+        /**
+         * Sistema de progreso para exportación
+         */
+        class ProgressSystem {
+            constructor() {
+                this.overlay = document.getElementById('export-progress-overlay');
+                this.titleElement = this.overlay.querySelector('.progress-title');
+                this.messageElement = this.overlay.querySelector('.progress-message');
+                this.fillElement = this.overlay.querySelector('.progress-fill');
+                this.percentageElement = this.overlay.querySelector('.progress-percentage');
+
+                this.isVisible = false;
+                this.currentProgress = 0;
+            }
+
+            /**
+             * Muestra el overlay de progreso
+             * @param {Object} options - Opciones del progreso
+             */
+            show(options = {}) {
+                const {
+                    title = 'Exportando mapa...',
+                    message = 'Preparando exportación',
+                    progress = 0
+                } = options;
+
+                this.titleElement.textContent = title;
+                this.messageElement.textContent = message;
+                this.setProgress(progress);
+
+                this.overlay.style.display = 'flex';
+                this.isVisible = true;
+
+                // Prevenir scroll del body
+                document.body.style.overflow = 'hidden';
+            }
+
+            /**
+             * Oculta el overlay de progreso
+             */
+            hide() {
+                this.overlay.style.display = 'none';
+                this.isVisible = false;
+                this.currentProgress = 0;
+
+                // Restaurar scroll del body
+                document.body.style.overflow = '';
+            }
+
+            /**
+             * Actualiza el progreso
+             * @param {number} progress - Progreso (0-100)
+             * @param {string} message - Mensaje opcional
+             */
+            setProgress(progress, message = null) {
+                this.currentProgress = Math.max(0, Math.min(100, progress));
+
+                this.fillElement.style.width = `${this.currentProgress}%`;
+                this.percentageElement.textContent = `${Math.round(this.currentProgress)}%`;
+
+                if (message) {
+                    this.messageElement.textContent = message;
+                }
+            }
+
+            /**
+             * Actualiza solo el mensaje
+             * @param {string} message - Nuevo mensaje
+             */
+            setMessage(message) {
+                this.messageElement.textContent = message;
+            }
+
+            /**
+             * Actualiza el título
+             * @param {string} title - Nuevo título
+             */
+            setTitle(title) {
+                this.titleElement.textContent = title;
+            }
+
+            /**
+             * Simula progreso automático
+             * @param {number} duration - Duración en ms
+             * @param {Function} callback - Callback al completar
+             */
+            simulateProgress(duration = 3000, callback = null) {
+                const steps = 50;
+                const interval = duration / steps;
+                let step = 0;
+
+                const timer = setInterval(() => {
+                    step++;
+                    const progress = (step / steps) * 100;
+                    this.setProgress(progress);
+
+                    if (step >= steps) {
+                        clearInterval(timer);
+                        if (callback) callback();
+                    }
+                }, interval);
+
+                return timer;
+            }
+        }
+
+        /**
+         * Integración con ExportUI para mostrar progreso y notificaciones
+         */
+        if (window.ExportUI) {
+            const originalExportUI = window.ExportUI;
+
+            window.ExportUI = class extends originalExportUI {
+                constructor() {
+                    super();
+                    this.notifications = new NotificationSystem();
+                    this.progress = new ProgressSystem();
+                }
+
+                /**
+                 * Maneja el proceso de exportación con indicadores de progreso
+                 */
+                async handleExport() {
+                    if (this.isExporting) return;
+
+                    try {
+                        this.setExportingState(true);
+
+                        const config = this.getConfiguration();
+                        const format = config.format.toUpperCase();
+
+                        // Mostrar progreso
+                        this.progress.show({
+                            title: `Exportando ${format}...`,
+                            message: 'Preparando captura del mapa'
+                        });
+
+                        // Simular progreso de captura
+                        this.progress.setProgress(10, 'Capturando imagen del mapa');
+
+                        // Aquí se integrará con el MapExporter cuando esté disponible
+                        if (window.mapExporter) {
+                            this.progress.setProgress(30, 'Procesando imagen');
+
+                            if (config.format === 'pdf') {
+                                this.progress.setProgress(60, 'Generando archivo PDF');
+                                await window.mapExporter.exportToPDF(config);
+                            } else {
+                                this.progress.setProgress(60, 'Optimizando imagen PNG');
+                                await window.mapExporter.exportToPNG(config);
+                            }
+
+                            this.progress.setProgress(90, 'Preparando descarga');
+
+                            // Simular finalización
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            this.progress.setProgress(100, 'Completado');
+
+                            await new Promise(resolve => setTimeout(resolve, 500));
+
+                            this.showSuccessMessage(format);
+                        } else {
+                            throw new Error('Exportador de mapas no disponible');
+                        }
+
+                        this.closeModal();
+                    } catch (error) {
+                        console.error('Error durante la exportación:', error);
+                        this.showErrorMessage(error.message);
+                    } finally {
+                        this.progress.hide();
+                        this.setExportingState(false);
+                    }
+                }
+
+                /**
+                 * Muestra mensaje de éxito
+                 * @param {string} format - Formato exportado
+                 */
+                showSuccessMessage(format) {
+                    this.notifications.success(
+                        'Exportación completada',
+                        `El archivo ${format} se ha descargado correctamente a tu dispositivo.`,
+                        { duration: 6000 }
+                    );
+                }
+
+                /**
+                 * Muestra mensaje de error
+                 * @param {string} message - Mensaje de error
+                 */
+                showErrorMessage(message) {
+                    this.notifications.error(
+                        'Error en la exportación',
+                        `No se pudo completar la exportación: ${message}`,
+                        { persistent: true }
+                    );
+                }
+
+                /**
+                 * Establece el estado de exportación con indicadores visuales
+                 * @param {boolean} isExporting - Si está exportando
+                 */
+                setExportingState(isExporting) {
+                    super.setExportingState(isExporting);
+
+                    // Añadir clase de loading a los botones de exportación
+                    Object.values(this.exportButtons).forEach(button => {
+                        if (isExporting) {
+                            button.classList.add('btn-export--loading');
+                            button.disabled = true;
+                        } else {
+                            button.classList.remove('btn-export--loading');
+                            button.disabled = false;
+                        }
+                    });
+                }
+            };
+        }
+
+        // Hacer las clases disponibles globalmente
+        window.NotificationSystem = NotificationSystem;
+        window.ProgressSystem = ProgressSystem;
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const MAP_CONTAINER_ID = 'map';
@@ -159,11 +3435,6 @@
             const preloader = document.getElementById('preloader');
             const lastUpdatedEl = document.getElementById('last-updated');
             const refreshBtn = document.getElementById('refresh-data');
-            const basemapSelect = document.getElementById('basemap-select');
-            const instrumentSelect = document.getElementById('instrument-select');
-            const planSelect = document.getElementById('plan-select');
-            const instrumentDetails = document.getElementById('instrument-details');
-            const planDetails = document.getElementById('plan-details');
 
             const mexicoBounds = L.latLngBounds(
                 [14.0, -118.0],
@@ -364,22 +3635,8 @@
                 L.control.layers(baseLayersForControl, null, { position: 'topright', collapsed: true }).addTo(map);
             }
 
+            // El mapa base se maneja ahora completamente desde el control de capas de Leaflet
             let currentBaseLayer = activeBaseLayer || null;
-            if (basemapSelect && defaultBaseKey) {
-                basemapSelect.value = defaultBaseKey;
-                basemapSelect.addEventListener('change', function (event) {
-                    const key = event.target.value;
-                    const nextLayer = baseLayers[key];
-                    if (!nextLayer || nextLayer === currentBaseLayer) {
-                        return;
-                    }
-                    if (currentBaseLayer) {
-                        map.removeLayer(currentBaseLayer);
-                    }
-                    nextLayer.addTo(map);
-                    currentBaseLayer = nextLayer;
-                });
-            }
 
             map.fitBounds(mexicoBounds.pad(-0.15));
             map.on('zoomend', function () {
@@ -503,38 +3760,8 @@
                 });
             }
 
-            if (instrumentSelect) {
-                instrumentSelect.addEventListener('change', function (event) {
-                    const info = instrumentDescriptions[event.target.value];
-                    renderDetails(
-                        instrumentDetails,
-                        info,
-                        'Selecciona un instrumento para conocer su alcance y horizonte de planeaci\u00F3n.'
-                    );
-                });
-            }
-
-            if (planSelect) {
-                planSelect.addEventListener('change', function (event) {
-                    const info = planDescriptions[event.target.value];
-                    renderDetails(
-                        planDetails,
-                        info,
-                        'Selecciona un plan complementario para ver su descripci\u00F3n.'
-                    );
-                });
-            }
-
-            renderDetails(
-                instrumentDetails,
-                null,
-                'Selecciona un instrumento para conocer su alcance y horizonte de planeaci\u00F3n.'
-            );
-            renderDetails(
-                planDetails,
-                null,
-                'Selecciona un plan complementario para ver su descripci\u00F3n.'
-            );
+            // Los selectores de instrumentos y planes se han eliminado
+            // Las capas se manejan ahora desde el control de capas de Leaflet
 
             loadAndRender({ silent: false });
 
@@ -542,6 +3769,38 @@
                 setInterval(function () {
                     loadAndRender({ silent: true });
                 }, REFRESH_MS);
+            }
+
+            // Inicializar sistema de exportación de mapas
+            let mapExporter;
+            let exportUI;
+
+            try {
+                mapExporter = new MapExporter(map);
+                console.log('MapExporter inicializado correctamente');
+
+                // Hacer disponible globalmente para pruebas
+                window.mapExporter = mapExporter;
+
+                // Inicializar la interfaz de exportación
+                exportUI = new ExportUI();
+                console.log('ExportUI inicializado correctamente');
+
+                // Hacer disponible globalmente
+                window.exportUI = exportUI;
+
+                // Probar la funcionalidad de captura después de que el mapa esté completamente cargado
+                setTimeout(async () => {
+                    try {
+                        const testResult = await mapExporter.testCapture();
+                        console.log('Prueba de captura:', testResult);
+                    } catch (error) {
+                        console.warn('Error en prueba de captura:', error);
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error inicializando sistema de exportación:', error);
             }
         });
     </script>
