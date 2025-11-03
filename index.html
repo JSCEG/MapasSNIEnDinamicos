@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 
 <head>
@@ -294,27 +294,32 @@
                 this.tileCheckInterval = 100; // Verificar cada 100ms
             }
 
+
+
             /**
              * Captura el mapa actual como imagen
-             * @param {ExportConfiguration} config - Configuración de exportación
+             * @param {ExportConfiguration} config - Configuraci�n de exportaci�n
              * @returns {Promise<HTMLCanvasElement>} Canvas con la imagen del mapa
              */
             async captureMap(config) {
                 try {
-                    // Validar que el mapa esté en estado válido
+                    // Validar que el mapa est� en estado v�lido
                     this.validateMapState();
 
                     // Preparar elementos de la interfaz para captura
                     const uiState = await this.prepareUIForCapture(config);
 
-                    // Esperar a que todos los tiles estén cargados antes de capturar
+                    // Esperar a que todos los tiles est�n cargados antes de capturar
                     await this.waitForTilesToLoad();
 
-                    // Asegurar que los marcadores estén visibles y listos
+                    // Asegurar que los marcadores est�n visibles y listos
                     await this.ensureMarkersReady();
 
                     // Capturar el mapa usando leaflet-image
-                    const canvas = await this.performCapture();
+                    const canvas = await this.performCapture(config);
+
+                    // Incorporar elementos DOM (etiquetas, escala, popups) en la captura
+                    await this.drawDomOverlays(canvas, config);
 
                     // Restaurar estado original de la interfaz
                     await this.restoreUIState(uiState);
@@ -324,603 +329,6 @@
                     throw new Error('Error en la captura del mapa: ' + error.message);
                 }
             }
-
-            /**
-             * Espera a que todos los tiles del mapa estén completamente cargados
-             * @returns {Promise<void>}
-             */
-            async waitForTilesToLoad() {
-                return new Promise((resolve, reject) => {
-                    const startTime = Date.now();
-                    let checkCount = 0;
-
-                    const checkTiles = () => {
-                        checkCount++;
-                        const elapsed = Date.now() - startTime;
-
-                        // Verificar si ha pasado el tiempo máximo de espera
-                        if (elapsed > this.maxWaitTime) {
-                            console.warn(`Timeout esperando tiles después de ${elapsed}ms (${checkCount} verificaciones) - procediendo con la captura`);
-                            resolve();
-                            return;
-                        }
-
-                        // Obtener estado actual de tiles
-                        const tilesLoaded = this.areAllTilesLoaded();
-                        const status = this.getTileLoadingStatus();
-
-                        if (checkCount % 10 === 0) { // Log cada segundo aproximadamente
-                            console.log(`Verificación ${checkCount}: ${status.loadedTiles}/${status.totalTiles} tiles cargados`);
-                        }
-
-                        // Verificar si todos los tiles están cargados
-                        if (tilesLoaded) {
-                            console.log(`Todos los tiles cargados después de ${elapsed}ms (${checkCount} verificaciones)`);
-                            resolve();
-                        } else {
-                            // Continuar verificando
-                            setTimeout(checkTiles, this.tileCheckInterval);
-                        }
-                    };
-
-                    console.log('Iniciando espera de carga de tiles...');
-                    checkTiles();
-                });
-            }
-
-            /**
-             * Verifica si todos los tiles del mapa están cargados
-             * @returns {boolean} True si todos los tiles están cargados
-             */
-            areAllTilesLoaded() {
-                let allLoaded = true;
-
-                // Iterar sobre todas las capas del mapa
-                this.map.eachLayer((layer) => {
-                    // Verificar si es una capa de tiles
-                    if (layer instanceof L.TileLayer) {
-                        // Verificar el estado de carga de los tiles
-                        const container = layer.getContainer();
-                        if (container) {
-                            const tiles = container.querySelectorAll('img');
-                            tiles.forEach((tile) => {
-                                // Si algún tile no está completamente cargado
-                                if (!tile.complete || tile.naturalWidth === 0) {
-                                    allLoaded = false;
-                                }
-                            });
-                        }
-                    }
-
-                    // Verificar capas de MapTiler específicamente
-                    if (layer._maptilerLayer || (layer.options && layer.options.style)) {
-                        // Para capas de MapTiler, verificar si están en estado de carga
-                        if (layer._loading || (layer._tiles && Object.keys(layer._tiles).length === 0)) {
-                            allLoaded = false;
-                        }
-                    }
-
-                    // Verificar marcadores con iconos de imagen
-                    if (layer instanceof L.Marker && layer._icon) {
-                        const img = layer._icon.querySelector('img');
-                        if (img && (!img.complete || img.naturalWidth === 0)) {
-                            allLoaded = false;
-                        }
-                    }
-                });
-
-                return allLoaded;
-            }
-
-            /**
-             * Realiza la captura del mapa usando API de imagen estática de MapTiler
-             * @returns {Promise<HTMLCanvasElement>}
-             */
-            async performCapture() {
-                return new Promise(async (resolve, reject) => {
-                    try {
-                        console.log('Iniciando captura con cambio temporal de mapa base...');
-
-                        // Cambiar temporalmente a un mapa base sin CORS
-                        const originalInfo = await this.switchToExportFriendlyBasemap();
-
-                        try {
-                            // Esperar a que el nuevo mapa base se cargue completamente
-                            await this.waitForTilesToLoad();
-
-                            // Capturar con leaflet-image (ahora debería funcionar sin CORS)
-                            const canvas = await this.performSimpleCapture();
-
-                            // Restaurar el mapa base original
-                            await this.restoreOriginalBasemap(originalInfo);
-
-                            console.log('Captura exitosa con cambio temporal de mapa base');
-                            resolve(canvas);
-
-                        } catch (captureError) {
-                            console.warn('Error en captura, restaurando mapa base:', captureError);
-
-                            // Asegurar que se restaure el mapa base original
-                            await this.restoreOriginalBasemap(originalInfo);
-
-                            // Intentar captura básica como último recurso
-                            const basicCanvas = await this.createBasicMapCanvas();
-                            resolve(basicCanvas);
-                        }
-
-                    } catch (error) {
-                        console.error('Error en captura con cambio de mapa base:', error);
-                        reject(new Error('No se pudo capturar el mapa: ' + error.message));
-                    }
-                });
-            }
-
-            /**
-             * Cambia temporalmente a un mapa base compatible con exportación
-             * @returns {Promise<Object>} Información del mapa base original
-             */
-            async switchToExportFriendlyBasemap() {
-                return new Promise((resolve) => {
-                    try {
-                        console.log('Cambiando a mapa base compatible con exportación...');
-
-                        // Obtener referencia al mapa base actual
-                        let currentBaseLayer = null;
-                        let currentBasemapKey = null;
-
-                        // Buscar la capa base actual
-                        this.map.eachLayer((layer) => {
-                            if (layer instanceof L.TileLayer) {
-                                // Verificar si es una capa base (no overlay)
-                                if (layer.options && (
-                                    layer.options.attribution?.includes('MapTiler') ||
-                                    layer.options.attribution?.includes('Google') ||
-                                    layer._url?.includes('maptiler') ||
-                                    layer._url?.includes('google')
-                                )) {
-                                    currentBaseLayer = layer;
-                                }
-                            }
-                        });
-
-                        // El mapa base se detecta automáticamente desde las capas del mapa
-                        currentBasemapKey = 'auto-detected';
-
-                        // Crear mapa base temporal sin CORS (OpenStreetMap)
-                        const exportFriendlyLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '© OpenStreetMap contributors',
-                            maxZoom: 19,
-                            crossOrigin: null // Importante: sin restricciones CORS
-                        });
-
-                        // Remover capa base actual si existe
-                        if (currentBaseLayer) {
-                            this.map.removeLayer(currentBaseLayer);
-                        }
-
-                        // Agregar capa temporal
-                        exportFriendlyLayer.addTo(this.map);
-
-                        console.log('Mapa base cambiado a OpenStreetMap para exportación');
-
-                        // Retornar información para restaurar después
-                        resolve({
-                            originalLayer: currentBaseLayer,
-                            originalKey: currentBasemapKey,
-                            temporaryLayer: exportFriendlyLayer
-                        });
-
-                    } catch (error) {
-                        console.error('Error cambiando mapa base:', error);
-                        resolve({ originalLayer: null, originalKey: null, temporaryLayer: null });
-                    }
-                });
-            }
-
-            /**
-             * Restaura el mapa base original después de la exportación
-             * @param {Object} originalInfo - Información del mapa base original
-             * @returns {Promise<void>}
-             */
-            async restoreOriginalBasemap(originalInfo) {
-                return new Promise((resolve) => {
-                    try {
-                        console.log('Restaurando mapa base original...');
-
-                        if (!originalInfo) {
-                            resolve();
-                            return;
-                        }
-
-                        // Remover capa temporal
-                        if (originalInfo.temporaryLayer) {
-                            this.map.removeLayer(originalInfo.temporaryLayer);
-                        }
-
-                        // Restaurar capa original
-                        if (originalInfo.originalLayer) {
-                            originalInfo.originalLayer.addTo(this.map);
-                        }
-
-                        // El mapa base se restaura automáticamente desde las capas guardadas
-
-                        console.log('Mapa base original restaurado');
-                        resolve();
-
-                    } catch (error) {
-                        console.error('Error restaurando mapa base:', error);
-                        resolve(); // Continuar aunque haya error
-                    }
-                });
-            }
-
-            /**
-             * Captura usando screenshot del DOM con configuración optimizada
-             * @returns {Promise<HTMLCanvasElement>}
-             */
-            async captureWithStaticImage() {
-                return new Promise(async (resolve, reject) => {
-                    try {
-                        console.log('Intentando captura optimizada del DOM...');
-
-                        const mapContainer = this.map.getContainer();
-                        const size = this.map.getSize();
-
-                        // Ocultar temporalmente controles que no queremos en la exportación
-                        const controlsToHide = mapContainer.querySelectorAll('.leaflet-control-zoom, .leaflet-control-layers, .leaflet-control-attribution');
-                        const originalDisplays = [];
-
-                        controlsToHide.forEach((control, index) => {
-                            originalDisplays[index] = control.style.display;
-                            control.style.display = 'none';
-                        });
-
-                        // Esperar un momento para que se apliquen los cambios
-                        await new Promise(resolve => setTimeout(resolve, 100));
-
-                        // Intentar captura con html2canvas si está disponible
-                        if (typeof html2canvas !== 'undefined') {
-                            try {
-                                const canvas = await html2canvas(mapContainer, {
-                                    allowTaint: true,
-                                    useCORS: false, // Desactivar CORS para evitar problemas
-                                    scale: 1,
-                                    width: size.x,
-                                    height: size.y,
-                                    backgroundColor: '#ffffff',
-                                    logging: false,
-                                    removeContainer: false,
-                                    foreignObjectRendering: false
-                                });
-
-                                // Restaurar controles
-                                controlsToHide.forEach((control, index) => {
-                                    control.style.display = originalDisplays[index];
-                                });
-
-                                if (canvas && canvas.width > 0 && canvas.height > 0) {
-                                    // Procesar el canvas para reemplazar áreas grises
-                                    this.fixGrayAreas(canvas);
-                                    console.log('Captura DOM exitosa con corrección de áreas grises');
-                                    resolve(canvas);
-                                    return;
-                                }
-                            } catch (html2canvasError) {
-                                console.warn('html2canvas falló:', html2canvasError);
-                            }
-                        }
-
-                        // Restaurar controles si html2canvas falló
-                        controlsToHide.forEach((control, index) => {
-                            control.style.display = originalDisplays[index];
-                        });
-
-                        // Si html2canvas falla, crear canvas con información básica
-                        reject(new Error('Captura DOM no disponible'));
-
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            }
-
-            /**
-             * Corrige las áreas grises en el canvas reemplazándolas con un patrón de mapa
-             * @param {HTMLCanvasElement} canvas 
-             */
-            fixGrayAreas(canvas) {
-                try {
-                    const ctx = canvas.getContext('2d');
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imageData.data;
-
-                    console.log('Procesando áreas grises en el canvas...');
-
-                    // Detectar y reemplazar píxeles grises
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        const a = data[i + 3];
-
-                        // Detectar grises (valores similares en RGB) y píxeles transparentes
-                        const isGray = Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 &&
-                            r > 80 && r < 200 && a > 0;
-
-                        const isTransparent = a < 50;
-
-                        if (isGray || isTransparent) {
-                            // Calcular coordenadas del píxel
-                            const pixelIndex = i / 4;
-                            const x = pixelIndex % canvas.width;
-                            const y = Math.floor(pixelIndex / canvas.width);
-
-                            // Crear un patrón que simule un mapa base
-                            const pattern1 = Math.sin(x * 0.02) * Math.cos(y * 0.02);
-                            const pattern2 = Math.sin(x * 0.005 + y * 0.005);
-
-                            // Colores base tipo mapa (beige/crema)
-                            const baseR = 245;
-                            const baseG = 245;
-                            const baseB = 240;
-
-                            // Aplicar variación sutil
-                            data[i] = Math.max(220, Math.min(255, baseR + pattern1 * 10 + pattern2 * 5));     // R
-                            data[i + 1] = Math.max(220, Math.min(255, baseG + pattern1 * 8 + pattern2 * 4)); // G
-                            data[i + 2] = Math.max(215, Math.min(250, baseB + pattern1 * 6 + pattern2 * 3)); // B
-                            data[i + 3] = 255; // Alpha completo
-                        }
-                    }
-
-                    // Aplicar los cambios
-                    ctx.putImageData(imageData, 0, 0);
-
-                    // Agregar algunas líneas sutiles para simular características geográficas
-                    this.addMapFeatures(ctx, canvas.width, canvas.height);
-
-                    console.log('Áreas grises corregidas exitosamente');
-
-                } catch (error) {
-                    console.warn('Error corrigiendo áreas grises:', error);
-                }
-            }
-
-            /**
-             * Agrega características sutiles al mapa para simular geografía
-             * @param {CanvasRenderingContext2D} ctx 
-             * @param {number} width 
-             * @param {number} height 
-             */
-            addMapFeatures(ctx, width, height) {
-                try {
-                    // Guardar estado del contexto
-                    ctx.save();
-
-                    // Líneas sutiles que simulan ríos o carreteras
-                    ctx.strokeStyle = 'rgba(200, 200, 190, 0.3)';
-                    ctx.lineWidth = 1;
-
-                    // Algunas líneas curvas aleatorias
-                    for (let i = 0; i < 5; i++) {
-                        ctx.beginPath();
-                        const startX = Math.random() * width;
-                        const startY = Math.random() * height;
-
-                        ctx.moveTo(startX, startY);
-
-                        for (let j = 0; j < 3; j++) {
-                            const cpX = startX + (Math.random() - 0.5) * width * 0.5;
-                            const cpY = startY + (Math.random() - 0.5) * height * 0.5;
-                            const endX = startX + (Math.random() - 0.5) * width * 0.3;
-                            const endY = startY + (Math.random() - 0.5) * height * 0.3;
-
-                            ctx.quadraticCurveTo(cpX, cpY, endX, endY);
-                        }
-
-                        ctx.stroke();
-                    }
-
-                    // Restaurar estado del contexto
-                    ctx.restore();
-
-                } catch (error) {
-                    console.warn('Error agregando características del mapa:', error);
-                }
-            }
-
-            /**
-             * Captura simple usando leaflet-image sin filtros complejos
-             * @returns {Promise<HTMLCanvasElement>}
-             */
-            async performSimpleCapture() {
-                return new Promise((resolve, reject) => {
-                    try {
-                        console.log('Captura simple con leaflet-image...');
-
-                        // Configuración mínima para leaflet-image
-                        const options = {};
-
-                        leafletImage(this.map, (err, canvas) => {
-                            if (err) {
-                                console.error('Error en leaflet-image simple:', err);
-                                reject(new Error('Error en captura simple: ' + err.message));
-                                return;
-                            }
-
-                            if (!canvas || canvas.width === 0 || canvas.height === 0) {
-                                reject(new Error('Canvas simple inválido'));
-                                return;
-                            }
-
-                            console.log(`Captura simple completada: ${canvas.width}x${canvas.height}`);
-                            resolve(canvas);
-                        }, options);
-
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            }
-
-            /**
-             * Crea un canvas básico con información del mapa cuando todo falla
-             * @returns {Promise<HTMLCanvasElement>}
-             */
-            async createBasicMapCanvas() {
-                return new Promise((resolve) => {
-                    try {
-                        const size = this.map.getSize();
-                        const canvas = document.createElement('canvas');
-                        canvas.width = size.x;
-                        canvas.height = size.y;
-                        const ctx = canvas.getContext('2d');
-
-                        // Fondo blanco
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                        // Dibujar información básica del mapa
-                        ctx.fillStyle = '#333333';
-                        ctx.font = '16px Arial';
-                        ctx.textAlign = 'center';
-
-                        const center = this.map.getCenter();
-                        const zoom = this.map.getZoom();
-
-                        ctx.fillText('Mapa SNIEn', canvas.width / 2, canvas.height / 2 - 40);
-                        ctx.fillText(`Centro: ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`, canvas.width / 2, canvas.height / 2);
-                        ctx.fillText(`Zoom: ${zoom}`, canvas.width / 2, canvas.height / 2 + 40);
-                        ctx.fillText('(Vista previa no disponible)', canvas.width / 2, canvas.height / 2 + 80);
-
-                        // Dibujar borde
-                        ctx.strokeStyle = '#cccccc';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-
-                        console.log('Canvas básico creado como último recurso');
-                        resolve(canvas);
-
-                    } catch (error) {
-                        console.error('Error creando canvas básico:', error);
-                        // Crear canvas mínimo
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 800;
-                        canvas.height = 600;
-                        const ctx = canvas.getContext('2d');
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        resolve(canvas);
-                    }
-                });
-            }
-
-
-
-            /**
-             * Agrega overlays y marcadores al canvas estático
-             * @param {HTMLCanvasElement} canvas 
-             * @param {CanvasRenderingContext2D} ctx 
-             * @returns {Promise<void>}
-             */
-            async addOverlaysToStaticCanvas(canvas, ctx) {
-                return new Promise((resolve) => {
-                    try {
-                        // Buscar marcadores y overlays en el mapa
-                        const markers = [];
-
-                        this.map.eachLayer((layer) => {
-                            if (layer instanceof L.Marker) {
-                                const pos = this.map.latLngToContainerPoint(layer.getLatLng());
-                                markers.push({
-                                    x: pos.x,
-                                    y: pos.y,
-                                    layer: layer
-                                });
-                            }
-                        });
-
-                        // Dibujar marcadores simples
-                        markers.forEach(marker => {
-                            ctx.fillStyle = '#ff0000';
-                            ctx.beginPath();
-                            ctx.arc(marker.x, marker.y, 8, 0, 2 * Math.PI);
-                            ctx.fill();
-
-                            // Borde blanco
-                            ctx.strokeStyle = '#ffffff';
-                            ctx.lineWidth = 2;
-                            ctx.stroke();
-                        });
-
-                        console.log(`Agregados ${markers.length} marcadores al canvas estático`);
-                        resolve();
-
-                    } catch (error) {
-                        console.warn('Error agregando overlays al canvas estático:', error);
-                        resolve();
-                    }
-                });
-            }
-
-
-
-            /**
-             * Método de captura legacy usando leaflet-image
-             * @returns {Promise<HTMLCanvasElement>}
-             */
-            async performLegacyCapture() {
-                return new Promise((resolve, reject) => {
-                    try {
-                        console.log('Usando leaflet-image para captura...');
-
-                        // Forzar un repaint antes de la captura
-                        this.map.getContainer().style.transform = 'translateZ(0)';
-
-                        // Usar requestAnimationFrame para asegurar que el render esté completo
-                        requestAnimationFrame(() => {
-                            // Configurar opciones para leaflet-image
-                            const options = {
-                                filter: (node) => {
-                                    if (node.classList) {
-                                        // Excluir controles
-                                        if (node.classList.contains('leaflet-control-zoom') ||
-                                            node.classList.contains('leaflet-control-layers') ||
-                                            node.classList.contains('leaflet-control-attribution')) {
-                                            return false;
-                                        }
-                                    }
-                                    return true;
-                                }
-                            };
-
-                            // Usar leaflet-image para capturar el mapa
-                            leafletImage(this.map, (err, canvas) => {
-                                // Restaurar el estilo del contenedor
-                                this.map.getContainer().style.transform = '';
-
-                                if (err) {
-                                    console.error('Error en leaflet-image:', err);
-                                    reject(new Error('Error capturando el mapa: ' + err.message));
-                                    return;
-                                }
-
-                                // Verificar que el canvas sea válido
-                                if (!canvas || canvas.width === 0 || canvas.height === 0) {
-                                    reject(new Error('Canvas capturado inválido'));
-                                    return;
-                                }
-
-                                console.log(`Captura legacy completada: ${canvas.width}x${canvas.height}`);
-                                resolve(canvas);
-                            }, options);
-                        });
-                    } catch (error) {
-                        console.error('Error en performLegacyCapture:', error);
-                        reject(new Error('Error en leaflet-image: ' + error.message));
-                    }
-                });
-            }
-
             /**
              * Fuerza la recarga de tiles en el área visible del mapa
              * @returns {Promise<void>}
@@ -1081,6 +489,164 @@
                 return uiState;
             }
 
+            /**
+             * Dibuja elementos de interfaz basados en DOM (graticule, escala, popups) sobre el canvas exportado
+             * @param {HTMLCanvasElement} canvas
+             * @returns {Promise<void>}
+             */
+            async drawDomOverlays(canvas) {
+                if (!canvas || typeof canvas.getContext !== 'function') {
+                    return;
+                }
+
+                try {
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return;
+                    }
+
+                    const mapContainer = this.map.getContainer();
+                    if (!mapContainer) {
+                        return;
+                    }
+
+                    const containerRect = mapContainer.getBoundingClientRect();
+                    if (!containerRect.width || !containerRect.height) {
+                        return;
+                    }
+
+                    const scaleX = canvas.width / containerRect.width;
+                    const scaleY = canvas.height / containerRect.height;
+                    const fontScale = Math.min(scaleX, scaleY);
+
+                    const labelElements = mapContainer.querySelectorAll('.graticule-label-item');
+                    labelElements.forEach((element) => {
+                        const text = element.textContent ? element.textContent.trim() : '';
+                        if (!text) {
+                            return;
+                        }
+
+                        const rect = element.getBoundingClientRect();
+                        const centerX = (rect.left - containerRect.left + rect.width / 2) * scaleX;
+                        const centerY = (rect.top - containerRect.top + rect.height / 2) * scaleY;
+
+                        const computedStyle = window.getComputedStyle ? window.getComputedStyle(element) : null;
+                        const baseFontSize = computedStyle ? parseFloat(computedStyle.fontSize) || 12 : 12;
+                        const fontFamily = computedStyle?.fontFamily || 'Arial, sans-serif';
+                        const fontSize = Math.min(18, Math.max(10, baseFontSize * fontScale));
+
+                        const paddingX = 6 * scaleX;
+                        const paddingY = 4 * scaleY;
+
+                        ctx.save();
+                        ctx.textBaseline = 'middle';
+                        ctx.textAlign = 'center';
+                        ctx.font = fontSize + 'px ' + fontFamily;
+                        const metrics = ctx.measureText(text);
+                        const boxWidth = metrics.width + paddingX * 2;
+                        const boxHeight = fontSize + paddingY * 2;
+
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                        ctx.fillRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth, boxHeight);
+
+                        ctx.strokeStyle = 'rgba(26, 52, 68, 0.35)';
+                        ctx.lineWidth = Math.max(1, 1.2 * Math.max(scaleX, scaleY));
+                        ctx.strokeRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth, boxHeight);
+
+                        ctx.fillStyle = '#1a3444';
+                        ctx.fillText(text, centerX, centerY);
+                        ctx.restore();
+                    });
+
+                    const captureElement = async (element, padding = 0) => {
+                        if (!element) {
+                            return false;
+                        }
+
+                        const elementRect = element.getBoundingClientRect();
+                        if (!elementRect.width || !elementRect.height) {
+                            return false;
+                        }
+
+                        const destX = (elementRect.left - containerRect.left - padding) * scaleX;
+                        const destY = (elementRect.top - containerRect.top - padding) * scaleY;
+                        const destWidth = (elementRect.width + padding * 2) * scaleX;
+                        const destHeight = (elementRect.height + padding * 2) * scaleY;
+
+                        if (typeof html2canvas === 'function') {
+                            try {
+                                const density = Math.min(4, Math.max(scaleX, scaleY, window.devicePixelRatio || 1));
+                                const elementCanvas = await html2canvas(element, {
+                                    backgroundColor: null,
+                                    scale: density,
+                                    useCORS: true,
+                                    logging: false
+                                });
+
+                                ctx.drawImage(elementCanvas, destX, destY, destWidth, destHeight);
+                                return true;
+                            } catch (error) {
+                                console.warn('No se pudo capturar un elemento DOM durante la exportaci�n:', error);
+                            }
+                        }
+
+                        return false;
+                    };
+
+                    const popupPane = mapContainer.querySelector('.leaflet-popup-pane');
+                    if (popupPane) {
+                        const popups = popupPane.querySelectorAll('.leaflet-popup');
+                        for (const popup of popups) {
+                            const captured = await captureElement(popup, 4);
+                            if (!captured) {
+                                const popupRect = popup.getBoundingClientRect();
+                                const destX = (popupRect.left - containerRect.left) * scaleX;
+                                const destY = (popupRect.top - containerRect.top) * scaleY;
+                                const destWidth = popupRect.width * scaleX;
+                                const destHeight = popupRect.height * scaleY;
+
+                                ctx.save();
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+                                ctx.strokeStyle = 'rgba(26, 52, 68, 0.35)';
+                                ctx.lineWidth = Math.max(1, 1.2 * Math.max(scaleX, scaleY));
+                                ctx.fillRect(destX, destY, destWidth, destHeight);
+                                ctx.strokeRect(destX, destY, destWidth, destHeight);
+
+                                const content = popup.querySelector('.leaflet-popup-content');
+                                const text = content && content.textContent ? content.textContent.trim() : '';
+                                if (text) {
+                                    const computedStyle = content && window.getComputedStyle ? window.getComputedStyle(content) : null;
+                                    const baseFontSize = computedStyle ? parseFloat(computedStyle.fontSize) || 12 : 12;
+                                    const fontFamily = computedStyle?.fontFamily || 'Arial, sans-serif';
+                                    const fontSize = Math.min(18, Math.max(11, baseFontSize * fontScale));
+
+                                    ctx.font = fontSize + 'px ' + fontFamily;
+                                    ctx.fillStyle = '#1a3444';
+                                    ctx.textAlign = 'left';
+                                    ctx.textBaseline = 'top';
+
+                                    const padding = 12 * fontScale;
+                                    const lines = text.split(/\r?\n/).map(part => part.trim()).filter(Boolean);
+                                    let offsetY = destY + padding;
+                                    lines.forEach((line) => {
+                                        ctx.fillText(line, destX + padding, offsetY);
+                                        offsetY += fontSize * 1.2;
+                                    });
+                                }
+
+                                ctx.restore();
+                            }
+                        }
+                    }
+
+                    const scaleControl = mapContainer.querySelector('.leaflet-control-scale');
+                    if (scaleControl) {
+                        await captureElement(scaleControl, 2);
+                    }
+                } catch (error) {
+                    console.warn('Error dibujando overlays del mapa para exportaci�n:', error);
+                }
+            }
             /**
              * Mejora la visibilidad de los marcadores para la captura
              * @param {Object} uiState - Estado de la UI para tracking de cambios
@@ -1351,10 +917,10 @@
                         if (layer.options.style) {
                             const styleName = layer.options.style;
                             layerName = `MapTiler ${styleName}`;
-                            attribution = '© MapTiler © OpenStreetMap contributors';
+                            attribution = '© MapTiler �OpenStreetMap contributors';
                         } else if (layer._url && layer._url.includes('maptiler')) {
                             layerName = 'MapTiler';
-                            attribution = '© MapTiler © OpenStreetMap contributors';
+                            attribution = '© MapTiler �OpenStreetMap contributors';
                         } else if (layer._url && layer._url.includes('google')) {
                             layerName = 'Google Satellite';
                             attribution = '© Google © Satellite imagery';
@@ -1377,6 +943,276 @@
                     name: layerName,
                     attribution: attribution
                 };
+            }
+
+            /**
+             * Espera a que todos los tiles del mapa esten completamente cargados
+             * @returns {Promise<void>}
+             */
+            async waitForTilesToLoad() {
+                return new Promise((resolve) => {
+                    const startTime = Date.now();
+                    let checkCount = 0;
+
+                    const checkTiles = () => {
+                        checkCount++;
+                        const elapsed = Date.now() - startTime;
+
+                        if (elapsed > this.maxWaitTime) {
+                            console.warn(`Timeout esperando tiles despues de ${elapsed}ms (${checkCount} verificaciones) - procediendo con la captura`);
+                            resolve();
+                            return;
+                        }
+
+                        const tilesLoaded = this.areAllTilesLoaded();
+                        const status = this.getTileLoadingStatus();
+
+                        if (checkCount % 10 === 0) {
+                            console.log(`Verificacion ${checkCount}: ${status.loadedTiles}/${status.totalTiles} tiles cargados`);
+                        }
+
+                        if (tilesLoaded) {
+                            console.log(`Todos los tiles cargados despues de ${elapsed}ms (${checkCount} verificaciones)`);
+                            resolve();
+                        } else {
+                            setTimeout(checkTiles, this.tileCheckInterval);
+                        }
+                    };
+
+                    console.log('Iniciando espera de carga de tiles...');
+                    checkTiles();
+                });
+            }
+
+            /**
+             * Verifica si todos los tiles del mapa estan cargados
+             * @returns {boolean}
+             */
+            areAllTilesLoaded() {
+                let allLoaded = true;
+
+                this.map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        const container = layer.getContainer();
+                        if (container) {
+                            const tiles = container.querySelectorAll('img');
+                            tiles.forEach((tile) => {
+                                if (!tile.complete || tile.naturalWidth === 0) {
+                                    allLoaded = false;
+                                }
+                            });
+                        }
+
+                        if (layer._loading || (layer._tiles && Object.keys(layer._tiles).length === 0)) {
+                            allLoaded = false;
+                        }
+                    }
+
+                    if (layer instanceof L.Marker && layer._icon) {
+                        const img = layer._icon.querySelector('img');
+                        if (img && (!img.complete || img.naturalWidth === 0)) {
+                            allLoaded = false;
+                        }
+                    }
+                });
+
+                return allLoaded;
+            }
+
+            /**
+             * Realiza la captura del mapa usando leaflet-image
+             * @param {ExportConfiguration} config
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async performCapture(config) {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        console.log('Iniciando captura con cambio temporal de mapa base...');
+
+                        const originalInfo = await this.switchToExportFriendlyBasemap();
+
+                        try {
+                            await this.waitForTilesToLoad();
+
+                            const canvas = await this.performSimpleCapture();
+
+                            await this.restoreOriginalBasemap(originalInfo);
+
+                            console.log('Captura exitosa con cambio temporal de mapa base');
+                            resolve(canvas);
+                        } catch (captureError) {
+                            console.warn('Error en captura, restaurando mapa base:', captureError);
+
+                            await this.restoreOriginalBasemap(originalInfo);
+
+                            const basicCanvas = await this.createBasicMapCanvas();
+                            resolve(basicCanvas);
+                        }
+
+                    } catch (error) {
+                        console.error('Error en captura con cambio de mapa base:', error);
+                        reject(new Error('No se pudo capturar el mapa: ' + error.message));
+                    }
+                });
+            }
+
+            /**
+             * Cambia temporalmente a un mapa base compatible con exportacion
+             * @returns {Promise<Object>}
+             */
+            async switchToExportFriendlyBasemap() {
+                return new Promise((resolve) => {
+                    try {
+                        console.log('Cambiando a mapa base compatible con exportacion...');
+
+                        let currentBaseLayer = null;
+
+                        this.map.eachLayer((layer) => {
+                            if (layer instanceof L.TileLayer) {
+                                if (layer.options && (
+                                    (layer.options.attribution && layer.options.attribution.includes('MapTiler')) ||
+                                    (layer.options.attribution && layer.options.attribution.includes('Google')) ||
+                                    (layer._url && (layer._url.includes('maptiler') || layer._url.includes('google')))
+                                )) {
+                                    currentBaseLayer = layer;
+                                }
+                            }
+                        });
+
+                        const exportFriendlyLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: 'OpenStreetMap contributors',
+                            maxZoom: 19,
+                            crossOrigin: null
+                        });
+
+                        if (currentBaseLayer) {
+                            this.map.removeLayer(currentBaseLayer);
+                        }
+
+                        exportFriendlyLayer.addTo(this.map);
+
+                        console.log('Mapa base cambiado a OpenStreetMap para exportacion');
+
+                        resolve({
+                            originalLayer: currentBaseLayer,
+                            temporaryLayer: exportFriendlyLayer
+                        });
+                    } catch (error) {
+                        console.error('Error cambiando mapa base:', error);
+                        resolve({ originalLayer: null, temporaryLayer: null });
+                    }
+                });
+            }
+
+            /**
+             * Restaura el mapa base original despues de la exportacion
+             * @param {Object} originalInfo
+             * @returns {Promise<void>}
+             */
+            async restoreOriginalBasemap(originalInfo) {
+                return new Promise((resolve) => {
+                    try {
+                        console.log('Restaurando mapa base original...');
+
+                        if (!originalInfo) {
+                            resolve();
+                            return;
+                        }
+
+                        if (originalInfo.temporaryLayer) {
+                            this.map.removeLayer(originalInfo.temporaryLayer);
+                        }
+
+                        if (originalInfo.originalLayer) {
+                            originalInfo.originalLayer.addTo(this.map);
+                        }
+
+                        console.log('Mapa base original restaurado');
+                        resolve();
+                    } catch (error) {
+                        console.error('Error restaurando mapa base:', error);
+                        resolve();
+                    }
+                });
+            }
+
+            /**
+             * Captura simple usando leaflet-image
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async performSimpleCapture() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        console.log('Captura simple con leaflet-image...');
+
+                        leafletImage(this.map, (err, canvas) => {
+                            if (err) {
+                                console.error('Error en leaflet-image simple:', err);
+                                reject(new Error('Error en captura simple: ' + err.message));
+                                return;
+                            }
+
+                            if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                                reject(new Error('Canvas simple invalido'));
+                                return;
+                            }
+
+                            console.log('Captura simple completada: ' + canvas.width + 'x' + canvas.height);
+                            resolve(canvas);
+                        });
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            /**
+             * Crea un canvas basico con informacion del mapa cuando todo falla
+             * @returns {Promise<HTMLCanvasElement>}
+             */
+            async createBasicMapCanvas() {
+                return new Promise((resolve) => {
+                    try {
+                        const size = this.map.getSize();
+                        const canvas = document.createElement('canvas');
+                        canvas.width = size.x;
+                        canvas.height = size.y;
+                        const ctx = canvas.getContext('2d');
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.fillStyle = '#333333';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+
+                        const center = this.map.getCenter();
+                        const zoom = this.map.getZoom();
+
+                        ctx.fillText('Mapa SNIEn', canvas.width / 2, canvas.height / 2 - 40);
+                        ctx.fillText('Centro: ' + center.lat.toFixed(4) + ', ' + center.lng.toFixed(4), canvas.width / 2, canvas.height / 2);
+                        ctx.fillText('Zoom: ' + zoom, canvas.width / 2, canvas.height / 2 + 40);
+                        ctx.fillText('(Vista previa no disponible)', canvas.width / 2, canvas.height / 2 + 80);
+
+                        ctx.strokeStyle = '#cccccc';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+                        console.log('Canvas basico creado como ultimo recurso');
+                        resolve(canvas);
+
+                    } catch (error) {
+                        console.error('Error creando canvas basico:', error);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 800;
+                        canvas.height = 600;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        resolve(canvas);
+                    }
+                });
             }
         }
 
@@ -3441,6 +3277,43 @@
                 [33.5, -86.0]
             );
 
+            const GRATICULE_STEP = 5;
+            const GRATICULE_FINE_STEP = 0.5;
+            const GRATICULE_PADDING_DEGREES = 10;
+
+            const graticuleBounds = L.latLngBounds(
+                [
+                    mexicoBounds.getSouth() - GRATICULE_PADDING_DEGREES,
+                    mexicoBounds.getWest() - GRATICULE_PADDING_DEGREES
+                ],
+                [
+                    mexicoBounds.getNorth() + GRATICULE_PADDING_DEGREES,
+                    mexicoBounds.getEast() + GRATICULE_PADDING_DEGREES
+                ]
+            );
+
+            const graticuleLatitudes = [];
+            for (
+                let lat = Math.floor(graticuleBounds.getSouth() / GRATICULE_STEP) * GRATICULE_STEP;
+                lat <= Math.ceil(graticuleBounds.getNorth() / GRATICULE_STEP) * GRATICULE_STEP;
+                lat += GRATICULE_STEP
+            ) {
+                graticuleLatitudes.push(lat);
+            }
+            const graticuleLongitudes = [];
+            for (
+                let lng = Math.floor(graticuleBounds.getWest() / GRATICULE_STEP) * GRATICULE_STEP;
+                lng <= Math.ceil(graticuleBounds.getEast() / GRATICULE_STEP) * GRATICULE_STEP;
+                lng += GRATICULE_STEP
+            ) {
+                graticuleLongitudes.push(lng);
+            }
+
+            const graticuleWest = Math.min(...graticuleLongitudes) - GRATICULE_STEP;
+            const graticuleEast = Math.max(...graticuleLongitudes) + GRATICULE_STEP;
+            const graticuleSouth = Math.min(...graticuleLatitudes) - GRATICULE_STEP;
+            const graticuleNorth = Math.max(...graticuleLatitudes) + GRATICULE_STEP;
+
             const mapTilerKeys = {
                 personal: 'jAAFQsMBZ9a6VIm2dCwg',
                 amigo: 'xRR3xCujdkUjxkDqlNTG'
@@ -3620,9 +3493,9 @@
             map = L.map(MAP_CONTAINER_ID, {
                 center: [24.1, -102],
                 zoom: 5,
-                minZoom: 4,
+                minZoom: 3,
                 maxZoom: 18,
-                maxBounds: mexicoBounds,
+                maxBounds: graticuleBounds,
                 maxBoundsViscosity: 1,
                 layers: activeBaseLayer ? [activeBaseLayer] : [],
                 zoomControl: false,
@@ -3630,42 +3503,46 @@
             });
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.control.scale({
+                position: 'bottomleft',
+                imperial: false,
+                maxWidth: 180,
+                updateWhenIdle: true
+            }).addTo(map);
 
             // Crear capa de graticule (líneas de latitud y longitud)
             function createGraticule() {
                 const graticuleLayer = L.layerGroup();
 
-                // Líneas de latitud (horizontales) - cada 5 grados
-                for (let lat = 15; lat <= 30; lat += 5) {
+                // L�neas de latitud (horizontales)
+                graticuleLatitudes.forEach(function (lat) {
                     const latlngs = [];
-                    for (let lng = -118; lng <= -86; lng += 0.5) {
+                    for (let lng = graticuleWest; lng <= graticuleEast; lng += GRATICULE_FINE_STEP) {
                         latlngs.push([lat, lng]);
                     }
 
-                    // Crear línea más visible
                     L.polyline(latlngs, {
                         color: '#333333',
                         weight: 1.5,
                         opacity: 0.8,
                         dashArray: '3, 6'
                     }).addTo(graticuleLayer);
-                }
+                });
 
-                // Líneas de longitud (verticales) - cada 5 grados
-                for (let lng = -115; lng <= -90; lng += 5) {
+                // L�neas de longitud (verticales)
+                graticuleLongitudes.forEach(function (lng) {
                     const latlngs = [];
-                    for (let lat = 14; lat <= 33; lat += 0.5) {
+                    for (let lat = graticuleSouth; lat <= graticuleNorth; lat += GRATICULE_FINE_STEP) {
                         latlngs.push([lat, lng]);
                     }
 
-                    // Crear línea más visible
                     L.polyline(latlngs, {
                         color: '#333333',
                         weight: 1.5,
                         opacity: 0.8,
                         dashArray: '3, 6'
                     }).addTo(graticuleLayer);
-                }
+                });
 
                 return graticuleLayer;
             }
@@ -3674,6 +3551,8 @@
             const GraticuleLabels = L.Layer.extend({
                 initialize: function (options = {}) {
                     L.setOptions(this, options);
+                    this._latitudes = Array.isArray(options.latitudes) && options.latitudes.length ? options.latitudes : graticuleLatitudes;
+                    this._longitudes = Array.isArray(options.longitudes) && options.longitudes.length ? options.longitudes : graticuleLongitudes;
                 },
 
                 onAdd: function (map) {
@@ -3753,17 +3632,19 @@
                     const south = bounds.getSouth();
                     const west = bounds.getWest();
                     const east = bounds.getEast();
+                    const longitudes = Array.isArray(this._longitudes) ? this._longitudes : [];
+                    const latitudes = Array.isArray(this._latitudes) ? this._latitudes : [];
 
                     this._clearLabels();
 
-                    for (let lng = -115; lng <= -90; lng += 5) {
+                    longitudes.forEach((lng) => {
                         if (lng < west - 0.1 || lng > east + 0.1) {
-                            continue;
+                            return;
                         }
 
                         const topPoint = this._map.latLngToContainerPoint([north, lng]);
                         if (topPoint.x < 0 || topPoint.x > size.x) {
-                            continue;
+                            return;
                         }
 
                         const labelText = this._formatLongitude(lng);
@@ -3777,16 +3658,16 @@
                         bottomLabel.innerHTML = labelText;
                         bottomLabel.style.left = topPoint.x + 'px';
                         bottomLabel.style.position = 'absolute';
-                    }
+                    });
 
-                    for (let lat = 15; lat <= 30; lat += 5) {
+                    latitudes.forEach((lat) => {
                         if (lat < south - 0.1 || lat > north + 0.1) {
-                            continue;
+                            return;
                         }
 
                         const leftPoint = this._map.latLngToContainerPoint([lat, west]);
                         if (leftPoint.y < 0 || leftPoint.y > size.y) {
-                            continue;
+                            return;
                         }
 
                         const labelText = this._formatLatitude(lat);
@@ -3801,12 +3682,12 @@
                         rightLabel.innerHTML = labelText;
                         rightLabel.style.top = rightPoint.y + 'px';
                         rightLabel.style.position = 'absolute';
-                    }
+                    });
                 }
             });
 
             const graticuleLayer = createGraticule();
-            const graticuleLabels = new GraticuleLabels({ targetLayer: graticuleLayer });
+            const graticuleLabels = new GraticuleLabels({ targetLayer: graticuleLayer, latitudes: graticuleLatitudes, longitudes: graticuleLongitudes });
 
             graticuleLayer.addTo(map);
             graticuleLabels.addTo(map);
