@@ -11,6 +11,78 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.css" />
     <link rel="stylesheet" href="css/main.css" />
+    
+    <!-- Estilos para el control de logos en el mapa -->
+    <style>
+        .logos-control {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .logos-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo-sener, .logo-snien {
+            height: 24px;
+            width: auto;
+            opacity: 0.85;
+            transition: opacity 0.3s ease;
+        }
+        
+        .logo-sener:hover, .logo-snien:hover {
+            opacity: 1;
+        }
+        
+        .logo-sener {
+            max-width: 60px;
+        }
+        
+        .logo-snien {
+            max-width: 80px;
+        }
+        
+        /* Responsive adjustments para los logos */
+        @media (max-width: 768px) {
+            .logos-control {
+                padding: 6px;
+                margin-bottom: 8px;
+            }
+            
+            .logos-container {
+                gap: 6px;
+            }
+            
+            .logo-sener, .logo-snien {
+                height: 20px;
+            }
+            
+            .logo-sener {
+                max-width: 50px;
+            }
+            
+            .logo-snien {
+                max-width: 65px;
+            }
+        }
+        
+        /* Asegurar que el control de logos no interfiera con otros controles */
+        .leaflet-bottom .leaflet-control {
+            margin-bottom: 10px;
+        }
+        
+        .leaflet-bottom .logos-control {
+            margin-left: 10px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
@@ -3509,6 +3581,31 @@
                 maxWidth: 180,
                 updateWhenIdle: true
             }).addTo(map);
+
+            // Control personalizado para los logos institucionales
+            const LogosControl = L.Control.extend({
+                onAdd: function(map) {
+                    const div = L.DomUtil.create('div', 'logos-control');
+                    div.innerHTML = `
+                        <div class="logos-container">
+                            <img src="img/logo_sener.png" alt="SENER" class="logo-sener" />
+                            <img src="img/snien.png" alt="SNIEn" class="logo-snien" />
+                        </div>
+                    `;
+                    
+                    // Prevenir que los clicks en el control se propaguen al mapa
+                    L.DomEvent.disableClickPropagation(div);
+                    
+                    return div;
+                },
+
+                onRemove: function(map) {
+                    // Limpieza si es necesaria
+                }
+            });
+
+            // Agregar el control de logos al mapa
+            new LogosControl({ position: 'bottomleft' }).addTo(map);
 
             // Crear capa de graticule (líneas de latitud y longitud)
             function createGraticule() {
