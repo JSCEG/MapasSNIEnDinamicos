@@ -3631,8 +3631,193 @@
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+            // Crear capa de graticule (líneas de latitud y longitud)
+            function createGraticule() {
+                const graticuleLayer = L.layerGroup();
+
+                // Líneas de latitud (horizontales) - cada 5 grados
+                for (let lat = 15; lat <= 30; lat += 5) {
+                    const latlngs = [];
+                    for (let lng = -118; lng <= -86; lng += 0.5) {
+                        latlngs.push([lat, lng]);
+                    }
+
+                    // Crear línea más visible
+                    L.polyline(latlngs, {
+                        color: '#333333',
+                        weight: 1.5,
+                        opacity: 0.8,
+                        dashArray: '3, 6'
+                    }).addTo(graticuleLayer);
+                }
+
+                // Líneas de longitud (verticales) - cada 5 grados
+                for (let lng = -115; lng <= -90; lng += 5) {
+                    const latlngs = [];
+                    for (let lat = 14; lat <= 33; lat += 0.5) {
+                        latlngs.push([lat, lng]);
+                    }
+
+                    // Crear línea más visible
+                    L.polyline(latlngs, {
+                        color: '#333333',
+                        weight: 1.5,
+                        opacity: 0.8,
+                        dashArray: '3, 6'
+                    }).addTo(graticuleLayer);
+                }
+
+                return graticuleLayer;
+            }
+
+            // Capa ligera para mostrar etiquetas de coordenadas junto a las l?neas de graticule
+            const GraticuleLabels = L.Layer.extend({
+                initialize: function (options = {}) {
+                    L.setOptions(this, options);
+                },
+
+                onAdd: function (map) {
+                    this._map = map;
+                    this._container = L.DomUtil.create('div', 'graticule-labels-control', map.getContainer());
+                    this._container.style.pointerEvents = 'none';
+
+                    this._topLabels = L.DomUtil.create('div', 'graticule-labels-top', this._container);
+                    this._bottomLabels = L.DomUtil.create('div', 'graticule-labels-bottom', this._container);
+                    this._leftLabels = L.DomUtil.create('div', 'graticule-labels-left', this._container);
+                    this._rightLabels = L.DomUtil.create('div', 'graticule-labels-right', this._container);
+
+                    map.on('move zoom viewreset resize', this._updateLabels, this);
+                    if (this.options.targetLayer) {
+                        map.on('overlayadd overlayremove', this._updateLabels, this);
+                    }
+
+                    this._updateLabels();
+                },
+
+                onRemove: function (map) {
+                    map.off('move zoom viewreset resize', this._updateLabels, this);
+                    if (this.options.targetLayer) {
+                        map.off('overlayadd overlayremove', this._updateLabels, this);
+                    }
+
+                    if (this._container) {
+                        L.DomUtil.remove(this._container);
+                        this._container = null;
+                        this._topLabels = null;
+                        this._bottomLabels = null;
+                        this._leftLabels = null;
+                        this._rightLabels = null;
+                    }
+
+                    this._map = null;
+                },
+
+                _formatLongitude: function (lng) {
+                    const hemisphere = lng < 0 ? 'O' : 'E';
+                    const absValue = Math.abs(Math.round(lng));
+                    return `${absValue}&deg;00'00" ${hemisphere}`;
+                },
+
+                _formatLatitude: function (lat) {
+                    const hemisphere = lat >= 0 ? 'N' : 'S';
+                    const absValue = Math.abs(Math.round(lat));
+                    return `${absValue}&deg;00'00" ${hemisphere}`;
+                },
+
+                _clearLabels: function () {
+                    if (!this._topLabels) {
+                        return;
+                    }
+                    this._topLabels.innerHTML = '';
+                    this._bottomLabels.innerHTML = '';
+                    this._leftLabels.innerHTML = '';
+                    this._rightLabels.innerHTML = '';
+                },
+
+                _updateLabels: function () {
+                    if (!this._map || !this._container) {
+                        return;
+                    }
+
+                    const shouldShow = !this.options.targetLayer || this._map.hasLayer(this.options.targetLayer);
+                    this._container.style.display = shouldShow ? '' : 'none';
+
+                    if (!shouldShow) {
+                        this._clearLabels();
+                        return;
+                    }
+
+                    const bounds = this._map.getBounds();
+                    const size = this._map.getSize();
+                    const north = bounds.getNorth();
+                    const south = bounds.getSouth();
+                    const west = bounds.getWest();
+                    const east = bounds.getEast();
+
+                    this._clearLabels();
+
+                    for (let lng = -115; lng <= -90; lng += 5) {
+                        if (lng < west - 0.1 || lng > east + 0.1) {
+                            continue;
+                        }
+
+                        const topPoint = this._map.latLngToContainerPoint([north, lng]);
+                        if (topPoint.x < 0 || topPoint.x > size.x) {
+                            continue;
+                        }
+
+                        const labelText = this._formatLongitude(lng);
+
+                        const topLabel = L.DomUtil.create('div', 'graticule-label-item', this._topLabels);
+                        topLabel.innerHTML = labelText;
+                        topLabel.style.left = topPoint.x + 'px';
+                        topLabel.style.position = 'absolute';
+
+                        const bottomLabel = L.DomUtil.create('div', 'graticule-label-item', this._bottomLabels);
+                        bottomLabel.innerHTML = labelText;
+                        bottomLabel.style.left = topPoint.x + 'px';
+                        bottomLabel.style.position = 'absolute';
+                    }
+
+                    for (let lat = 15; lat <= 30; lat += 5) {
+                        if (lat < south - 0.1 || lat > north + 0.1) {
+                            continue;
+                        }
+
+                        const leftPoint = this._map.latLngToContainerPoint([lat, west]);
+                        if (leftPoint.y < 0 || leftPoint.y > size.y) {
+                            continue;
+                        }
+
+                        const labelText = this._formatLatitude(lat);
+
+                        const leftLabel = L.DomUtil.create('div', 'graticule-label-item', this._leftLabels);
+                        leftLabel.innerHTML = labelText;
+                        leftLabel.style.top = leftPoint.y + 'px';
+                        leftLabel.style.position = 'absolute';
+
+                        const rightPoint = this._map.latLngToContainerPoint([lat, east]);
+                        const rightLabel = L.DomUtil.create('div', 'graticule-label-item', this._rightLabels);
+                        rightLabel.innerHTML = labelText;
+                        rightLabel.style.top = rightPoint.y + 'px';
+                        rightLabel.style.position = 'absolute';
+                    }
+                }
+            });
+
+            const graticuleLayer = createGraticule();
+            const graticuleLabels = new GraticuleLabels({ targetLayer: graticuleLayer });
+
+            graticuleLayer.addTo(map);
+            graticuleLabels.addTo(map);
+
+            // Crear overlays para el control de capas
+            const overlays = {
+                'Graticule (Lat/Long)': graticuleLayer
+            };
+
             if (Object.keys(baseLayersForControl).length) {
-                L.control.layers(baseLayersForControl, null, { position: 'topright', collapsed: true }).addTo(map);
+                L.control.layers(baseLayersForControl, overlays, { position: 'topright', collapsed: true }).addTo(map);
             }
 
             // El mapa base se maneja ahora completamente desde el control de capas de Leaflet
