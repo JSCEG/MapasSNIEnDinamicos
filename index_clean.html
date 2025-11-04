@@ -50,26 +50,6 @@
                 <div class="map-card">
                     <div class="card-toolbar">
                         <div class="toolbar-group">
-                            <label for="instrument-select">Instrumentos</label>
-                            <select id="instrument-select" class="control">
-                                <option value="">Seleccione un instrumento</option>
-                                <option value="PLADESE">PLADESE</option>
-                                <option value="PLADESHI">PLADESHI</option>
-                                <option value="PLATEASE">PLATEASE</option>
-                                <option value="PROSENER">PROSENER</option>
-                                <option value="ELECTRICIDAD">ELECTRICIDAD</option>
-                                <option value="GAS NATURAL">GAS NATURAL</option>
-                                <option value="GAS L.P.">GAS L.P.</option>
-                                <option value="PETROLIFEROS">PETROLIFEROS</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
-                            <label for="map-select">Mapa</label>
-                            <select id="map-select" class="control" disabled>
-                                <option value="">Seleccione un mapa</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-group">
                             <button type="button" id="refresh-data" class="btn-secondary btn-icon"
                                 title="Actualizar datos">
                                 <i class="bi bi-arrow-clockwise"></i>
@@ -179,9 +159,8 @@
                                 <label for="dpi-select">Resolución (DPI)</label>
                                 <select id="dpi-select" name="dpi" class="control">
                                     <option value="150">150 DPI - Calidad estándar</option>
-                                    <option value="300">300 DPI - Alta calidad</option>
+                                    <option value="300" selected>300 DPI - Alta calidad</option>
                                     <option value="600">600 DPI - Máxima calidad</option>
-                                    <option value="1200" selected>1200 DPI - Calidad de impresión</option>
                                 </select>
                             </div>
                         </div>

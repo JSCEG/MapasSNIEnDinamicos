@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --color-verde-profundo: #1f7a62;
     --color-verde-claro: #24a47a;
     --color-text: #162230;
@@ -835,7 +835,7 @@ al styles */
 }
 
 .checkbox-option input[type="checkbox"]:checked+.checkbox-custom::after {
-    content: 'âœ“';
+    content: '✓';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1256,3 +1256,101 @@ Notification system */
     right: 0;
 }
 
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    /* Override default button padding */
+}
+
+.btn-icon i.bi {
+    /* Target bootstrap icons specifically */
+    font-size: 1.25rem;
+    /* ~20px */
+    line-height: 1;
+}
+
+
+.logos-control-wrapper {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+.logos-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-sener,
+.logo-snien {
+
+    height: 36px;
+    width: auto;
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+}
+
+.logo-sener:hover,
+.logo-snien:hover {
+    opacity: 1;
+}
+
+.logo-sener {
+    max-width: 90px;
+}
+
+.logo-snien {
+    max-width: 120px;
+}
+
+/* Responsive adjustments para los logos */
+
+@media (max-width: 768px) {
+    .logos-control-wrapper {
+        bottom: 5px;
+    }
+
+
+    .logos-container {
+        gap: 6px;
+    }
+
+    .logo-sener,
+    .logo-snien {
+        height: 28px;
+    }
+
+    .logo-sener {
+        max-width: 70px;
+    }
+
+    .logo-snien {
+
+        max-width: 91px;
+    }
+
+}
+
+/* Legend styles */
+.legend {
+    line-height: 18px;
+    color: #555;
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
