@@ -241,7 +241,7 @@ class MapExporter {
      */
     validateExportConfiguration(config) {
         // Validar DPI
-        const validDPIs = [150, 300, 600, 1200];
+        const validDPIs = [150, 300, 600, 1200, 2400];
         if (!validDPIs.includes(config.size.dpi)) {
             throw new Error(`DPI inválido: ${config.size.dpi}. Valores válidos: ${validDPIs.join(', ')}`);
         }
@@ -254,8 +254,8 @@ class MapExporter {
             if (config.size.width < 100 || config.size.height < 100) {
                 throw new Error('Dimensiones mínimas: 100x100 píxeles');
             }
-            if (config.size.width > 8000 || config.size.height > 8000) {
-                throw new Error('Dimensiones máximas: 8000x8000 píxeles');
+            if (config.size.width > 12000 || config.size.height > 12000) {
+                throw new Error('Dimensiones máximas: 12000x12000 píxeles');
             }
         }
     }

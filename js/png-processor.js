@@ -7,7 +7,9 @@ class PNGProcessor {
         this.qualityPresets = {
             150: { compression: 0.8, smoothing: 'medium' },
             300: { compression: 0.9, smoothing: 'high' },
-            600: { compression: 1.0, smoothing: 'high' }
+            600: { compression: 1.0, smoothing: 'high' },
+            1200: { compression: 1.0, smoothing: 'high' },
+            2400: { compression: 1.0, smoothing: 'high' }
         };
     }
 
@@ -181,7 +183,9 @@ class PNGProcessor {
         const limits = {
             150: 4000,
             300: 6000,
-            600: 8000
+            600: 8000,
+            1200: 12000,
+            2400: 12000
         };
         return limits[dpi] || limits[300];
     }
@@ -248,7 +252,7 @@ class PNGProcessor {
         // Kernel de sharpening sutil
         const kernel = [
             0, -0.1, 0,
-            -0.1, 1.4, -0.1,
+            -0.1, 1.8, -0.1,
             0, -0.1, 0
         ];
 

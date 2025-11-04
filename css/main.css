@@ -1229,14 +1229,19 @@ Notification system */
     position: absolute;
     background: rgba(255, 255, 255, 0.9);
     padding: 3px 8px;
-    border: 1px solid #333;
+    border: 1px solid rgba(96, 22, 35, 0.5);
+    /* Semi-transparent red wine border */
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 8px;
+    /* Smaller font size */
     font-weight: 600;
-    color: #333;
+    color: #601623;
+    /* Red wine text color */
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     pointer-events: none;
+    opacity: 0.75;
+    /* Make labels more subtle */
 }
 
 .graticule-labels-top .graticule-label-item {
@@ -1291,7 +1296,8 @@ Notification system */
 .logo-sener,
 .logo-snien {
 
-    height: 36px;
+    height: 48px;
+    /* Increased size */
     width: auto;
     opacity: 0.85;
     transition: opacity 0.3s ease;
@@ -1303,7 +1309,7 @@ Notification system */
 }
 
 .logo-sener {
-    max-width: 90px;
+    max-width: 150px;
 }
 
 .logo-snien {
@@ -1324,7 +1330,8 @@ Notification system */
 
     .logo-sener,
     .logo-snien {
-        height: 28px;
+        height: 36px;
+        /* Increased size for smaller screens */
     }
 
     .logo-sener {
@@ -1345,12 +1352,21 @@ Notification system */
     background-color: white;
     padding: 10px;
     border-radius: 5px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
 }
+
 .legend i {
     width: 18px;
     height: 18px;
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.leaflet-pane.leaflet-gerencias-pane {
+    filter: drop-shadow(5px 5px 5px rgba(0, 0, 0, 0.6));
+}
+
+.leaflet-pane.leaflet-marinas-pane {
+    filter: blur(2px);
 }

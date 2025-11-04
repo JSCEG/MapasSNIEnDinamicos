@@ -868,30 +868,25 @@ class CanvasCapture {
     async performCapture(config) {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log('Iniciando captura con cambio temporal de mapa base...');
+                console.log('Iniciando captura del mapa...');
 
-                const originalInfo = await this.switchToExportFriendlyBasemap();
+                const canvas = await this.performSimpleCapture();
 
-                try {
-                    await this.waitForTilesToLoad();
+                // Create a new canvas with padding for the shadow
+                const padding = 20; // 20px padding
+                const newCanvas = document.createElement('canvas');
+                newCanvas.width = canvas.width + padding * 2;
+                newCanvas.height = canvas.height + padding * 2;
+                const ctx = newCanvas.getContext('2d');
 
-                    const canvas = await this.performSimpleCapture();
+                // Draw the original canvas onto the new one with an offset
+                ctx.drawImage(canvas, padding, padding);
 
-                    await this.restoreOriginalBasemap(originalInfo);
-
-                    console.log('Captura exitosa con cambio temporal de mapa base');
-                    resolve(canvas);
-                } catch (captureError) {
-                    console.warn('Error en captura, restaurando mapa base:', captureError);
-
-                    await this.restoreOriginalBasemap(originalInfo);
-
-                    const basicCanvas = await this.createBasicMapCanvas();
-                    resolve(basicCanvas);
-                }
+                console.log('Captura con padding completada');
+                resolve(newCanvas);
 
             } catch (error) {
-                console.error('Error en captura con cambio de mapa base:', error);
+                console.error('Error en performCapture:', error);
                 reject(new Error('No se pudo capturar el mapa: ' + error.message));
             }
         });
@@ -904,6 +899,12 @@ class CanvasCapture {
     async switchToExportFriendlyBasemap() {
         return new Promise((resolve) => {
             try {
+                if (!this.map.isBasemapActive) {
+                    console.log('El mapa base está inactivo, no se cambiará para la exportación.');
+                    resolve({ originalLayer: null, temporaryLayer: null });
+                    return;
+                }
+
                 console.log('Cambiando a mapa base compatible con exportacion...');
 
                 let currentBaseLayer = null;

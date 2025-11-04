@@ -176,6 +176,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add a "None" layer for a white background
+    const noBaseLayer = L.layerGroup();
+    baseLayersForControl['Ninguno'] = noBaseLayer;
+
+
     const baseKeys = Object.keys(baseLayers);
     if (!baseKeys.length) {
         console.error('No hay mapas base disponibles.');
@@ -188,8 +193,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
         center: [24.1, -102],
-        zoom: 5,
-        minZoom: 3,
+        zoom: 4,
+        minZoom: 5,
         maxZoom: 18,
         maxBounds: graticuleBounds,
         maxBoundsViscosity: 1,
@@ -197,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         zoomControl: false,
         preferCanvas: true
     });
+    map.isBasemapActive = true; // Initialize the flag
 
     // Añadir controles
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -206,6 +212,16 @@ document.addEventListener('DOMContentLoaded', function () {
         maxWidth: 180,
         updateWhenIdle: true
     }).addTo(map);
+
+    // Handle background for "None" basemap
+    map.on('baselayerchange', function (e) {
+        map.isBasemapActive = e.name !== 'Ninguno';
+        if (e.name === 'Ninguno') {
+            map.getContainer().style.backgroundColor = 'white';
+        } else {
+            map.getContainer().style.backgroundColor = '';
+        }
+    });
 
     // Contenedor para los logos institucionales
     const logoContainer = L.DomUtil.create('div', 'logos-control-wrapper', map.getContainer());
@@ -228,9 +244,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#333333',
+                color: '#601623',
                 weight: 1.5,
-                opacity: 0.8,
+                opacity: 0.5,
                 dashArray: '3, 6'
             }).addTo(graticuleLayer);
         });
@@ -243,9 +259,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#333333',
+                color: '#601623',
                 weight: 1.5,
-                opacity: 0.8,
+                opacity: 0.5,
                 dashArray: '3, 6'
             }).addTo(graticuleLayer);
         });
@@ -394,13 +410,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const graticuleLayer = createGraticule();
     const graticuleLabels = new GraticuleLabels({ targetLayer: graticuleLayer, latitudes: graticuleLatitudes, longitudes: graticuleLongitudes });
+    map.createPane('marinasPane');
+    const marinasLayer = L.layerGroup({ pane: 'marinasPane' }).addTo(map);
 
     graticuleLayer.addTo(map);
     graticuleLabels.addTo(map);
+    marinasLayer.addTo(map);
 
     // Crear overlays para el control de capas
     const overlays = {
-        'Retícula (Lat/Lon)': graticuleLayer
+        'Retícula (Lat/Lon)': graticuleLayer,
+        'Regiones Marinas': marinasLayer
     };
 
     if (Object.keys(baseLayersForControl).length) {
@@ -411,11 +431,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentBaseLayer = activeBaseLayer || null;
 
     map.fitBounds(mexicoBounds.pad(-0.15));
-    map.on('zoomend', function () {
-        if (map.getZoom() < 4) {
-            map.setZoom(4);
-        }
-    });
 
     const markersLayer = L.layerGroup().addTo(map);
 
@@ -431,7 +446,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const instrumentSelect = document.getElementById('instrument-select');
     const mapSelect = document.getElementById('map-select');
-    const instrumentLayerGroup = L.layerGroup().addTo(map);
+    map.createPane('gerenciasPane');
+    const instrumentLayerGroup = L.layerGroup({ pane: 'gerenciasPane' }).addTo(map);
 
     const mapConfigurations = {
         'PLADESE': [
@@ -537,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 "Baja California": "#939594",
                 "Central": "#6A1C32",
                 "Noreste": "#235B4E",
-                "Noroccidental": "#DDC9A4",
+                "Noroeste": "#DDC9A4",
                 "Norte": "#10302B",
                 "Occidental": "#BC955C",
                 "Oriental": "#9F2240",
@@ -548,11 +564,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 const color = regionColors[feature.properties.name] || '#808080'; // Default color
                 return {
                     fillColor: color,
-                    weight: 2,
+                    fill: true,
+                    weight: 0, // No default border
                     opacity: 1,
-                    color: 'white',
+                    color: 'transparent', // Transparent border by default
                     dashArray: '3',
-                    fillOpacity: 0.7
+                    fillOpacity: 0.7, // Set fillOpacity to 0.7 as requested
+                    pane: 'gerenciasPane'
                 };
             }
 
@@ -570,9 +588,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     layer.on({
                         mouseover: function (e) {
                             const layer = e.target;
+                            const originalColor = regionColors[feature.properties.name] || '#808080';
+                            const darkerColor = darkenColor(originalColor, 20); // Darken by 20%
+
                             layer.setStyle({
                                 weight: 5,
-                                color: '#666',
+                                color: darkerColor,
                                 dashArray: '',
                                 fillOpacity: 0.9
                             });
@@ -584,13 +605,96 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             });
+
+            instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
             addLegend(regionColors); // Add legend to map
+
         } catch (error) {
             console.error('Error cargando GeoJSON:', error);
             // Optionally, show a notification to the user
         } finally {
             togglePreloader(false);
+        }
+    }
+
+    function createGradientPattern(color) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const size = 200;
+        canvas.width = size;
+        canvas.height = size;
+
+        const lighterColor = lightenColor(color, 40);
+        const gradient = context.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, lighterColor);
+
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, size, size);
+
+        return canvas;
+    }
+
+    function lightenColor(hex, percent) {
+        hex = hex.replace(/[^0-9a-f]/gi, '');
+        if (hex.length < 6) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        percent = percent || 0;
+
+        var rgb = "#", c, i;
+        for (i = 0; i < 3; i++) {
+            c = parseInt(hex.substr(i * 2, 2), 16);
+            c = Math.round(Math.min(Math.max(0, c + (c * percent / 100)), 255)).toString(16);
+            rgb += ("00" + c).substr(c.length);
+        }
+
+        return rgb;
+    }
+
+    function darkenColor(hex, percent) {
+        let f = parseInt(hex.slice(1), 16),
+            R = f >> 16,
+            G = (f >> 8) & 0x00ff,
+            B = f & 0x0000ff;
+        return "#" + (
+            0x1000000 +
+            (Math.round((R * (100 - percent)) / 100) * 0x10000) +
+            (Math.round((G * (100 - percent)) / 100) * 0x100) +
+            (Math.round((B * (100 - percent)) / 100))
+        ).toString(16).slice(1);
+    }
+
+    async function loadMarinasGeoJSON(url) {
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const marinaStyle = {
+                fillColor: '#0077be',
+                weight: 1,
+                opacity: 1,
+                color: 'white',
+                fillOpacity: 0.5,
+                pane: 'marinasPane'
+            };
+
+            const geoJsonLayer = L.geoJSON(data, {
+                style: marinaStyle,
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties && feature.properties.name) {
+                        layer.bindTooltip(feature.properties.name, {
+                            permanent: false,
+                            direction: 'center',
+                            className: 'marina-label'
+                        });
+                    }
+                }
+            });
+            marinasLayer.addLayer(geoJsonLayer);
+        } catch (error) {
+            console.error('Error cargando GeoJSON de marinas:', error);
         }
     }
 
@@ -667,6 +771,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cargar datos iniciales
     loadAndRender({ silent: false });
+    loadMarinasGeoJSON('https://cdn.sassoapps.com/Mapas/Electricidad/regionmarinamx.geojson');
 
     if (REFRESH_MS > 0) {
         setInterval(function () {
