@@ -174,6 +174,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 attribution: '&copy; Google',
                 maxZoom: 20
             })
+        },
+        'carto-light': {
+            label: 'CartoDB Light',
+            creator: () => L.tileLayer(fallbackLight, {
+                attribution: fallbackAttribution,
+                maxZoom: 18
+            })
+        },
+        'carto-dark': {
+            label: 'CartoDB Dark',
+            creator: () => L.tileLayer(fallbackDark, {
+                attribution: fallbackAttribution,
+                maxZoom: 18
+            })
         }
     };
 
@@ -231,25 +245,31 @@ document.addEventListener('DOMContentLoaded', function () {
     map.on('baselayerchange', function (e) {
         currentBaseLayerName = e.name;
         map.isBasemapActive = e.name !== 'Ninguno';
+
         if (e.name === 'Ninguno') {
             map.getContainer().style.backgroundColor = 'white';
-        } else {
-            map.getContainer().style.backgroundColor = '';
-        }
-
-        // Update inset maps
-        const newLayerConfig = Object.values(layerConfigs).find(config => config.label === e.name);
-        if (newLayerConfig && newLayerConfig.creator) {
             insetControllers.forEach(controller => {
                 if (controller.baseLayer) {
                     controller.map.removeLayer(controller.baseLayer);
                 }
-                const newInsetBaseLayer = newLayerConfig.creator();
-                if (newInsetBaseLayer) {
-                    newInsetBaseLayer.addTo(controller.map);
-                    controller.baseLayer = newInsetBaseLayer;
-                }
+                controller.map.getContainer().style.backgroundColor = 'white';
             });
+        } else {
+            map.getContainer().style.backgroundColor = '';
+            const newLayerConfig = Object.values(layerConfigs).find(config => config.label === e.name);
+            if (newLayerConfig && newLayerConfig.creator) {
+                insetControllers.forEach(controller => {
+                    if (controller.baseLayer) {
+                        controller.map.removeLayer(controller.baseLayer);
+                    }
+                    const newInsetBaseLayer = newLayerConfig.creator();
+                    if (newInsetBaseLayer) {
+                        newInsetBaseLayer.addTo(controller.map);
+                        controller.baseLayer = newInsetBaseLayer;
+                    }
+                    controller.map.getContainer().style.backgroundColor = '';
+                });
+            }
         }
     });
 
@@ -571,6 +591,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 inertia: false
             });
 
+            container.addEventListener('mouseover', () => {
+                insetMap.dragging.enable();
+                insetMap.scrollWheelZoom.enable();
+                insetMap.doubleClickZoom.enable();
+                insetMap.boxZoom.enable();
+            });
+
+            container.addEventListener('mouseout', () => {
+                insetMap.dragging.disable();
+                insetMap.scrollWheelZoom.disable();
+                insetMap.doubleClickZoom.disable();
+                insetMap.boxZoom.disable();
+            });
+
             const initialLayerConfig = Object.values(layerConfigs).find(config => config.label === currentBaseLayerName);
             let initialInsetBaseLayer;
             if (initialLayerConfig && initialLayerConfig.creator) {
@@ -647,6 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapSelect = document.getElementById('map-select');
     const sheetInfoEl = document.getElementById('sheet-info');
     map.createPane('gerenciasPane');
+    map.createPane('statesPane');
     const instrumentLayerGroup = L.layerGroup({ pane: 'gerenciasPane' }).addTo(map);
     map.createPane('connectionsPane');
     const connectionsLayerGroup = L.layerGroup({ pane: 'connectionsPane' }).addTo(map);
@@ -685,11 +720,14 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 name: 'Regiones y enlaces del SEN en 2025',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'regions',
                 connectionsGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/lienas.geojson',
                 //googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRBhcrQHIMTSx9uf7i-iRPCm1i5JT20AYRqKsMBn-JZa4jHNFUKuftYnU5N0IdeQ3IUeyE_tr8Swnjo/pub?gid=0&single=true&output=csv',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmiZTItq8d5z_ljlcWJjvYW1pEZ-TG2sFdOgjJPZZXeXHreDN0EcYOS6APs4L8zmsCjmCxVg4C_y4S/pub?gid=0&single=true&output=csv',
                 //googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1XuB7E8Vz4OqNf6lzGUr_8JJ9QE9ksqwSqSSx58yr-Gw/edit?usp=sharing',
                 googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/18bRXnlygfBG0uJ5Z6RGvut6RlvC3Tip6-VjTQ6PrtzM/edit?usp=sharing',
+                descriptionTitle: 'Diagnóstico del sector eléctrico',
+                description: 'El suministro eléctrico es uno de los principales servicios capaces de impulsar y generar prosperidad y desarrollo para todos los sectores del país: desde un hogar, hasta comercios, el campo, otros servicios públicos y la industria. En esta sección se presenta un diagnóstico con las principales características que guarda el sector eléctrico nacional y su evolución de 2010 a 2024, como lo son: la demanda y el consumo, el consumo final, las pérdidas eléctricas, la infraestructura de transmisión y distribución, la red de gasoductos, la cobertura eléctrica, las tarifas eléctricas, las emisiones de gases de efecto invernadero, la cobertura del servicio eléctrico, la innovación, así como el desarrollo tecnológico y de capacidades.<br><br>El SEN se compone de 8 Gerencias de Control Regional (GCR) con 100 regiones de transmisión (Figura 2.1) y enlaces equivalentes que interconectan a estas y a las GCR. La GCR Baja California contiene tres sistemas interconectados: El Sistema Interconectado de Baja California (SIBC), el Sistema Interconectado de Baja California Sur (SIBCS) y el Sistema Interconectado de Mulegé (SIMUL). Por su parte, las GCR Central (CEN), Noreste (NES), Noroeste (NOR), Norte (NTE), Occidental (OCC), Oriental (ORI) y Peninsular (PEN) conforman el Sistema Interconectado Nacional (SIN).',
                 insets: [
                     {
                         label: 'Detalle Baja California',
@@ -713,6 +751,20 @@ document.addEventListener('DOMContentLoaded', function () {
                             [22.2, -85.5]
                         ]
                     }
+                ]
+            },
+            {
+                name: 'Red nacional de gasoductos en 2024',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson',
+                geojsonUrlType: 'states',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSR7XevbKi6yGLS8hLXmWnBZIvOWu4xB45B0-VA7CNIleOY_88YGzZf9W_zf0GVIb5k5pHzSI7RE7tY/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1xcApSZqIxPsu4x59_pHZ1Ym62id52CyIIXVC7AopQhM/edit?usp=sharing',
+                descriptionTitle: 'Evolución de la red nacional de gasoductos',
+                description: 'La generación de energía eléctrica a partir de tecnologías con funcionamiento basado en el consumo de gas natural (principalmente Turbogás y Ciclo Combinado) ha tomado relevancia en el contexto nacional. Con una TMCA de 3.1% en la generación eléctrica de estas dos tecnologías durante el periodo 2010-2024 (Ver Tabla 2.2), se ha tenido que construir y adaptar la infraestructura para ello. En esta sección se reporta la infraestructura existente para abastecer el combustible necesario para la generación de energía eléctrica.',
+                pipelineGeojsonUrls: [
+                    'https://cdn.sassoapps.com/Mapas/Electricidad/Ductos%20de%20Importacion.geojson',
+                    'https://cdn.sassoapps.com/Mapas/Electricidad/Ductos%20integrados%20a%20SISTRANGAS.geojson',
+                    'https://cdn.sassoapps.com/Mapas/Electricidad/Ductos%20no%20integrados%20a%20SISTRANGAS.geojson'
                 ]
             }
             // ... other PLADESE maps can be added here
@@ -860,6 +912,24 @@ document.addEventListener('DOMContentLoaded', function () {
         legendControl.addTo(map);
     }
 
+    function addGasLegend() {
+        if (legendControl) {
+            map.removeControl(legendControl);
+        }
+
+        legendControl = L.control({ position: 'bottomright' });
+
+        legendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML += '<strong>Simbología</strong>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #7a1c32; width: 20px; height: 3px; border: none;"></i> Ducto de gas</div>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #1f7a62; border-radius: 50%;"></i> Centrales de Ciclo Combinado</div>';
+            return div;
+        };
+
+        legendControl.addTo(map);
+    }
+
     function removeLegend() {
         if (legendControl) {
             map.removeControl(legendControl);
@@ -869,6 +939,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadGeoJSON(url, options) {
         const showPreloader = !(options && options.silent);
+        const type = options && options.type || 'regions';
+
         if (showPreloader) {
             togglePreloader(true);
         }
@@ -876,34 +948,48 @@ document.addEventListener('DOMContentLoaded', function () {
             const response = await fetch(url);
             const data = await response.json();
 
-            const regionColors = {
-                "Baja California": "#939594",
-                "Central": "#6A1C32",
-                "Noreste": "#235B4E",
-                "Noroeste": "#DDC9A4",
-                "Norte": "#10302B",
-                "Occidental": "#BC955C",
-                "Oriental": "#9F2240",
-                "Peninsular": "#A16F4A"
-            };
+            let styleFunction;
+            let onEachFeatureFunction;
 
-            function getRegionStyle(feature) {
-                const color = regionColors[feature.properties.name] || '#808080'; // Default color
-                return {
-                    fillColor: color,
-                    fill: true,
-                    weight: 0, // No default border
-                    opacity: 1,
-                    color: 'transparent', // Transparent border by default
-                    dashArray: '3',
-                    fillOpacity: 0.7, // Set fillOpacity to 0.7 as requested
-                    pane: 'gerenciasPane'
+            if (type === 'states') {
+                styleFunction = function(feature) {
+                    return {
+                        fillColor: '#E0E0E0',
+                        fill: true,
+                        weight: 1,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.7,
+                        pane: 'statesPane'
+                    };
+                }
+            } else { // regions
+                const regionColors = {
+                    "Baja California": "#939594",
+                    "Central": "#6A1C32",
+                    "Noreste": "#235B4E",
+                    "Noroeste": "#DDC9A4",
+                    "Norte": "#10302B",
+                    "Occidental": "#BC955C",
+                    "Oriental": "#9F2240",
+                    "Peninsular": "#A16F4A"
                 };
-            }
 
-            const geoJsonLayer = L.geoJSON(data, {
-                style: getRegionStyle,
-                onEachFeature: function (feature, layer) {
+                styleFunction = function(feature) {
+                    const color = regionColors[feature.properties.name] || '#808080'; // Default color
+                    return {
+                        fillColor: color,
+                        fill: true,
+                        weight: 0, // No default border
+                        opacity: 1,
+                        color: 'transparent', // Transparent border by default
+                        dashArray: '3',
+                        fillOpacity: 0.7, // Set fillOpacity to 0.7 as requested
+                        pane: 'gerenciasPane'
+                    };
+                }
+
+                onEachFeatureFunction = function (feature, layer) {
                     layer.on({
                         mouseover: function (e) {
                             const targetLayer = e.target;
@@ -923,29 +1009,22 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     });
                 }
+                addLegend(regionColors);
+            }
+
+            const geoJsonLayer = L.geoJSON(data, {
+                style: styleFunction,
+                onEachFeature: onEachFeatureFunction
             });
 
             instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
-            addLegend(regionColors); // Add legend to map
 
             if (insetControllers.length) {
                 insetControllers.forEach(controller => {
                     controller.polygonsLayer.clearLayers();
                     const insetLayer = L.geoJSON(data, {
-                        style: function (feature) {
-                            const color = regionColors[feature.properties.name] || '#808080';
-                            return {
-                                fillColor: color,
-                                fill: true,
-                                weight: 0,
-                                opacity: 1,
-                                color: 'transparent',
-                                dashArray: '3',
-                                fillOpacity: 0.7,
-                                interactive: false
-                            };
-                        }
+                        style: styleFunction
                     });
                     controller.polygonsLayer.addLayer(insetLayer);
                     if (typeof controller.polygonsLayer.bringToBack === 'function') {
@@ -966,11 +1045,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadConnectionsGeoJSON(url, options) {
         const showPreloader = options && options.showPreloader;
+        const clear = options && options.clear !== undefined ? options.clear : true;
+
         if (showPreloader) {
             togglePreloader(true);
         }
         try {
-            connectionsLayerGroup.clearLayers();
+            if (clear) {
+                connectionsLayerGroup.clearLayers();
+            }
             const response = await fetch(url);
             const data = await response.json();
             const baseStyle = {
@@ -1130,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function drawRows(rows) {
+    function drawRows(rows, mapConfig) {
         markersLayer.clearLayers();
         clearInsetMarkers();
         const bounds = [];
@@ -1142,21 +1225,43 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            const idValue = row.id || row.ID || row.Id || row.identificador || row.Identificador || '';
-            const name = row.name || row.Name || row.nombre || row.Nombre || row.titulo || row.Titulo || 'Registro';
-            const description = row.descripcion || row.Descripcion || row.description || row.Description || '';
-            const badgeLabel = idValue ? 'ID ' + idValue : 'Hoja';
-            const popup = [
-                '<div><span class="badge">' + badgeLabel + '</span></div>',
-                '<strong>' + name + '</strong>',
-                description ? '<div class="description">' + description + '</div>' : '',
-                '<small>(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</small>'
-            ].filter(Boolean).join('');
-            const markerOptions = getNodeMarkerOptions(true);
+
+            let popup = '';
+            if (mapConfig && mapConfig.name === 'Red nacional de gasoductos en 2024') {
+                popup = [
+                    '<div><strong>Permiso:</strong> ' + (row.NumeroPermiso || 'N/A') + '</div>',
+                    '<div><strong>Razón Social:</strong> ' + (row.RazonSocial || 'N/A') + '</div>',
+                    '<div><strong>Capacidad (MW):</strong> ' + (row.CapacidadAutorizadaMW || 'N/A') + '</div>',
+                    '<div><strong>Generación Anual:</strong> ' + (row.Generación_estimada_anual || 'N/A') + '</div>',
+                    '<div><strong>Inversión (mdls):</strong> ' + (row.Inversion_estimada_mdls || 'N/A') + '</div>',
+                    '<div><strong>Energético:</strong> ' + (row.Energetico_primario || 'N/A') + '</div>',
+                    '<div><strong>Actividad:</strong> ' + (row.Actividad_economica || 'N/A') + '</div>',
+                    '<div><strong>Tecnología:</strong> ' + (row.Tecnología || 'N/A') + '</div>',
+                    '<div><strong>País de Origen:</strong> ' + (row.PaísDeOrigen || 'N/A') + '</div>',
+                    '<div><strong>Tipo de Empresa:</strong> ' + (row.Tipo_Empresa || 'N/A') + '</div>'
+                ].join('');
+            } else {
+                const idValue = row.id || row.ID || row.Id || row.identificador || row.Identificador || '';
+                const name = row.name || row.Name || row.nombre || row.Nombre || row.titulo || row.Titulo || 'Registro';
+                const description = row.descripcion || row.Descripcion || row.description || row.Description || '';
+                const badgeLabel = idValue ? 'ID ' + idValue : 'Hoja';
+                popup = [
+                    '<div><span class="badge">' + badgeLabel + '</span></div>',
+                    '<strong>' + name + '</strong>',
+                    description ? '<div class="description">' + description + '</div>' : '',
+                    '<small>(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</small>'
+                ].filter(Boolean).join('');
+            }
+
+            let markerOptions = getNodeMarkerOptions(true);
+            if (mapConfig && mapConfig.name === 'Red nacional de gasoductos en 2024') {
+                markerOptions.radius = 6;
+            }
+
             const marker = L.circleMarker([lat, lng], markerOptions);
             marker.bindPopup(popup);
-            if (idValue) {
-                marker.bindTooltip(String(idValue), {
+            if (row.id || row.ID || row.Id) {
+                marker.bindTooltip(String(row.id || row.ID || row.Id), {
                     permanent: true,
                     direction: 'top',
                     className: 'node-label',
@@ -1169,8 +1274,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     const insetMarkerOptions = getNodeMarkerOptions(false);
                     const insetMarker = L.circleMarker([lat, lng], insetMarkerOptions);
                     insetMarker.bindPopup(popup);
-                    if (idValue) {
-                        insetMarker.bindTooltip(String(idValue), {
+                    if (row.id || row.ID || row.Id) {
+                        insetMarker.bindTooltip(String(row.id || row.ID || row.Id), {
                             permanent: true,
                             direction: 'top',
                             className: 'node-label',
@@ -1209,7 +1314,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const csvText = await response.text();
             const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
             if (expectedUrl === (currentSheetUrl || '').trim()) {
-                drawRows(parsed.data);
+                const selectedInstrument = instrumentSelect.value;
+                const mapConfig = selectedInstrument && mapConfigurations[selectedInstrument] ? mapConfigurations[selectedInstrument].find(m => m.name === currentMapTitle) : null;
+                drawRows(parsed.data, mapConfig);
                 updateTimestamp();
             }
         } catch (error) {
@@ -1281,6 +1388,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Update currentMapTitle when a new map is selected
+    const mapDescriptionEl = document.getElementById('map-description');
+
     if (mapSelect) {
         mapSelect.addEventListener('change', async function () {
             const selectedMapName = this.value;
@@ -1296,6 +1405,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateSheetInfo(null, SELECT_MAP_MESSAGE);
                 currentMapTitle = DEFAULT_MAP_TITLE;
                 updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+                if (mapDescriptionEl) {
+                    mapDescriptionEl.innerHTML = '';
+                    mapDescriptionEl.style.display = 'none';
+                }
                 return;
             }
 
@@ -1304,15 +1417,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (mapConfig) {
                     currentMapTitle = mapConfig.name; // Update the current map title
                     updateMapTitleDisplay(currentMapTitle);
+
+                    if (mapDescriptionEl) {
+                        const titleEl = document.getElementById('map-description-title');
+                        const contentEl = document.getElementById('map-description-content');
+
+                        if (mapConfig.description) {
+                            if (titleEl) {
+                                titleEl.innerHTML = mapConfig.descriptionTitle || '';
+                            }
+                            if (contentEl) {
+                                contentEl.innerHTML = mapConfig.description || '';
+                            }
+                            mapDescriptionEl.style.display = 'block';
+                        } else {
+                            if (titleEl) titleEl.innerHTML = '';
+                            if (contentEl) contentEl.innerHTML = '';
+                            mapDescriptionEl.style.display = 'none';
+                        }
+                    }
+
                     if (Array.isArray(mapConfig.insets) && mapConfig.insets.length) {
                         createInsetMaps(mapConfig.insets);
                     }
                     if (mapConfig.geojsonUrl) {
-                        await loadGeoJSON(mapConfig.geojsonUrl);
+                        if (mapConfig.name === 'Red nacional de gasoductos en 2024') {
+                            addGasLegend();
+                        }
+                        await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
                     }
                     if (mapConfig.connectionsGeojsonUrl) {
                         const showPreloader = !mapConfig.geojsonUrl;
-                        await loadConnectionsGeoJSON(mapConfig.connectionsGeojsonUrl, { showPreloader });
+                        await loadConnectionsGeoJSON(mapConfig.connectionsGeojsonUrl, { showPreloader, clear: true });
+                    }
+                    if (mapConfig.pipelineGeojsonUrls && Array.isArray(mapConfig.pipelineGeojsonUrls)) {
+                        for (let i = 0; i < mapConfig.pipelineGeojsonUrls.length; i++) {
+                            const url = mapConfig.pipelineGeojsonUrls[i];
+                            const isFirst = i === 0;
+                            // If there was no connectionsGeojsonUrl, the first pipeline layer should clear the group.
+                            const shouldClear = isFirst && !mapConfig.connectionsGeojsonUrl;
+                            await loadConnectionsGeoJSON(url, { showPreloader: false, clear: shouldClear });
+                        }
                     }
                     if (mapConfig.googleSheetUrl && hasValidSheetUrl(mapConfig.googleSheetUrl)) {
                         currentSheetUrl = mapConfig.googleSheetUrl;
@@ -1330,6 +1475,10 @@ document.addEventListener('DOMContentLoaded', function () {
             updateSheetInfo(null, SELECT_MAP_MESSAGE);
             currentMapTitle = DEFAULT_MAP_TITLE;
             updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+            if (mapDescriptionEl) {
+                mapDescriptionEl.innerHTML = '';
+                mapDescriptionEl.style.display = 'none';
+            }
         });
     }
 });

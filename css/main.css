@@ -378,6 +378,26 @@ button {
     position: relative;
 }
 
+.map-description {
+    padding: 1rem 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--color-border);
+    margin-top: 1rem;
+}
+
+.map-description h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.map-description p {
+    margin: 0;
+}
+
 .map-inset {
     position: absolute;
     background: rgba(255, 255, 255, 0.94);
@@ -409,8 +429,9 @@ button {
     overflow: hidden;
 }
 
-.map-inset .leaflet-control-attribution {
-    display: none;
+.map-inset .leaflet-control-attribution,
+.map-inset .leaflet-control-container {
+    display: none !important;
 }
 
 .leaflet-interactive.connections-line {
@@ -1462,6 +1483,10 @@ Notification system */
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.leaflet-pane.leaflet-states-pane {
+    filter: drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.3));
 }
 
 .leaflet-pane.leaflet-gerencias-pane {
