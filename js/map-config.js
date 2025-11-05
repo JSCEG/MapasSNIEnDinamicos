@@ -1023,8 +1023,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (insetControllers.length) {
                 insetControllers.forEach(controller => {
                     controller.polygonsLayer.clearLayers();
+
+                    const insetStyleFunction = function(feature) {
+                        const style = styleFunction(feature);
+                        delete style.pane;
+                        return style;
+                    };
+
                     const insetLayer = L.geoJSON(data, {
-                        style: styleFunction
+                        style: insetStyleFunction
                     });
                     controller.polygonsLayer.addLayer(insetLayer);
                     if (typeof controller.polygonsLayer.bringToBack === 'function') {
