@@ -158,19 +158,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const layerConfigs = {
         'sener-azul': {
             label: 'SENER Azul',
-            layer: createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul')
+            creator: () => createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul')
         },
         'sener-light': {
             label: 'SENER Light',
-            layer: createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light')
+            creator: () => createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light')
         },
         'sener-oscuro': {
             label: 'SENER Oscuro',
-            layer: createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro')
+            creator: () => createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro')
         },
         'google-satelite': {
             label: 'Google Satélite',
-            layer: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            creator: () => L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 attribution: '&copy; Google',
                 maxZoom: 20
             })
@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const baseLayersForControl = {};
 
     Object.entries(layerConfigs).forEach(function ([key, config]) {
+        config.layer = config.creator();
         if (config.layer) {
             baseLayers[key] = config.layer;
             baseLayersForControl[config.label] = config.layer;
@@ -224,13 +225,31 @@ document.addEventListener('DOMContentLoaded', function () {
         updateWhenIdle: true
     }).addTo(map);
 
+    let currentBaseLayerName = 'SENER Light';
+
     // Handle background for "None" basemap
     map.on('baselayerchange', function (e) {
+        currentBaseLayerName = e.name;
         map.isBasemapActive = e.name !== 'Ninguno';
         if (e.name === 'Ninguno') {
             map.getContainer().style.backgroundColor = 'white';
         } else {
             map.getContainer().style.backgroundColor = '';
+        }
+
+        // Update inset maps
+        const newLayerConfig = Object.values(layerConfigs).find(config => config.label === e.name);
+        if (newLayerConfig && newLayerConfig.creator) {
+            insetControllers.forEach(controller => {
+                if (controller.baseLayer) {
+                    controller.map.removeLayer(controller.baseLayer);
+                }
+                const newInsetBaseLayer = newLayerConfig.creator();
+                if (newInsetBaseLayer) {
+                    newInsetBaseLayer.addTo(controller.map);
+                    controller.baseLayer = newInsetBaseLayer;
+                }
+            });
         }
     });
 
@@ -541,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function () {
             mapContainerEl.appendChild(container);
 
             const insetMap = L.map(insetMapEl, {
-                attributionControl: false,
+                attributionControl: true,
                 zoomControl: false,
                 dragging: false,
                 scrollWheelZoom: false,
@@ -552,10 +571,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 inertia: false
             });
 
-            L.tileLayer(fallbackLight, {
-                attribution: fallbackAttribution,
-                maxZoom: 18
-            }).addTo(insetMap);
+            const initialLayerConfig = Object.values(layerConfigs).find(config => config.label === currentBaseLayerName);
+            let initialInsetBaseLayer;
+            if (initialLayerConfig && initialLayerConfig.creator) {
+                initialInsetBaseLayer = initialLayerConfig.creator();
+            } else {
+                // Fallback to a default layer if something goes wrong
+                initialInsetBaseLayer = L.tileLayer(fallbackLight, {
+                    attribution: fallbackAttribution,
+                    maxZoom: 18
+                });
+            }
+            initialInsetBaseLayer.addTo(insetMap);
 
             const insetPolygonsLayer = L.layerGroup().addTo(insetMap);
             const insetLinesLayer = L.layerGroup().addTo(insetMap);
@@ -581,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
             insetControllers.push({
                 container,
                 map: insetMap,
+                baseLayer: initialInsetBaseLayer,
                 polygonsLayer: insetPolygonsLayer,
                 linesLayer: insetLinesLayer,
                 markersLayer: insetMarkersLayer,
@@ -658,12 +686,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'Regiones y enlaces del SEN en 2025',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 connectionsGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/lienas.geojson',
-                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRBhcrQHIMTSx9uf7i-iRPCm1i5JT20AYRqKsMBn-JZa4jHNFUKuftYnU5N0IdeQ3IUeyE_tr8Swnjo/pub?gid=0&single=true&output=csv',
+                //googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRBhcrQHIMTSx9uf7i-iRPCm1i5JT20AYRqKsMBn-JZa4jHNFUKuftYnU5N0IdeQ3IUeyE_tr8Swnjo/pub?gid=0&single=true&output=csv',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRmiZTItq8d5z_ljlcWJjvYW1pEZ-TG2sFdOgjJPZZXeXHreDN0EcYOS6APs4L8zmsCjmCxVg4C_y4S/pub?gid=0&single=true&output=csv',
+                //googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1XuB7E8Vz4OqNf6lzGUr_8JJ9QE9ksqwSqSSx58yr-Gw/edit?usp=sharing',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/18bRXnlygfBG0uJ5Z6RGvut6RlvC3Tip6-VjTQ6PrtzM/edit?usp=sharing',
                 insets: [
                     {
                         label: 'Detalle Baja California',
                         center: [23.2, -110.5],
-                        zoom: 6,
+                        zoom: 7,
                         size: { width: 220, height: 160 },
                         position: { bottom: '18px', left: '18px' },
                         bounds: [
@@ -674,7 +705,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     {
                         label: 'Detalle Peninsular',
                         center: [20.9, -87.4],
-                        zoom: 6,
+                        zoom: 7,
                         size: { width: 220, height: 160 },
                         position: { top: '18px', right: '18px' },
                         bounds: [
@@ -722,30 +753,49 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function updateSheetInfo(url, fallbackMessage) {
+    function updateSheetInfo(mapConfig, fallbackMessage) {
         if (!sheetInfoEl) {
             return;
         }
         sheetInfoEl.innerHTML = '';
-        const trimmedUrl = (url || '').trim();
-        if (hasValidSheetUrl(trimmedUrl)) {
-            const displayUrl = getDisplaySheetUrl(trimmedUrl);
-            if (/^https?:\/\//i.test(displayUrl)) {
+
+        const viewUrl = mapConfig && mapConfig.googleSheetUrl ? (mapConfig.googleSheetUrl || '').trim() : '';
+        const editUrl = mapConfig && mapConfig.googleSheetEditUrl ? (mapConfig.googleSheetEditUrl || '').trim() : '';
+
+        const hasViewUrl = hasValidSheetUrl(viewUrl);
+        const hasEditUrl = hasValidSheetUrl(editUrl);
+
+        if (hasViewUrl || hasEditUrl) {
+            if (hasViewUrl) {
+                const displayUrl = getDisplaySheetUrl(viewUrl);
+                if (/^https?:\/\//i.test(displayUrl)) {
+                    const link = document.createElement('a');
+                    link.href = displayUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = 'Ver datos';
+                    sheetInfoEl.appendChild(link);
+                }
+            }
+
+            if (hasViewUrl && hasEditUrl) {
+                sheetInfoEl.appendChild(document.createTextNode(' | '));
+            }
+
+            if (hasEditUrl) {
                 const link = document.createElement('a');
-                link.href = displayUrl;
+                link.href = editUrl;
                 link.target = '_blank';
                 link.rel = 'noopener noreferrer';
-                link.textContent = displayUrl;
+                link.textContent = 'Editar datos';
                 sheetInfoEl.appendChild(link);
-            } else {
-                sheetInfoEl.textContent = displayUrl;
             }
         } else {
             sheetInfoEl.textContent = fallbackMessage || NO_SHEET_MESSAGE;
         }
     }
 
-    updateSheetInfo(SHEET_CSV);
+    updateSheetInfo(null, SELECT_MAP_MESSAGE);
 
     if (instrumentSelect) {
         instrumentSelect.addEventListener('change', function () {
@@ -1266,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     if (mapConfig.googleSheetUrl && hasValidSheetUrl(mapConfig.googleSheetUrl)) {
                         currentSheetUrl = mapConfig.googleSheetUrl;
-                        updateSheetInfo(mapConfig.googleSheetUrl);
+                        updateSheetInfo(mapConfig);
                         await loadAndRender({ silent: false });
                     } else {
                         currentSheetUrl = null;
