@@ -69,6 +69,10 @@
                                 <option value="">Seleccione un mapa</option>
                             </select>
                         </div>
+                        <div class="toolbar-group sheet-info-group">
+                            <span class="sheet-info-label">Hoja de c&aacute;lculo</span>
+                            <span id="sheet-info" class="sheet-info-value">Sin fuente de datos seleccionada.</span>
+                        </div>
                         <div class="toolbar-group">
                             <button type="button" id="refresh-data" class="btn-secondary btn-icon"
                                 title="Actualizar datos">
@@ -87,6 +91,12 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="map-title-banner" aria-live="polite">
+                        <h2 id="map-title-display" class="map-title-text">
+                            Mapa SNIEn - Sistema Nacional de Informaci&oacute;n Energ&eacute;tica
+                        </h2>
                     </div>
 
                     <div id="map" class="map-view" role="region" aria-label="Mapa interactivo del SNIEn"></div>

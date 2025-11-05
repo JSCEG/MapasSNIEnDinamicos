@@ -186,6 +186,26 @@ button {
     gap: 1.25rem;
 }
 
+.map-title-banner {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(26, 52, 68, 0.08);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 14px 28px -22px rgba(17, 69, 51, 0.4);
+}
+
+.map-title-text {
+    margin: 0;
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    font-weight: 700;
+    color: var(--color-guinda);
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
 .selection-details {
     display: grid;
     gap: 1rem;
@@ -269,6 +289,46 @@ button {
     color: var(--color-muted);
 }
 
+.sheet-info-group {
+    max-width: 320px;
+}
+
+.sheet-info-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-muted);
+}
+
+.sheet-info-value {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.sheet-info-value a {
+    color: var(--color-verde-profundo);
+    text-decoration: underline;
+}
+
+.leaflet-tooltip.node-label {
+    background: #ffffff;
+    color: var(--color-verde-profundo);
+    border: 1px solid rgba(31, 122, 98, 0.25);
+    border-radius: 4px;
+    padding: 0.04rem 0.2rem;
+    font-size: 0.38rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-tooltip.node-label::before,
+.leaflet-tooltip.node-label::after {
+    display: none;
+}
 .control {
     appearance: none;
     background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(237, 243, 244, 1) 100%);
@@ -316,6 +376,43 @@ button {
     border-radius: 18px;
     overflow: hidden;
     position: relative;
+}
+
+.map-inset {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(31, 122, 98, 0.18);
+    border-radius: 12px;
+    padding: 0.45rem;
+    box-shadow: 0 16px 32px -22px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 640;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    pointer-events: auto;
+}
+
+.map-inset__title {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-verde-profundo);
+    margin: 0;
+}
+
+.map-inset__map {
+    flex: 1;
+    min-height: 110px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.leaflet-interactive.connections-line {
+    filter: drop-shadow(0 2px 4px rgba(79, 9, 28, 0.35));
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 @media (min-width: 1024px) {

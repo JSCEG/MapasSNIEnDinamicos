@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const MAP_CONTAINER_ID = 'map';
     const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4QU5BVBEHmewrNOLjaKoqca3qH16zYKXzvYfMwhrMiW1mR4yUHNJlbIjDhQuDmWtN803Da7r4SZV6/pub?gid=0&single=true&output=csv';
     const REFRESH_MS = 0; // Cambia a 300000 para 5 minutos
+    const NO_SHEET_MESSAGE = 'Este mapa no obtiene valores de Excel; son solo capas, shapes o GeoJSON.';
+    const SELECT_MAP_MESSAGE = 'Seleccione un mapa para ver su hoja de calculo.';
+    let currentSheetUrl = SHEET_CSV;
+    const NODE_MARKER_OPTIONS = {
+        radius: 3,
+        fillColor: '#1f7a62',
+        color: '#ffffff',
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.9
+    };
 
     /**
      * Helper function to draw a rounded rectangle on a canvas context.
@@ -442,19 +453,236 @@ document.addEventListener('DOMContentLoaded', function () {
         preloader.classList.toggle('hidden', !show);
     }
 
+    const insetBoundsLayerGroup = L.layerGroup().addTo(map);
+    let insetControllers = [];
+
+    function clearInsetMarkers() {
+        insetControllers.forEach(controller => {
+            if (controller.markersLayer && typeof controller.markersLayer.clearLayers === 'function') {
+                controller.markersLayer.clearLayers();
+            }
+        });
+    }
+
+    function clearInsetPolygons() {
+        insetControllers.forEach(controller => {
+            if (controller.polygonsLayer && typeof controller.polygonsLayer.clearLayers === 'function') {
+                controller.polygonsLayer.clearLayers();
+            }
+        });
+    }
+
+    function clearInsetLines() {
+        insetControllers.forEach(controller => {
+            if (controller.linesLayer && typeof controller.linesLayer.clearLayers === 'function') {
+                controller.linesLayer.clearLayers();
+            }
+        });
+    }
+
+    function clearInsetLayers() {
+        clearInsetMarkers();
+        clearInsetPolygons();
+        clearInsetLines();
+    }
+
+    function destroyInsetMaps() {
+        clearInsetLayers();
+        insetControllers.forEach(controller => {
+            if (controller.map) {
+                controller.map.remove();
+            }
+            if (controller.container && controller.container.parentNode) {
+                controller.container.parentNode.removeChild(controller.container);
+            }
+        });
+        insetControllers = [];
+        insetBoundsLayerGroup.clearLayers();
+    }
+
+    function createInsetMaps(insets) {
+        destroyInsetMaps();
+        if (!Array.isArray(insets) || !insets.length) {
+            return;
+        }
+        const mapContainerEl = map.getContainer();
+        const defaultPositions = [
+            { top: '18px', right: '18px' },
+            { bottom: '18px', right: '18px' },
+            { top: '18px', left: '18px' },
+            { bottom: '18px', left: '18px' }
+        ];
+
+        insets.forEach((insetConfig, index) => {
+            const container = document.createElement('div');
+            container.className = 'map-inset';
+            const widthValue = insetConfig.size && insetConfig.size.width !== undefined ? insetConfig.size.width : 220;
+            const heightValue = insetConfig.size && insetConfig.size.height !== undefined ? insetConfig.size.height : 160;
+            container.style.width = typeof widthValue === 'number' ? widthValue + 'px' : String(widthValue);
+            container.style.height = typeof heightValue === 'number' ? heightValue + 'px' : String(heightValue);
+
+            const position = insetConfig.position || defaultPositions[index] || defaultPositions[0];
+            ['top', 'right', 'bottom', 'left'].forEach(prop => {
+                if (position && position[prop] !== undefined) {
+                    const value = position[prop];
+                    container.style[prop] = typeof value === 'number' ? value + 'px' : value;
+                }
+            });
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'map-inset__title';
+            titleEl.textContent = insetConfig.label || 'Detalle';
+            container.appendChild(titleEl);
+
+            const insetMapEl = document.createElement('div');
+            insetMapEl.className = 'map-inset__map';
+            container.appendChild(insetMapEl);
+
+            mapContainerEl.appendChild(container);
+
+            const insetMap = L.map(insetMapEl, {
+                attributionControl: false,
+                zoomControl: false,
+                dragging: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                boxZoom: false,
+                keyboard: false,
+                tap: false,
+                inertia: false
+            });
+
+            L.tileLayer(fallbackLight, {
+                attribution: fallbackAttribution,
+                maxZoom: 18
+            }).addTo(insetMap);
+
+            const insetPolygonsLayer = L.layerGroup().addTo(insetMap);
+            const insetLinesLayer = L.layerGroup().addTo(insetMap);
+            const insetMarkersLayer = L.layerGroup().addTo(insetMap);
+
+            let rectangle;
+            if (Array.isArray(insetConfig.bounds) && insetConfig.bounds.length === 2) {
+                rectangle = L.rectangle(insetConfig.bounds, {
+                    color: '#1f7a62',
+                    weight: 1.5,
+                    dashArray: '4',
+                    fill: false,
+                    interactive: false
+                }).addTo(insetBoundsLayerGroup);
+            }
+
+            if (Array.isArray(insetConfig.center) && insetConfig.center.length === 2) {
+                insetMap.setView(insetConfig.center, insetConfig.zoom || 7);
+            } else if (Array.isArray(insetConfig.bounds) && insetConfig.bounds.length === 2) {
+                insetMap.fitBounds(insetConfig.bounds);
+            }
+
+            insetControllers.push({
+                container,
+                map: insetMap,
+                polygonsLayer: insetPolygonsLayer,
+                linesLayer: insetLinesLayer,
+                markersLayer: insetMarkersLayer,
+                config: insetConfig,
+                rectangle
+            });
+        });
+    }
+
+    function getNodeMarkerOptions(includePane) {
+        const options = {
+            radius: NODE_MARKER_OPTIONS.radius,
+            fillColor: NODE_MARKER_OPTIONS.fillColor,
+            color: NODE_MARKER_OPTIONS.color,
+            weight: NODE_MARKER_OPTIONS.weight,
+            opacity: NODE_MARKER_OPTIONS.opacity,
+            fillOpacity: NODE_MARKER_OPTIONS.fillOpacity
+        };
+        if (includePane) {
+            options.pane = 'nodesPane';
+        }
+        return options;
+    }
+
+    function clearData() {
+        markersLayer.clearLayers();
+        clearInsetMarkers();
+        if (lastUpdatedEl) {
+            lastUpdatedEl.textContent = '--';
+        }
+    }
+
     // --- Instrument and Map Selection Logic ---
 
     const instrumentSelect = document.getElementById('instrument-select');
     const mapSelect = document.getElementById('map-select');
+    const sheetInfoEl = document.getElementById('sheet-info');
     map.createPane('gerenciasPane');
     const instrumentLayerGroup = L.layerGroup({ pane: 'gerenciasPane' }).addTo(map);
+    map.createPane('connectionsPane');
+    const connectionsLayerGroup = L.layerGroup({ pane: 'connectionsPane' }).addTo(map);
+    map.createPane('nodesPane');
+    const nodesPane = map.getPane('nodesPane');
+    if (nodesPane) {
+        nodesPane.style.zIndex = 620;
+        nodesPane.style.pointerEvents = 'auto';
+    }
+    const connectionsPane = map.getPane('connectionsPane');
+    if (connectionsPane) {
+        connectionsPane.style.zIndex = 610;
+        connectionsPane.style.pointerEvents = 'none';
+    }
+
+    const mapTitleDisplay = document.getElementById('map-title-display');
+    const DEFAULT_MAP_TITLE = [
+        'Mapa SNIEn - Sistema Nacional de Informaci',
+        String.fromCharCode(243),
+        'n Energ',
+        String.fromCharCode(233),
+        'tica'
+    ].join('');
+
+    function updateMapTitleDisplay(title) {
+        if (!mapTitleDisplay) {
+            return;
+        }
+        mapTitleDisplay.textContent = title && title.trim() ? title : DEFAULT_MAP_TITLE;
+    }
+    updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+    let currentMapTitle = DEFAULT_MAP_TITLE;
 
     const mapConfigurations = {
         'PLADESE': [
             {
                 name: 'Regiones y enlaces del SEN en 2025',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
-                googleSheetUrl: 'URL_TO_PLADESE_MAPA1_SHEET' // This will be used later
+                connectionsGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/lienas.geojson',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRBhcrQHIMTSx9uf7i-iRPCm1i5JT20AYRqKsMBn-JZa4jHNFUKuftYnU5N0IdeQ3IUeyE_tr8Swnjo/pub?gid=0&single=true&output=csv',
+                insets: [
+                    {
+                        label: 'Detalle Baja California',
+                        center: [23.2, -110.5],
+                        zoom: 6,
+                        size: { width: 220, height: 160 },
+                        position: { bottom: '18px', left: '18px' },
+                        bounds: [
+                            [21.5, -112.5],
+                            [24.8, -108.5]
+                        ]
+                    },
+                    {
+                        label: 'Detalle Peninsular',
+                        center: [20.9, -87.4],
+                        zoom: 6,
+                        size: { width: 220, height: 160 },
+                        position: { top: '18px', right: '18px' },
+                        bounds: [
+                            [19.5, -89.2],
+                            [22.2, -85.5]
+                        ]
+                    }
+                ]
             }
             // ... other PLADESE maps can be added here
         ],
@@ -468,11 +696,67 @@ document.addEventListener('DOMContentLoaded', function () {
         // ... other instruments will be added here
     };
 
+    function hasValidSheetUrl(url) {
+        const trimmed = (url || '').trim();
+        return Boolean(trimmed) && !trimmed.startsWith('URL_TO_');
+    }
+
+    function getDisplaySheetUrl(url) {
+        const trimmed = (url || '').trim();
+        if (!trimmed) {
+            return '';
+        }
+        try {
+            const sheetUrl = new URL(trimmed);
+            const output = sheetUrl.searchParams.get('output');
+            if (output && output.toLowerCase() === 'csv') {
+                sheetUrl.searchParams.set('output', 'html');
+                return sheetUrl.toString();
+            }
+            if (!output && trimmed.includes('/pub?')) {
+                return trimmed.replace('/pub?', '/pubhtml?');
+            }
+            return sheetUrl.toString();
+        } catch (error) {
+            return trimmed;
+        }
+    }
+
+    function updateSheetInfo(url, fallbackMessage) {
+        if (!sheetInfoEl) {
+            return;
+        }
+        sheetInfoEl.innerHTML = '';
+        const trimmedUrl = (url || '').trim();
+        if (hasValidSheetUrl(trimmedUrl)) {
+            const displayUrl = getDisplaySheetUrl(trimmedUrl);
+            if (/^https?:\/\//i.test(displayUrl)) {
+                const link = document.createElement('a');
+                link.href = displayUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = displayUrl;
+                sheetInfoEl.appendChild(link);
+            } else {
+                sheetInfoEl.textContent = displayUrl;
+            }
+        } else {
+            sheetInfoEl.textContent = fallbackMessage || NO_SHEET_MESSAGE;
+        }
+    }
+
+    updateSheetInfo(SHEET_CSV);
+
     if (instrumentSelect) {
         instrumentSelect.addEventListener('change', function () {
             const selectedInstrument = this.value;
             mapSelect.innerHTML = '<option value="">Seleccione un mapa</option>'; // Clear previous options
             mapSelect.disabled = true;
+            mapSelect.value = '';
+            instrumentLayerGroup.clearLayers();
+            connectionsLayerGroup.clearLayers();
+            destroyInsetMaps();
+            removeLegend();
 
             if (selectedInstrument && mapConfigurations[selectedInstrument]) {
                 const maps = mapConfigurations[selectedInstrument];
@@ -483,29 +767,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     mapSelect.appendChild(option);
                 });
                 mapSelect.disabled = false;
-            }
-        });
-    }
-
-    if (mapSelect) {
-        mapSelect.addEventListener('change', async function () {
-            const selectedMapName = this.value;
-            const selectedInstrument = instrumentSelect.value;
-            instrumentLayerGroup.clearLayers();
-            removeLegend(); // Remove legend when changing map
-
-            if (selectedMapName && selectedInstrument && mapConfigurations[selectedInstrument]) {
-                const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
-                if (mapConfig) {
-                    console.log('Cargando mapa:', mapConfig.name);
-                    if (mapConfig.geojsonUrl) {
-                        await loadGeoJSON(mapConfig.geojsonUrl);
-                    }
-                    if (mapConfig.googleSheetUrl) {
-                        // Future implementation: loadGoogleSheet(mapConfig.googleSheetUrl);
-                        console.log('URL de Google Sheet:', mapConfig.googleSheetUrl);
-                    }
-                }
+                currentSheetUrl = null;
+                clearData();
+                updateSheetInfo(null, SELECT_MAP_MESSAGE);
+                currentMapTitle = DEFAULT_MAP_TITLE;
+                updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+            } else {
+                currentSheetUrl = null;
+                updateSheetInfo(null, SELECT_MAP_MESSAGE);
+                clearData();
+                connectionsLayerGroup.clearLayers();
+                destroyInsetMaps();
+                currentMapTitle = DEFAULT_MAP_TITLE;
+                updateMapTitleDisplay(DEFAULT_MAP_TITLE);
             }
         });
     }
@@ -521,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         legendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML += '<strong>Regiones</strong>';
+            div.innerHTML += '<strong>Gerencias de Control Regional</strong>';
 
             for (const key in colors) {
                 if (colors.hasOwnProperty(key)) {
@@ -543,8 +817,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function loadGeoJSON(url) {
-        togglePreloader(true);
+    async function loadGeoJSON(url, options) {
+        const showPreloader = !(options && options.silent);
+        if (showPreloader) {
+            togglePreloader(true);
+        }
         try {
             const response = await fetch(url);
             const data = await response.json();
@@ -577,27 +854,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const geoJsonLayer = L.geoJSON(data, {
                 style: getRegionStyle,
                 onEachFeature: function (feature, layer) {
-                    if (feature.properties && feature.properties.name) {
-                        layer.bindTooltip(feature.properties.name, {
-                            permanent: true,
-                            direction: 'center',
-                            className: 'region-label' // Optional: for custom styling
-                        });
-                    }
-
                     layer.on({
                         mouseover: function (e) {
-                            const layer = e.target;
+                            const targetLayer = e.target;
                             const originalColor = regionColors[feature.properties.name] || '#808080';
                             const darkerColor = darkenColor(originalColor, 20); // Darken by 20%
 
-                            layer.setStyle({
+                            targetLayer.setStyle({
                                 weight: 5,
                                 color: darkerColor,
                                 dashArray: '',
                                 fillOpacity: 0.9
                             });
-                            layer.bringToFront();
+                            targetLayer.bringToFront();
                         },
                         mouseout: function (e) {
                             geoJsonLayer.resetStyle(e.target);
@@ -610,11 +879,108 @@ document.addEventListener('DOMContentLoaded', function () {
             instrumentLayerGroup.addLayer(geoJsonLayer);
             addLegend(regionColors); // Add legend to map
 
+            if (insetControllers.length) {
+                insetControllers.forEach(controller => {
+                    controller.polygonsLayer.clearLayers();
+                    const insetLayer = L.geoJSON(data, {
+                        style: function (feature) {
+                            const color = regionColors[feature.properties.name] || '#808080';
+                            return {
+                                fillColor: color,
+                                fill: true,
+                                weight: 0,
+                                opacity: 1,
+                                color: 'transparent',
+                                dashArray: '3',
+                                fillOpacity: 0.7,
+                                interactive: false
+                            };
+                        }
+                    });
+                    controller.polygonsLayer.addLayer(insetLayer);
+                    if (typeof controller.polygonsLayer.bringToBack === 'function') {
+                        controller.polygonsLayer.bringToBack();
+                    }
+                });
+            }
+
         } catch (error) {
             console.error('Error cargando GeoJSON:', error);
             // Optionally, show a notification to the user
         } finally {
-            togglePreloader(false);
+            if (showPreloader) {
+                togglePreloader(false);
+            }
+        }
+    }
+
+    async function loadConnectionsGeoJSON(url, options) {
+        const showPreloader = options && options.showPreloader;
+        if (showPreloader) {
+            togglePreloader(true);
+        }
+        try {
+            connectionsLayerGroup.clearLayers();
+            const response = await fetch(url);
+            const data = await response.json();
+            const baseStyle = {
+                color: '#7a1c32',
+                weight: 3,
+                opacity: 0.92
+            };
+            const connectionsLayer = L.geoJSON(data, {
+                style: function (feature) {
+                    const props = feature && feature.properties ? feature.properties : {};
+                    const color = props.color || baseStyle.color;
+                    const weight = Number(props.weight) || baseStyle.weight;
+                    const opacity = typeof props.opacity === 'number' ? props.opacity : baseStyle.opacity;
+                    return {
+                        color: color,
+                        weight: weight,
+                        opacity: opacity,
+                        pane: 'connectionsPane',
+                        className: 'connections-line'
+                    };
+                }
+            });
+            connectionsLayerGroup.addLayer(connectionsLayer);
+            if (typeof connectionsLayerGroup.bringToFront === 'function') {
+                connectionsLayerGroup.bringToFront();
+            }
+
+            if (insetControllers.length) {
+                insetControllers.forEach(controller => {
+                    controller.linesLayer.clearLayers();
+                    const insetLinesLayer = L.geoJSON(data, {
+                        style: function (feature) {
+                            const props = feature && feature.properties ? feature.properties : {};
+                            const color = props.color || baseStyle.color;
+                            const weight = Number(props.weight) || baseStyle.weight;
+                            const opacity = typeof props.opacity === 'number' ? props.opacity : baseStyle.opacity;
+                            return {
+                                color: color,
+                                weight: weight,
+                                opacity: opacity,
+                                interactive: false,
+                                className: 'connections-line'
+                            };
+                        }
+                    });
+                    controller.linesLayer.addLayer(insetLinesLayer);
+                    if (typeof controller.linesLayer.bringToFront === 'function') {
+                        controller.linesLayer.bringToFront();
+                    }
+                    if (typeof controller.markersLayer.bringToFront === 'function') {
+                        controller.markersLayer.bringToFront();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando GeoJSON de líneas:', error);
+        } finally {
+            if (showPreloader) {
+                togglePreloader(false);
+            }
         }
     }
 
@@ -672,11 +1038,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             const marinaStyle = {
-                fillColor: '#0077be',
+                fillColor: '#bcd7f6',
                 weight: 1,
                 opacity: 1,
-                color: 'white',
-                fillOpacity: 0.5,
+                color: '#8cb4e2',
+                fillOpacity: 0.7,
                 pane: 'marinasPane'
             };
 
@@ -716,24 +1082,57 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function drawRows(rows) {
         markersLayer.clearLayers();
+        clearInsetMarkers();
         const bounds = [];
         rows.forEach(function (row) {
-            const latRaw = row.lat || row.Lat || row.latitude || '';
-            const lngRaw = row.lng || row.Lng || row.lon || row.longitude || '';
+            const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
+            const lngRaw = row.lng || row.Lng || row.lon || row.Lon || row.longitude || row.Longitud || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            const title = row.titulo || row.Titulo || 'Registro';
-            const description = row.descripcion || row.Descripcion || '';
+            const idValue = row.id || row.ID || row.Id || row.identificador || row.Identificador || '';
+            const name = row.name || row.Name || row.nombre || row.Nombre || row.titulo || row.Titulo || 'Registro';
+            const description = row.descripcion || row.Descripcion || row.description || row.Description || '';
+            const badgeLabel = idValue ? 'ID ' + idValue : 'Hoja';
             const popup = [
-                '<div><span class="badge">Hoja</span></div>',
-                '<strong>' + title + '</strong>',
+                '<div><span class="badge">' + badgeLabel + '</span></div>',
+                '<strong>' + name + '</strong>',
                 description ? '<div class="description">' + description + '</div>' : '',
                 '<small>(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</small>'
             ].filter(Boolean).join('');
-            L.marker([lat, lng]).bindPopup(popup).addTo(markersLayer);
+            const markerOptions = getNodeMarkerOptions(true);
+            const marker = L.circleMarker([lat, lng], markerOptions);
+            marker.bindPopup(popup);
+            if (idValue) {
+                marker.bindTooltip(String(idValue), {
+                    permanent: true,
+                    direction: 'top',
+                    className: 'node-label',
+                    offset: [0, -6]
+                });
+            }
+            marker.addTo(markersLayer);
+            if (insetControllers.length) {
+                insetControllers.forEach(controller => {
+                    const insetMarkerOptions = getNodeMarkerOptions(false);
+                    const insetMarker = L.circleMarker([lat, lng], insetMarkerOptions);
+                    insetMarker.bindPopup(popup);
+                    if (idValue) {
+                        insetMarker.bindTooltip(String(idValue), {
+                            permanent: true,
+                            direction: 'top',
+                            className: 'node-label',
+                            offset: [0, -6]
+                        });
+                    }
+                    controller.markersLayer.addLayer(insetMarker);
+                    if (typeof controller.markersLayer.bringToFront === 'function') {
+                        controller.markersLayer.bringToFront();
+                    }
+                });
+            }
             bounds.push([lat, lng]);
         });
         if (bounds.length) {
@@ -744,21 +1143,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadAndRender(options) {
         const silent = options && options.silent;
+        const sourceUrl = (currentSheetUrl || '').trim();
+        if (!hasValidSheetUrl(sourceUrl)) {
+            clearData();
+            return;
+        }
+        const expectedUrl = sourceUrl;
         if (!silent) {
             togglePreloader(true);
         }
         try {
             const cacheBuster = 'cb=' + Date.now();
-            const url = SHEET_CSV + (SHEET_CSV.includes('?') ? '&' : '?') + cacheBuster;
+            const url = sourceUrl + (sourceUrl.includes('?') ? '&' : '?') + cacheBuster;
             const response = await fetch(url, { cache: 'no-store' });
             const csvText = await response.text();
             const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-            drawRows(parsed.data);
-            updateTimestamp();
+            if (expectedUrl === (currentSheetUrl || '').trim()) {
+                drawRows(parsed.data);
+                updateTimestamp();
+            }
         } catch (error) {
             console.error('Fallo de carga:', error);
         } finally {
-            togglePreloader(false);
+            if (!silent) {
+                togglePreloader(false);
+            }
         }
     }
 
@@ -812,7 +1221,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Export Button Event Listeners ---
     const exportPdfBtn = document.getElementById('export-pdf');
     const exportPngBtn = document.getElementById('export-png');
-    let currentMapTitle = 'Mapa SNIEn - Sistema Nacional de Información Energética'; // Default title
 
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', () => exportUI.openModal('pdf'));
@@ -828,23 +1236,50 @@ document.addEventListener('DOMContentLoaded', function () {
             const selectedMapName = this.value;
             const selectedInstrument = instrumentSelect.value;
             instrumentLayerGroup.clearLayers();
+            connectionsLayerGroup.clearLayers();
+            destroyInsetMaps();
             removeLegend(); // Remove legend when changing map
+            clearData();
 
-            if (selectedMapName && selectedInstrument && mapConfigurations[selectedInstrument]) {
+            if (!selectedMapName) {
+                currentSheetUrl = null;
+                updateSheetInfo(null, SELECT_MAP_MESSAGE);
+                currentMapTitle = DEFAULT_MAP_TITLE;
+                updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+                return;
+            }
+
+            if (selectedInstrument && mapConfigurations[selectedInstrument]) {
                 const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
                 if (mapConfig) {
                     currentMapTitle = mapConfig.name; // Update the current map title
-                    console.log('currentMapTitle actualizado a:', currentMapTitle); // DEBUG
-                    console.log('Cargando mapa:', mapConfig.name);
+                    updateMapTitleDisplay(currentMapTitle);
+                    if (Array.isArray(mapConfig.insets) && mapConfig.insets.length) {
+                        createInsetMaps(mapConfig.insets);
+                    }
                     if (mapConfig.geojsonUrl) {
                         await loadGeoJSON(mapConfig.geojsonUrl);
                     }
-                    if (mapConfig.googleSheetUrl) {
-                        // Future implementation: loadGoogleSheet(mapConfig.googleSheetUrl);
-                        console.log('URL de Google Sheet:', mapConfig.googleSheetUrl);
+                    if (mapConfig.connectionsGeojsonUrl) {
+                        const showPreloader = !mapConfig.geojsonUrl;
+                        await loadConnectionsGeoJSON(mapConfig.connectionsGeojsonUrl, { showPreloader });
                     }
+                    if (mapConfig.googleSheetUrl && hasValidSheetUrl(mapConfig.googleSheetUrl)) {
+                        currentSheetUrl = mapConfig.googleSheetUrl;
+                        updateSheetInfo(mapConfig.googleSheetUrl);
+                        await loadAndRender({ silent: false });
+                    } else {
+                        currentSheetUrl = null;
+                        updateSheetInfo(null);
+                    }
+                    return;
                 }
             }
+
+            currentSheetUrl = null;
+            updateSheetInfo(null, SELECT_MAP_MESSAGE);
+            currentMapTitle = DEFAULT_MAP_TITLE;
+            updateMapTitleDisplay(DEFAULT_MAP_TITLE);
         });
     }
 });
