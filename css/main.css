@@ -207,13 +207,20 @@ button {
 }
 
 .selected-region-banner {
-    background: rgba(106, 28, 50, 0.08);
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(106, 28, 50, 0.3);
     border-radius: 12px;
-    padding: 0.6rem 1rem;
+    padding: 0.6rem 1.5rem;
     text-align: center;
-    margin-top: -0.5rem;
-    margin-bottom: 0.75rem;
     transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    max-width: 90%;
 }
 
 #selected-region-text {
@@ -221,6 +228,10 @@ button {
     font-size: 0.95rem;
     color: var(--color-guinda);
     letter-spacing: 0.05em;
+}
+
+.map-view {
+    position: relative;
 }
 
 .selection-details {
