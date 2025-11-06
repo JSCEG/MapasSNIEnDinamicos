@@ -206,6 +206,23 @@ button {
     text-align: center;
 }
 
+.selected-region-banner {
+    background: rgba(106, 28, 50, 0.08);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    margin-top: -0.5rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease-in-out;
+}
+
+#selected-region-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-guinda);
+    letter-spacing: 0.05em;
+}
+
 .selection-details {
     display: grid;
     gap: 1rem;

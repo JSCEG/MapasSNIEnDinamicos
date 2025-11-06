@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     let map;
+    let geoJsonLayer; // Declare geoJsonLayer globally
 
     function createMapTilerLayer(styleId, keyName, fallbackUrl, name) {
         const apiKey = mapTilerKeys[keyName];
@@ -226,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
         maxBoundsViscosity: 1,
         layers: activeBaseLayer ? [activeBaseLayer] : [],
         zoomControl: false,
-        preferCanvas: true
+        preferCanvas: false // Disable canvas rendering to fall back to SVG for better event handling
     });
     map.isBasemapActive = true; // Initialize the flag
 
@@ -685,6 +686,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const instrumentLayerGroup = L.layerGroup({ pane: 'gerenciasPane' }).addTo(map);
     map.createPane('connectionsPane');
     const connectionsLayerGroup = L.layerGroup({ pane: 'connectionsPane' }).addTo(map);
+    map.createPane('municipalitiesPane');
+    map.getPane('municipalitiesPane').style.zIndex = 450;
+    const municipalitiesLayerGroup = L.layerGroup({ pane: 'municipalitiesPane' }).addTo(map);
     map.createPane('nodesPane');
     const nodesPane = map.getPane('nodesPane');
     if (nodesPane) {
@@ -698,6 +702,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const mapTitleDisplay = document.getElementById('map-title-display');
+    const selectedRegionBanner = document.getElementById('selected-region-banner');
+    const selectedRegionText = document.getElementById('selected-region-text');
     const DEFAULT_MAP_TITLE = [
         'Mapa SNIEn - Sistema Nacional de Informaci',
         String.fromCharCode(243),
@@ -714,6 +720,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateMapTitleDisplay(DEFAULT_MAP_TITLE);
     let currentMapTitle = DEFAULT_MAP_TITLE;
+    let municipalitiesData = null;
+    let electrificationData = null;
 
     const mapConfigurations = {
         'PLADESE': [
@@ -766,6 +774,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     'https://cdn.sassoapps.com/Mapas/Electricidad/Ductos%20integrados%20a%20SISTRANGAS.geojson',
                     'https://cdn.sassoapps.com/Mapas/Electricidad/Ductos%20no%20integrados%20a%20SISTRANGAS.geojson'
                 ]
+            },
+            {
+                name: 'Municipios con localidades sin electrificar',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'interactive-regions',
+                municipalitiesGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/municipios.geojson',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRrctgh6EBDr8aCcqVWA5X03JtFm1E0NRb2h6bOrQMqO9qVr58MAgqtnHsRfqjzJgR7VqVtvqNUJRM-/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/182C6iNiTUcUI5HHVlNGg0IOJHoGYeI47uYwAaehC6E8/edit?usp=sharing',
+                regionDescriptions: {
+                    // Descriptions will be added later
+                }
             }
             // ... other PLADESE maps can be added here
         ],
@@ -857,6 +876,7 @@ document.addEventListener('DOMContentLoaded', function () {
             mapSelect.value = '';
             instrumentLayerGroup.clearLayers();
             connectionsLayerGroup.clearLayers();
+            municipalitiesLayerGroup.clearLayers();
             destroyInsetMaps();
             removeLegend();
 
@@ -930,6 +950,44 @@ document.addEventListener('DOMContentLoaded', function () {
         legendControl.addTo(map);
     }
 
+    let municipalitiesLegendControl;
+
+    function addMunicipalitiesLegend() {
+        if (municipalitiesLegendControl) {
+            map.removeControl(municipalitiesLegendControl);
+        }
+
+        municipalitiesLegendControl = L.control({ position: 'bottomleft' });
+
+        municipalitiesLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            const grades = [0, 1, 21, 41, 61, 81];
+            const colors = ['#F2D7D9', '#E0B0B6', '#CC8893', '#B86070', '#A3384D', '#601623'];
+            const labels = ['0', '1 - 20', '21 - 40', '41 - 60', '61 - 80', '> 80'];
+
+            div.innerHTML += '<strong>Número de localidades sin electrificar por municipio</strong><br>';
+
+            for (let i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + colors[i] + '"></i> ' +
+                    labels[i] + '<br>';
+            }
+
+            return div;
+        };
+
+        municipalitiesLegendControl.addTo(map);
+    }
+
+    function removeMunicipalitiesLegend() {
+        if (municipalitiesLegendControl) {
+            map.removeControl(municipalitiesLegendControl);
+            municipalitiesLegendControl = null;
+        }
+    }
+
+
+
     function removeLegend() {
         if (legendControl) {
             map.removeControl(legendControl);
@@ -963,6 +1021,186 @@ document.addEventListener('DOMContentLoaded', function () {
                         pane: 'statesPane'
                     };
                 }
+            } else if (type === 'interactive-regions') {
+                const regionColors = {
+                    "Baja California": "#939594",
+                    "Central": "#6A1C32",
+                    "Noreste": "#235B4E",
+                    "Noroeste": "#DDC9A4",
+                    "Norte": "#10302B",
+                    "Occidental": "#BC955C",
+                    "Oriental": "#9F2240",
+                    "Peninsular": "#A16F4A"
+                };
+
+                styleFunction = function(feature) {
+                    const color = regionColors[feature.properties.name] || '#808080';
+                    return {
+                        fillColor: color,
+                        fill: true,
+                        weight: 0,
+                        opacity: 1,
+                        color: 'transparent',
+                        dashArray: '3',
+                        fillOpacity: 0.7,
+                        pane: 'gerenciasPane' // Use the same pane for shadow
+                    };
+                }
+
+                let focusedRegion = null;
+
+                function resetAllRegionsToInitialState() {
+                    focusedRegion = null;
+                    geoJsonLayer.eachLayer(l => {
+                        geoJsonLayer.resetStyle(l);
+                    });
+                    municipalitiesLayerGroup.clearLayers();
+                    
+                    // Remove municipalities legend and restore gerencias legend
+                    removeMunicipalitiesLegend();
+                    if (legendControl) {
+                        map.removeControl(legendControl);
+                    }
+                    addLegend(regionColors);
+                    
+                    if (selectedRegionBanner) {
+                        selectedRegionBanner.style.display = 'none';
+                    }
+                }
+
+                onEachFeatureFunction = function (feature, layer) {
+                    layer.on({
+                        mouseover: function (e) {
+                            if (focusedRegion === null) {
+                                e.target.setStyle({ weight: 5, color: '#000' });
+                                e.target.bringToFront();
+                            }
+                        },
+                        mouseout: function (e) {
+                            if (focusedRegion === null) {
+                                geoJsonLayer.resetStyle(e.target);
+                            }
+                        },
+                        click: function (e) {
+                            L.DomEvent.stopPropagation(e);
+                            const clickedRegionName = feature.properties.name;
+
+                            // Si se hace clic en la misma región seleccionada, restablecer todo
+                            if (focusedRegion === clickedRegionName) {
+                                resetAllRegionsToInitialState();
+                                return;
+                            }
+
+                            focusedRegion = clickedRegionName;
+
+                            if (legendControl) {
+                                map.removeControl(legendControl);
+                            }
+
+                            if (selectedRegionBanner && selectedRegionText) {
+                                selectedRegionText.textContent = 'Gerencia de Control Regional: ' + clickedRegionName;
+                                selectedRegionBanner.style.display = 'block';
+                            }
+
+                            // Restyle all regions
+                            geoJsonLayer.eachLayer(l => {
+                                const regionColor = regionColors[l.feature.properties.name] || '#808080';
+                                if (l.feature.properties.name === clickedRegionName) {
+                                    l.setStyle({
+                                        fillColor: regionColor,
+                                        weight: 3,
+                                        color: '#888',
+                                        fillOpacity: 0,
+                                        dashArray: ''
+                                    });
+                                    l.bringToFront();
+                                } else {
+                                    l.setStyle({
+                                        fillColor: regionColor,
+                                        weight: 1,
+                                        color: '#ddd',
+                                        fillOpacity: 0.1,
+                                        dashArray: '3'
+                                    });
+                                }
+                            });
+
+                            // Filter and display municipalities
+                            municipalitiesLayerGroup.clearLayers();
+                            if (!municipalitiesData || !electrificationData) {
+                                console.warn('Municipality or electrification data not loaded yet.');
+                                return;
+                            }
+
+                            const electrificationDataMap = new Map(electrificationData.map(row => [row.CVEGEO, row]));
+
+                            const filteredFeatures = municipalitiesData.features.filter(f => {
+                                const municipalityData = electrificationDataMap.get(f.properties.CVEGEO);
+                                return municipalityData && municipalityData.GCR === clickedRegionName;
+                            });
+
+                            function getColor(pendientes) {
+                                const p = parseInt(pendientes, 10);
+                                if (isNaN(p)) return '#ccc';
+                                if (p === 0) return '#F2D7D9';
+                                if (p <= 20) return '#E0B0B6';
+                                if (p <= 40) return '#CC8893';
+                                if (p <= 60) return '#B86070';
+                                if (p <= 80) return '#A3384D';
+                                return '#601623';
+                            }
+
+                            const municipalitiesLayer = L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
+                                style: function(feature) {
+                                    const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
+
+                                    if (!municipalityData || municipalityData.PENDIENTE === undefined || municipalityData.PENDIENTE === null) {
+                                        return {
+                                            fillOpacity: 0,
+                                            opacity: 0,
+                                            interactive: false
+                                        };
+                                    }
+
+                                    const pendientes = municipalityData.PENDIENTE;
+                                    return {
+                                        fillColor: getColor(pendientes),
+                                        weight: 1,
+                                        opacity: 1,
+                                        color: 'white',
+                                        fillOpacity: 0.8
+                                    };
+                                },
+                                onEachFeature: function(feature, layer) {
+                                    const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
+                                    const pendientes = municipalityData ? municipalityData.PENDIENTE : 'N/A';
+                                    const popupContent = `<strong>${feature.properties.NOMGEO}</strong><br>Localidades pendientes: ${pendientes}`;
+                                    layer.bindPopup(popupContent);
+                                }
+                            });
+
+                            municipalitiesLayerGroup.addLayer(municipalitiesLayer);
+                            if (typeof municipalitiesLayer.bringToFront === 'function') {
+                                municipalitiesLayer.bringToFront();
+                            }
+                            addMunicipalitiesLegend();
+
+                            if (filteredFeatures.length > 0) {
+                                const municipalitiesBounds = municipalitiesLayer.getBounds();
+                                map.fitBounds(municipalitiesBounds.pad(0.1));
+                            }
+                        }
+                    });
+                }
+
+                // Evento para hacer clic fuera de las gerencias y restablecer todo
+                map.on('click', function(e) {
+                    if (focusedRegion !== null) {
+                        resetAllRegionsToInitialState();
+                    }
+                });
+
+                addLegend(regionColors);
             } else { // regions
                 const regionColors = {
                     "Baja California": "#939594",
@@ -1012,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 addLegend(regionColors);
             }
 
-            const geoJsonLayer = L.geoJSON(data, {
+            geoJsonLayer = L.geoJSON(data, { // Assign to global geoJsonLayer
                 style: styleFunction,
                 onEachFeature: onEachFeatureFunction
             });
@@ -1335,6 +1573,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function loadElectrificationMap(mapConfig) {
+        togglePreloader(true);
+        try {
+            // Fetch both data sources in parallel
+            const [municipalitiesResponse, sheetResponse] = await Promise.all([
+                fetch(mapConfig.municipalitiesGeojsonUrl),
+                fetch(mapConfig.googleSheetUrl)
+            ]);
+
+            municipalitiesData = await municipalitiesResponse.json();
+            const csvText = await sheetResponse.text();
+            electrificationData = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+
+            // Load the regional control areas
+            if (mapConfig.geojsonUrl) {
+                await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
+            }
+
+        } catch (error) {
+            console.error('Error loading electrification map:', error);
+        } finally {
+            togglePreloader(false);
+        }
+    }
+
     // Event listeners
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function () {
@@ -1403,8 +1666,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const selectedInstrument = instrumentSelect.value;
             instrumentLayerGroup.clearLayers();
             connectionsLayerGroup.clearLayers();
+            municipalitiesLayerGroup.clearLayers();
             destroyInsetMaps();
             removeLegend(); // Remove legend when changing map
+            removeMunicipalitiesLegend(); // Remove municipalities legend when changing map
+            if (selectedRegionBanner) {
+                selectedRegionBanner.style.display = 'none'; // Hide region banner when changing map
+            }
             clearData();
 
             if (!selectedMapName) {
@@ -1415,6 +1683,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (mapDescriptionEl) {
                     mapDescriptionEl.innerHTML = '';
                     mapDescriptionEl.style.display = 'none';
+                }
+                if (selectedRegionBanner) {
+                    selectedRegionBanner.style.display = 'none';
                 }
                 return;
             }
@@ -1442,6 +1713,12 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (contentEl) contentEl.innerHTML = '';
                             mapDescriptionEl.style.display = 'none';
                         }
+                    }
+
+                    if (mapConfig.name === 'Municipios con localidades sin electrificar') {
+                        updateSheetInfo(mapConfig); // Update sheet info for this map
+                        loadElectrificationMap(mapConfig);
+                        return; // Stop further processing for this map for now
                     }
 
                     if (Array.isArray(mapConfig.insets) && mapConfig.insets.length) {
