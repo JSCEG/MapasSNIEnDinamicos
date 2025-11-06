@@ -722,6 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentMapTitle = DEFAULT_MAP_TITLE;
     let municipalitiesData = null;
     let electrificationData = null;
+    let focusedRegion = null; // Track currently focused region for electrification map
 
     const mapConfigurations = {
         'PLADESE': [
@@ -1047,7 +1048,41 @@ document.addEventListener('DOMContentLoaded', function () {
                     };
                 }
 
-                let focusedRegion = null;
+                // Descripciones de las Gerencias de Control Regional
+                const gcrDescriptions = {
+                    "Central": {
+                        title: "GCR Central",
+                        description: "La GCR Central ocupa aproximadamente el 3.8% del territorio nacional. En 2024, concentró el 24.8% de la población (32.8 millones de personas) y atendió al 21.2% de las personas usuarias finales de energía eléctrica. Su consumo per cápita de energía se estima en 1,777 kWh/habitante. Sus principales Centros de Carga se encuentran en la industria de la construcción (cementeras), industria del acero, el Sistema de Transporte Colectivo-Metro, armadoras automotrices, refinería de Miguel Hidalgo (Tula) y las plantas de bombeo Cutzamala.<br><br>La GCR Central se divide en tres regiones: Valle de México Norte, Valle de México Centro y Valle de México Sur, las cuales representaron el 39.4%, 18.9% y 41.6%, respectivamente de la demanda máxima de esta GCR, para 2024. Al interior de la región Valle de México Norte destaca la zona Cuautitlán como la que concentra la mayor proporción de la demanda máxima (17.1%), seguido de Tula (12.5%) y Azteca (11.9%). Las zonas con mayor crecimiento entre 2023 y 2024 fueron Pachuca y Tula con un alza de 8.0% y 5.4%, respectivamente.<br><br>En la región Valle de México Centro, la zona Polanco y Chapingo abarcaron en conjunto el 42.2% de la demanda máxima. El mayor crecimiento durante 2024 lo registró la zona Polanco con una tasa anual de 8.0%. En lo que respecta a la región Valle de México Sur, la zona Lázaro Cárdenas destaca porque, además de concentrar el 20.1% de la demanda máxima también tuvo la tasa de crecimiento anual más elevada de la región durante 2024 con 4.3%.<br><br>En la GCR Central hay 212 localidades que no están electrificadas, repartidas en los estados de Guerrero, Hidalgo, México, Michoacán y Puebla."
+                    },
+                    "Baja California": {
+                        title: "GCR de Baja California",
+                        description: "La GCR de Baja California, opera el SIBC, el SIBCS, y el SIMUL. El SIBC ocupa el 3.6% del territorio nacional aproximadamente. En 2024, la población representó cerca de 3.1%, esto es, 4.1 millones de personas. Este Sistema atendió al 3.5% de las personas usuarias finales, con un consumo per cápita de energía eléctrica de 4,139 kWh por habitante. Los principales Centros de Carga pertenecen a las industrias siderúrgica, vidriera, plantas de bombeo de agua, aeroespacial, fabricación de rines de aluminio, automotriz, cementera y minera, y están localizadas en las zonas Mexicali, Tijuana y Ensenada.<br><br>En el SIBC, la zona Mexicali representa casi la mitad de la demanda máxima (48.8%), seguido por Tijuana-Tecate con 32.0%. Las zonas que registraron la tasa de crecimiento anual más alta durante 2024 también fueron Tijuana-Tecate y Mexicali con 3.7% y 3.1%, respectivamente.<br><br>Los SIBCS y SIMUL en conjunto abarcan aproximadamente el 3.8% del territorio nacional. En 2024, su población representó cerca del 0.7%, lo cual equivale a 0.9 millones de personas. El Sistema atendió al 0.8% de las personas usuarias finales, con un consumo per cápita de energía eléctrica de 3,941 kWh por habitante.<br><br>El SIBCS representa el 95.3% de la demanda máxima mientras que el SIMUL el 4.7% restante. El primero registró una tasa de crecimiento anual durante 2024 de 3.2% mientras que, el segundo, de 1.4%. Las zonas de mayor crecimiento fueron Los Cabos con 4.2% y Santa Rosalía con 2.4%.<br><br>En la GCR de Baja California hay 1,056 localidades que no están electrificadas que están distribuidas en los estados Baja California, Baja California Sur y Sonora."
+                    },
+                    "Noreste": {
+                        title: "GCR Noreste",
+                        description: "La GCR Noreste ocupa el 14.8% del territorio nacional, aproximadamente. En 2024, sus habitantes ascendieron cerca de 13.6 millones de personas, es decir, el 10.3% de la población del país. En 2024, la GCR NES atendió al 10.7% de las personas usuarias finales del servicio de energía eléctrica con un consumo de energía eléctrica per cápita de 4,640 kWh por habitante, siendo la GCR con el mayor consumo. Los principales Centros de Carga se concentran en las industrias siderúrgica, minera y de refinación de petróleo localizadas en las zonas Monterrey, Monclova, Concepción del Oro y Tampico.<br><br>La zona Monterrey representa casi la mitad de la demanda máxima en la GCR Noreste con 47.4%, le siguen Saltillo con 9.7%, Reynosa y Tampico con 8% cada una. Las zonas que registraron la tasa de crecimiento anual más alta durante 2024 fueron Cerralvo con un incremento cercano al 13%, Nueva Rosita con 9.6% y Río Verde con 5.6%.<br><br>En la GCR Noreste hay 767 localidades que no están electrificadas que están distribuidas en los estados Coahuila, Hidalgo, Nuevo León, San Luis Potosí, Tamaulipas y Veracruz."
+                    },
+                    "Noroeste": {
+                        title: "GCR Noroeste",
+                        description: "La GCR Noroeste ocupa alrededor de 12.1% del territorio nacional. En 2024, sus habitantes ascendieron a 6.3 millones de personas aproximadamente, lo que representa cerca del 4.7% de la población del país. En ese año, la GCR Noroeste atendió al 4.7% de las personas usuarias finales, con un consumo per cápita de 4,487 kWh por habitante. Los principales centros de carga se presentan en las industrias minera, cementera y automotriz, localizadas en las zonas Cananea, Hermosillo y Caborca.<br><br>La zona Hermosillo es la que representa el porcentaje más alto de participación en la demanda de esta GCR con 21.3%, seguida de Culiacán y Cananea Nacozari con 16.5% y 9.5%, respectivamente. Durante 2024, la zona con mayor crecimiento fue Agrícola Hermosillo con 3.5%.<br><br>En la GCR Noroeste hay 617 localidades que no están electrificadas que están distribuidas en los estados de Sinaloa y Sonora."
+                    },
+                    "Norte": {
+                        title: "GCR Norte",
+                        description: "La GCR Norte ocupa alrededor del 21.2% del territorio nacional. En 2024, sus habitantes ascendieron cerca de 6.9 millones de personas, lo que representa el 5.2% de la población del país. En ese año, la GCR Norte atendió al 5% de las personas usuarias finales del servicio de energía eléctrica con un consumo per cápita de 4,604 kWh por habitante.<br><br>Los principales Centros de Carga se agrupan en las industrias minera y metalúrgica, industria cementera, madera y papel, manufactura y agrícola. La zona Torreón es la que representa el porcentaje más alto de participación en la demanda en la GCR NTE con 24%, seguida de Ciudad Juárez con 21.9%. Las zonas que registraron el crecimiento anual más alto fueron: Casas Grandes y Durango con 5.8% y 4.9%, respectivamente.<br><br>En la GCR Norte hay 2,357 localidades que no están electrificadas que están distribuidas en los estados Chihuahua, Coahuila, Durango y Zacatecas."
+                    },
+                    "Occidental": {
+                        title: "GCR Occidental",
+                        description: "La GCR Occidental ocupa aproximadamente el 15% del territorio nacional y, durante 2024, se estima que albergó al 21.3% de la población (28.2 millones de personas). En ese mismo año, la GCR Occidental atendió al 24.2% de las personas usuarias finales mientras que, su consumo per cápita de energía eléctrica resultó de 2,709 kWh/habitante. Los principales Centros de Carga se presentan en las industrias siderúrgica, minera, cementera, automotriz e industrias conexas, las cuales se localizan principalmente en los estados de Jalisco, Guanajuato, Querétaro, Aguascalientes, Zacatecas y San Luis Potosí.<br><br>Al igual que la GCR Central, la GCR Occidental también se divide en tres regiones. La región Jalisco representó el 28.6% de la demanda máxima integrada mientras que, las regiones Bajío y Centro Occidente, el 59.9% y 11.5%, respectivamente.<br><br>En la Región Jalisco, la zona Metropolitana Hidalgo concentró el 17.3% de la demanda máxima, mientras que la zona que registró el mayor crecimiento fue Los Altos con una tasa anual de 7.2%. En el Bajío, la zona San Luis Potosí tiene la mayor concentración de demanda con 15.6% de la demanda, en tanto que la zona de mayor crecimiento fue Salamanca con 6.4%. En la región Centro Occidente, la zona Colima participa con el 30.3% de la demanda máxima. Por otro lado, la zona Apatzingán registró la tasa de crecimiento anual más alta con 3.0% durante 2024.<br><br>En la GCR Occidental hay 3,010 localidades que no están electrificadas que están distribuidas en los estados de Aguascalientes, Colima, Guanajuato, Hidalgo, Jalisco, Michoacán, Nayarit, Querétaro, San Luis Potosí y Zacatecas."
+                    },
+                    "Oriental": {
+                        title: "GCR Oriental",
+                        description: "La GCR Oriental ocupa el 18.5% del territorio nacional aproximadamente, concentrando en 2024 el 25.7% de la población (34.1 millones de personas) y atendió al 25.3% de las personas usuarias finales con un consumo per cápita de 1,680 kWh/habitante. Los principales Centros de Carga se encuentran en las industrias siderúrgica, petroquímica y del plástico, cementera y automotriz, además de la minería. Estas empresas están localizadas principalmente en los estados de Veracruz, Puebla, Tlaxcala y Guerrero.<br><br>Para el análisis de la demanda máxima, la GCR Oriental se divide en cuatro regiones. Durante 2024, la región Oriente representó el 35.8%, la Sureste el 29.9%, la Centro Oriente el 21.6% y la Centrosur el 12.7%. Al interior de éstas, en la región Oriente, la zona Coatzacoalcos presentó la mayor concentración de demanda con 28.8% y un crecimiento anual de 6.3%, solo después de la zona Tuxtlas con 6.4 %. En las regiones Sureste, Centro Oriente y Centro Sur, las zonas más representativas en cuanto a demanda son: Villahermosa (25.4%), Puebla (42.6%) y Acapulco (29.1%). En cuanto al crecimiento anual registrado durante 2024, destacan las zonas Oaxaca con 8.2% de la región Sureste, la zona San Martín con 5.7 % en la región Centro Oriente y la zona Chilpancingo con 12%, ésta última pertenece a la región Centro Sur.<br><br>En la GCR Oriental hay 4,160 localidades que no están electrificadas que están distribuidas en los estados de Chiapas, Guerrero, Morelos, Oaxaca, Puebla, Tabasco, Tlaxcala y Veracruz."
+                    },
+                    "Peninsular": {
+                        title: "GCR Peninsular",
+                        description: "La GCR Peninsular ocupa el 7.2% del territorio nacional aproximadamente. Se estima que, en 2024, la población de esta GCR ascendió a 5.5 millones de personas, es decir, el 4.2% del total de los habitantes. Esta GCR atendió al 4.6% de las personas usuarias finales mientras que, su consumo de energía eléctrica per cápita resultó de 3,038 kWh por habitante. Los principales Centros de Carga provienen de la industria del turismo además de una cementera, una procesadora de aceites y semillas, así como una embotelladora de cervezas.<br><br>La zona Mérida representa el 30.3% de la demanda máxima en la GCR Peninsular, seguida por Cancún en menor porcentaje con un 25.1% y Riviera Maya con 15.8%. Las zonas que registraron la tasa de crecimiento anual más alta durante 2024 fueron Ticul con 24.6%, Campeche con 9.6% y Motul con 8.6%.<br><br>En la GCR Peninsular hay 1,001 localidades que no están electrificadas que están distribuidas en los estados Campeche, Quintana Roo y Yucatán."
+                    }
+                };
 
                 function resetAllRegionsToInitialState() {
                     focusedRegion = null;
@@ -1065,6 +1100,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     if (selectedRegionBanner) {
                         selectedRegionBanner.style.display = 'none';
+                    }
+                    
+                    // Hide description
+                    if (mapDescriptionEl) {
+                        mapDescriptionEl.style.display = 'none';
                     }
                 }
 
@@ -1102,16 +1142,32 @@ document.addEventListener('DOMContentLoaded', function () {
                                 selectedRegionBanner.style.display = 'block';
                             }
 
+                            // Update description
+                            if (mapDescriptionEl) {
+                                const titleEl = document.getElementById('map-description-title');
+                                const contentEl = document.getElementById('map-description-content');
+                                const gcrInfo = gcrDescriptions[clickedRegionName];
+                                
+                                if (gcrInfo && titleEl && contentEl) {
+                                    titleEl.innerHTML = gcrInfo.title;
+                                    contentEl.innerHTML = gcrInfo.description;
+                                    mapDescriptionEl.style.display = 'block';
+                                } else {
+                                    mapDescriptionEl.style.display = 'none';
+                                }
+                            }
+
                             // Restyle all regions
                             geoJsonLayer.eachLayer(l => {
                                 const regionColor = regionColors[l.feature.properties.name] || '#808080';
                                 if (l.feature.properties.name === clickedRegionName) {
                                     l.setStyle({
                                         fillColor: regionColor,
-                                        weight: 3,
-                                        color: '#888',
+                                        weight: 2,
+                                        color: '#999',
                                         fillOpacity: 0,
-                                        dashArray: ''
+                                        dashArray: '5, 5',
+                                        className: 'gerencia-focused'
                                     });
                                     l.bringToFront();
                                 } else {
@@ -1120,7 +1176,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                         weight: 1,
                                         color: '#ddd',
                                         fillOpacity: 0.1,
-                                        dashArray: '3'
+                                        dashArray: '3',
+                                        className: ''
                                     });
                                 }
                             });
@@ -1138,6 +1195,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                 const municipalityData = electrificationDataMap.get(f.properties.CVEGEO);
                                 return municipalityData && municipalityData.GCR === clickedRegionName;
                             });
+
+                            // Log de diagnóstico
+                            const municipiosEnSheet = electrificationData.filter(row => row.GCR === clickedRegionName);
+                            console.log('=== DIAGNÓSTICO GERENCIA: ' + clickedRegionName + ' ===');
+                            console.log('Municipios en Google Sheets para esta GCR:', municipiosEnSheet.length);
+                            console.log('Municipios encontrados en GeoJSON:', filteredFeatures.length);
+                            console.log('CVEGEOs en Google Sheets:', municipiosEnSheet.map(m => m.CVEGEO));
+                            console.log('CVEGEOs encontrados en GeoJSON:', filteredFeatures.map(f => f.properties.CVEGEO));
+                            console.log('===========================================');
 
                             function getColor(pendientes) {
                                 const p = parseInt(pendientes, 10);
@@ -1174,8 +1240,34 @@ document.addEventListener('DOMContentLoaded', function () {
                                 onEachFeature: function(feature, layer) {
                                     const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
                                     const pendientes = municipalityData ? municipalityData.PENDIENTE : 'N/A';
-                                    const popupContent = `<strong>${feature.properties.NOMGEO}</strong><br>Localidades pendientes: ${pendientes}`;
-                                    layer.bindPopup(popupContent);
+                                    const gcr = municipalityData ? municipalityData.GCR : 'N/A';
+                                    const cvegeo = feature.properties.CVEGEO || 'N/A';
+                                    const nomgeo = feature.properties.NOMGEO || 'Sin nombre';
+                                    
+                                    const popupContent = `
+                                        <div style="font-family: 'Montserrat', sans-serif;">
+                                            <strong style="font-size: 14px; color: #601623;">${nomgeo}</strong><br>
+                                            <strong>CVEGEO:</strong> ${cvegeo}<br>
+                                            <strong>GCR:</strong> ${gcr}<br>
+                                            <strong>Localidades pendientes:</strong> ${pendientes}
+                                        </div>
+                                    `;
+                                    
+                                    // Usar tooltip en lugar de popup
+                                    layer.bindTooltip(popupContent, {
+                                        permanent: false,
+                                        direction: 'top',
+                                        className: 'municipality-tooltip'
+                                    });
+                                    
+                                    layer.on('mouseover', function(e) {
+                                        console.log('Municipio hover:', {
+                                            CVEGEO: cvegeo,
+                                            NOMGEO: nomgeo,
+                                            GCR: gcr,
+                                            PENDIENTE: pendientes
+                                        });
+                                    });
                                 }
                             });
 
@@ -1418,9 +1510,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const marinaStyle = {
                 fillColor: '#bcd7f6',
                 weight: 1,
-                opacity: 1,
+                opacity: 0.5,
                 color: '#8cb4e2',
-                fillOpacity: 0.7,
+                fillOpacity: 0.3,
                 pane: 'marinasPane'
             };
 
@@ -1600,8 +1692,127 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Event listeners
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', function () {
-            loadAndRender({ silent: false });
+        refreshBtn.addEventListener('click', async function () {
+            const selectedInstrument = instrumentSelect.value;
+            const selectedMapName = mapSelect.value;
+            
+            if (selectedInstrument && selectedMapName && mapConfigurations[selectedInstrument]) {
+                const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
+                
+                // Si es el mapa de electrificación
+                if (mapConfig && mapConfig.name === 'Municipios con localidades sin electrificar') {
+                    togglePreloader(true);
+                    try {
+                        // Recargar solo los datos del Google Sheets
+                        const cacheBuster = 'cb=' + Date.now();
+                        const url = mapConfig.googleSheetUrl + (mapConfig.googleSheetUrl.includes('?') ? '&' : '?') + cacheBuster;
+                        const response = await fetch(url, { cache: 'no-store' });
+                        const csvText = await response.text();
+                        electrificationData = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+                        
+                        console.log('Datos de electrificación actualizados:', electrificationData.length, 'registros');
+                        
+                        // Si hay una región enfocada, actualizar los municipios mostrados
+                        if (focusedRegion) {
+                            // Trigger click event on the focused region to refresh municipalities
+                            municipalitiesLayerGroup.clearLayers();
+                            
+                            const electrificationDataMap = new Map(electrificationData.map(row => [row.CVEGEO, row]));
+                            const filteredFeatures = municipalitiesData.features.filter(f => {
+                                const municipalityData = electrificationDataMap.get(f.properties.CVEGEO);
+                                return municipalityData && municipalityData.GCR === focusedRegion;
+                            });
+                            
+                            // Re-render municipalities with updated data
+                            const regionColors = {
+                                "Baja California": "#939594",
+                                "Central": "#6A1C32",
+                                "Noreste": "#235B4E",
+                                "Noroeste": "#DDC9A4",
+                                "Norte": "#10302B",
+                                "Occidental": "#BC955C",
+                                "Oriental": "#9F2240",
+                                "Peninsular": "#A16F4A"
+                            };
+                            
+                            function getColor(pendientes) {
+                                const p = parseInt(pendientes, 10);
+                                if (isNaN(p)) return '#ccc';
+                                if (p === 0) return '#F2D7D9';
+                                if (p <= 20) return '#E0B0B6';
+                                if (p <= 40) return '#CC8893';
+                                if (p <= 60) return '#B86070';
+                                if (p <= 80) return '#A3384D';
+                                return '#601623';
+                            }
+                            
+                            const municipalitiesLayer = L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
+                                style: function(feature) {
+                                    const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
+                                    if (!municipalityData || municipalityData.PENDIENTE === undefined || municipalityData.PENDIENTE === null) {
+                                        return { fillOpacity: 0, opacity: 0, interactive: false };
+                                    }
+                                    const pendientes = municipalityData.PENDIENTE;
+                                    return {
+                                        fillColor: getColor(pendientes),
+                                        weight: 1,
+                                        opacity: 1,
+                                        color: 'white',
+                                        fillOpacity: 0.8
+                                    };
+                                },
+                                onEachFeature: function(feature, layer) {
+                                    const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
+                                    const pendientes = municipalityData ? municipalityData.PENDIENTE : 'N/A';
+                                    const gcr = municipalityData ? municipalityData.GCR : 'N/A';
+                                    const cvegeo = feature.properties.CVEGEO || 'N/A';
+                                    const nomgeo = feature.properties.NOMGEO || 'Sin nombre';
+                                    
+                                    const popupContent = `
+                                        <div style="font-family: 'Montserrat', sans-serif;">
+                                            <strong style="font-size: 14px; color: #601623;">${nomgeo}</strong><br>
+                                            <strong>CVEGEO:</strong> ${cvegeo}<br>
+                                            <strong>GCR:</strong> ${gcr}<br>
+                                            <strong>Localidades pendientes:</strong> ${pendientes}
+                                        </div>
+                                    `;
+                                    
+                                    layer.bindTooltip(popupContent, {
+                                        permanent: false,
+                                        direction: 'top',
+                                        className: 'municipality-tooltip'
+                                    });
+                                    
+                                    layer.on('mouseover', function(e) {
+                                        console.log('Municipio hover:', {
+                                            CVEGEO: cvegeo,
+                                            NOMGEO: nomgeo,
+                                            GCR: gcr,
+                                            PENDIENTE: pendientes
+                                        });
+                                    });
+                                }
+                            });
+                            
+                            municipalitiesLayerGroup.addLayer(municipalitiesLayer);
+                            if (typeof municipalitiesLayer.bringToFront === 'function') {
+                                municipalitiesLayer.bringToFront();
+                            }
+                        }
+                        
+                        updateTimestamp();
+                    } catch (error) {
+                        console.error('Error actualizando datos de electrificación:', error);
+                    } finally {
+                        togglePreloader(false);
+                    }
+                } else {
+                    // Para otros mapas, usar la función normal
+                    loadAndRender({ silent: false });
+                }
+            } else {
+                loadAndRender({ silent: false });
+            }
         });
     }
 

@@ -1510,6 +1510,10 @@ Notification system */
     filter: drop-shadow(5px 5px 5px rgba(0, 0, 0, 0.6));
 }
 
+.leaflet-pane.leaflet-gerencias-pane path.gerencia-focused {
+    filter: drop-shadow(0 0 8px rgba(96, 22, 35, 0.8)) drop-shadow(0 0 15px rgba(96, 22, 35, 0.4));
+}
+
 .leaflet-pane.leaflet-marinas-pane {
     filter: blur(2px);
 }
