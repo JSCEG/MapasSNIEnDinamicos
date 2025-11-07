@@ -283,6 +283,8 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     `;
 
+
+
     // Crear capa de graticule (líneas de latitud y longitud)
     function createGraticule() {
         const graticuleLayer = L.layerGroup();
@@ -725,6 +727,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let focusedRegion = null; // Track currently focused region for electrification map
     let pibSenData = null; // Store SEN data for PIB map
     let pibSinData = null; // Store SIN data for PIB map
+    let capacityTotals = null; // Store totals for capacity additions map
 
     const mapConfigurations = {
         'PLADESE': [
@@ -794,15 +797,97 @@ document.addEventListener('DOMContentLoaded', function () {
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'pib-forecast',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVE7N8gjuivL9JiM59vFBjiej5k48foC60TrSRGXjEAbJXvW0NXTZ3Fq0-kWzY73kmMPSq68xtpZE2/pub?gid=0&single=true&output=csv',
-                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1NumCWqCiRd6Ph1vXOrsc1lcyv4Hx-v_1Lve1QIV2kdE/edit?usp=sharing'
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1NumCWqCiRd6Ph1vXOrsc1lcyv4Hx-v_1Lve1QIV2kdE/edit?usp=sharing',
+                descriptionTitle: 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039',
+                description: 'El periodo de estudio 2025-2039, se estima que la participación en el PIB de los sectores de la economía mexicana se comporte de la siguiente manera: se estima que el PIB del sector primario crezca en promedio 1.9% por año, mientras que el Sector Industrial y el Sector Servicios lo harán a una tasa de 2.5% cada uno. En la composición sectorial del PIB, se prevé que, en 2039, el sector Agrícola represente el 3.1% del PIB Nacional, mientras que el Industrial y el de Servicios integrarán el 33.5% y 63.4%, respectivamente.<br><br>El Servicio Público de Energía Eléctrica se distribuye a través de las diferentes entidades responsables de carga los cuales se desagregan en seis sectores por el uso final de la energía eléctrica, con una diferente participación en el Consumo Eléctrico Nacional: residencial, comercial, servicios, agrícola, empresa mediana y gran industria.<br><br>Para el 2024 el SEN tuvo un consumo final de 304,011 GWh, siendo 1.8% mayor al del año previo. En cuanto a los usuarios con servicio de energía eléctrica crecieron 1.7% respecto al 2023, llegando a 49 millones de clientes. Los sectores empresa mediana y la gran industria consumieron el 60.6 % del consumo final, con solo el 0.9% del total de los usuarios. En el sector residencial, se alberga la mayor cantidad de usuarios con 89.2%, los cuales consumen sólo el 27.1% del SEN. El 12.4% restante del consumo final es utilizado por los usuarios de los sectores comercial con 5.9%, bombeo agrícola con 5.2% y servicios 1.3%.<br><br>Con el propósito de fomentar el crecimiento económico del país, se creó el Plan México, una estrategia gubernamental de largo plazo, que tiene como propósitos: incrementar la inversión, la creación de nuevos empleos, la proveeduría y consumo nacional en sectores estratégicos, disminución de la pobreza y la desigualdad, entre otros. Para ello, se planteó garantizar el acceso universal a la electricidad mediante el fortalecimiento de la infraestructura eléctrica del país. Por lo que, el Plan México contempla además de obras de electrificación, aumentos en la capacidad de generación pública y capacidad de generación mixta (pública y privada), además de proyectos de transmisión y distribución, con énfasis en las áreas marginadas. Se dará continuidad al programa de cobertura eléctrica nacional con fines sociales y comunitarios, permitiendo así el desarrollo local y regional, con la premisa de asegurar que las tarifas no aumenten en términos reales.<br><br>El Plan México regionaliza sus proyectos en Polos de Desarrollo Económico para el Bienestar (PODECOBIS), los primeros 15 polos estarán ubicados en 14 estados en los que se busca desarrollar zonas industriales, sin dejar de lado los servicios y el turismo. Dentro de ramas industriales contempladas están: agroindustria, aeroespacial, automotriz, bienes de consumo, farmacéutica y dispositivos médicos, electrónica y semiconductores, energía, química y petroquímica, textil y calzado, y economía circular.<br><br>Como parte de las inversiones estratégicas derivadas del Plan México, se continuará con la expansión y rehabilitación de redes ferroviarias mediante proyectos como los trenes México-Querétaro, México-Pachuca, Saltillo-Nuevo Laredo, Querétaro-Irapuato, Tren Insurgente y Tren Maya de Carga, así como la modernización de puertos y carreteras. Con estas acciones, se busca posicionar a México como nodo estratégico en las cadenas de suministro, impulsando la inversión en logística y comercio, y promoviendo el crecimiento y el desarrollo económico.<br><br>Las expectativas de crecimiento del PIB presentan un comportamiento diferenciado entre el mediano y largo plazo, ya que, en este último, la incertidumbre es mayor. Para el periodo 2025-2030, por Gerencia de Control Regional (GCR), se espera que los sistemas de Baja california y Mulegé (SIBCS y SIMUL) presenten la mayor TMCA con 3.1%, mientras que el menor crecimiento del PIB se estima ocurra en la GCR NTE, con 2.0%. Tanto el SIN como el SEN se proyecta un crecimiento de 2.5% anual en el mismo periodo. En el periodo 2025-2039, los SIBCS y SIMUL se prevé que continúen con mayor crecimiento y, en contraste, en la GCR NTE y ORI se estima la menor TMCA, con 2.2%. Para el SIN y el SEN se espera una TMCA de 2.5% cada uno.'
+            },
+            {
+                name: 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'consumption-forecast',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQytuUc9Cmf9kOvPCmLkYEOObPEP_rM1bSb9_awO0wYqdLAKw4x_b9FLEBSVGoGXKbDuK8nK4ge2cjM/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1XdFM-P6c3N4wS5arzJ3K4hUcIMibCeBX5iz3IQ_3U2A/edit?usp=sharing',
+                descriptionTitle: 'Pronósticos del consumo bruto',
+                description: 'Se presentan las TMCA de los tres escenarios para cada una de las GCR que integran el SIN en el periodo de estudio. Tomando en cuenta el escenario de planeación, el cual es considerado como el escenario principal para la realización de estudios y evaluación de proyectos, se observa que, la península de Yucatán presenta la TMCA más alta con un crecimiento de 3.6% en el escenario bajo, 3.9% en el escenario de planeación y 4.3% en el escenario alto. Por el contrario, en las GCR Central, Oriental, Norte y Noroeste se esperan crecimientos menores a 1.9% en el escenario bajo. Los crecimientos de estas GCR en el escenario alto oscilan entre 2.4% y 2.7%, y en el escenario de planeación se estiman incrementos de 2% a 2.2%. La GCR Noreste y Occidental crecerán en el escenario de planeación 2.8% y 2.7%, respectivamente, mientras que para el escenario alto se estiman crecimientos ligeramente superiores al 3% y para el bajo se estima 2.4% para el Noreste y 2.3% el Occidental. En lo que refiere al escenario de planeación, se estima que la GCR Peninsular tenga un mayor crecimiento, con una TMCA de 3.9%, seguida de las GCR Noreste y Occidental con crecimientos promedio de 2.8% y 2.7%, respectivamente. En cuanto a los Sistemas Interconectados, el SIBC crecerá en promedio 3.4%, mientras que el SIBCS y SIMUL se calcula avancen 3.1% y 1.8%, en ese orden.'
+            },
+            {
+                name: 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'capacity-additions',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6orBJGbqI8xr6TkOUaJM7I-8RbE7inbex6PrKWHdgTUif8EBFljKuzFR42OqoroQ87kAGpZt_ry-J/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1wnpAefR4rLYhOFEzsjas_ujkDvxAlHJ7EFr0pJi-Ve4/edit?usp=sharing',
+                descriptionTitle: 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027',
+                description: 'Como parte del fortalecimiento de la CFE durante la administración del Gobierno Federal en el periodo 2018-2024 se impulsaron proyectos de fortalecimiento correspondientes a modernización, rehabilitación y construcción de nuevas centrales. El PVIRCE considera la adición de 2,963 MW para el horizonte 2025-2027, de los cuales 2,330 MW corresponden a tecnología de ciclo combinado, 173 MW de turbogás y 460 MW de hidroeléctricas. En la Figura 4.3 se muestra la distribución de estos proyectos por tecnología y GCR.'
+            },
+            {
+                name: 'Adiciones de capacidad de proyectos del Estado 2027 - 2030',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'capacity-additions',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuLWC7WRjRZ-Kicm-0rWJd9beVu4jAwsABNLcixRUCr6XvC0pVvrgPXJW-qh-44AvmLt6gYBDwdoms/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1M39eRP0lyefgfZsZXKWsRSAXhQPHg54T8uaNZYEew-w/edit?usp=sharing',
+                descriptionTitle: 'Adiciones de capacidad de proyectos del Estado',
+                description: 'En la presente administración del Gobierno Federal el PVIRCE considera la adición de 14,046 MW para el horizonte 2027-2030 por parte del Estado, con una participación del 77% de energías limpias, de las cuales el 60% corresponde a renovables, en la mapa se muestra la distribución de estos proyectos por tecnología y GCR.'
+            },
+            {
+                name: 'Adiciones de capacidad por Particulares',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'capacity-additions',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIo6nqNkppQCVqqsUC1LNKSw8n9AyslhakQb_3gB7bccFP1Tb7ssDX1ycdMe0rTSlSrWXpH_CSTMna/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1Pkudx2FB2ta7jsm-Sx3TUzUpNlT7LF6sgi6Rs-Oi-NU/edit?usp=sharing',
+                descriptionTitle: 'Adiciones de capacidad de proyectos con prelación 2025 - 2030',
+                description: 'De 2025 a 2030 se espera adicionar 3,590 MW de capacidad de generación que cuentan con contrato de interconexión como se observa en mapa'
+            },
+            {
+                name: 'Adición de capacidad para desarrollarse por particulares 2026 - 2030',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'capacity-additions',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYfjJ8D1nJGd7IFKOzzg_e7Dpn77RyyeQM1MVFLg4pN4CB7TR1hj_5Zt2igXlDiht8p7hVs-aIp3DQ/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1jGSjieGMNeCyk_agXzDNF90J2srt-89Ungq4Bwda8HY/edit?usp=sharing',
+                descriptionTitle: 'Adición de capacidad para desarrollarse por particulares 2026 - 2030',
+                description: 'La SENER determinó también 7,405 MW de adiciones de capacidad con base a la Planeación Vinculante, que pueden ser desarrollados por particulares durante el periodo 2026 a 2030, con la participación de fuentes de generación renovables como se observa en la Figura 4.6. De los cuales 1,638 MW de capacidad de generación, y 900 MW de rebombeo hidráulico, corresponden a proyectos estratégicos para cumplir con la política energética nacional, definidos por la SENER.\nAdicionalmente, a dicha capacidad el CENACE y CNE, podrán atender y priorizar las solicitudes de otorgamiento de permisos de generación de energía eléctrica, así como la elaboración de estudios de interconexión para la figura de autoconsumo y la modalidad de cogeneración que pretendan desarrollar los particulares y que se encuentren alineados con los criterios de planeación vinculante. Asimismo, los trámites relacionados con el proceso de conexión de Centros de Carga podrán ser priorizados tomando en cuenta la política nacional atendiendo el crecimiento de la demanda de energía eléctrica en cumplimiento de las leyes, reglamentos y demás disposiciones jurídicas aplicables.'
             }
             // ... other PLADESE maps can be added here
         ],
         'PLADESHI': [
             {
-                name: 'Mapa 3 (PLADESHI)',
-                geojsonUrl: 'URL_TO_PLADESHI_MAPA3.geojson',
-                googleSheetUrl: 'URL_TO_PLADESHI_MAPA3_SHEET'
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'PLATEASE': [
+            {
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'PROSENER': [
+            {
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'ELECTRICIDAD': [
+            {
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'GAS NATURAL': [
+            {
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'GAS L.P.': [
+            {
+                name: 'En construcción',
+                underConstruction: true
+            }
+        ],
+        'PETROLIFEROS': [
+            {
+                name: 'En construcción',
+                underConstruction: true
             }
         ]
         // ... other instruments will be added here
@@ -1022,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Add SEN and SIN data if available
             if (senData || sinData) {
-                div.innerHTML += '<br><strong style="font-size: 11px;">TMACA Nacional (%)</strong><br>';
+                div.innerHTML += '<br><strong style="font-size: 11px;">TMCA (%)</strong><br>';
                 div.innerHTML += '<div style="font-size: 11px; line-height: 1.6;">';
 
                 if (senData) {
@@ -1048,6 +1133,103 @@ document.addEventListener('DOMContentLoaded', function () {
                 div.innerHTML += '</div>';
             }
 
+            return div;
+        };
+
+        pibLegendControl.addTo(map);
+    }
+
+    function addConsumptionLegend(senData, sinData) {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+        }
+
+        pibLegendControl = L.control({ position: 'bottomleft' });
+
+        pibLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = '<strong>Pronóstico de Consumo Bruto</strong><br>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #1f7a62; width: 20px; height: 3px; border: none;"></i> 2025-2030</div>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #601623; width: 20px; height: 3px; border: none;"></i> 2025-2039</div>';
+
+            // Add SEN and SIN data if available
+            if (senData || sinData) {
+                div.innerHTML += '<br><strong style="font-size: 11px;">TMCA (%)</strong><br>';
+                div.innerHTML += '<div style="font-size: 11px; line-height: 1.6;">';
+
+                if (senData) {
+                    div.innerHTML += '<div><strong>SEN<sup>2</sup>:</strong></div>';
+                    if (senData['2025-2030']) {
+                        div.innerHTML += '<div style="color: #1f7a62; margin-left: 8px;">2025-2030: ' + senData['2025-2030'] + '%</div>';
+                    }
+                    if (senData['2025-2039']) {
+                        div.innerHTML += '<div style="color: #601623; margin-left: 8px;">2025-2039: ' + senData['2025-2039'] + '%</div>';
+                    }
+                }
+
+                if (sinData) {
+                    div.innerHTML += '<div style="margin-top: 4px;"><strong>SIN<sup>2</sup>:</strong></div>';
+                    if (sinData['2025-2030']) {
+                        div.innerHTML += '<div style="color: #1f7a62; margin-left: 8px;">2025-2030: ' + sinData['2025-2030'] + '%</div>';
+                    }
+                    if (sinData['2025-2039']) {
+                        div.innerHTML += '<div style="color: #601623; margin-left: 8px;">2025-2039: ' + sinData['2025-2039'] + '%</div>';
+                    }
+                }
+
+                div.innerHTML += '</div>';
+            }
+
+            return div;
+        };
+
+        pibLegendControl.addTo(map);
+    }
+
+    function addCapacityLegend(totals, mapName) {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+        }
+
+        pibLegendControl = L.control({ position: 'bottomleft' });
+
+        pibLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = '<strong>Adiciones de Capacidad (MW)</strong><br>';
+            
+            // Add dynamic legend items with institutional colors
+            if (totals && totals.columnNames) {
+                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                totals.columnNames.forEach((col, index) => {
+                    if (totals.columns[col] > 0) {
+                        const color = colors[index % colors.length];
+                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col}</div>`;
+                    }
+                });
+            }
+            
+            // Add totals if available
+            if (totals && totals.columns) {
+                div.innerHTML += '<br><div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">';
+                div.innerHTML += '<strong style="font-size: 11px;">TOTALES</strong><br>';
+                
+                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                totals.columnNames.forEach((col, index) => {
+                    if (totals.columns[col] > 0) {
+                        const color = colors[index % colors.length];
+                        div.innerHTML += `<div style="font-size: 11px; color: ${color}; margin-top: 2px;">${col}: ${totals.columns[col].toLocaleString('es-MX')} MW</div>`;
+                    }
+                });
+                
+                // Add storage info for specific map
+                if (mapName === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
+                    div.innerHTML += `<div style="font-size: 11px; color: #555; margin-top: 6px; font-style: italic;">Almacenamiento: 2,480 MW</div>`;
+                }
+                
+                div.innerHTML += `<div style="font-size: 12px; font-weight: bold; margin-top: 6px; color: #1a1a1a;">TOTAL: ${totals.total.toLocaleString('es-MX')} MW</div>`;
+                div.innerHTML += '</div>';
+            }
+            
             return div;
         };
 
@@ -1407,6 +1589,104 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Add gerencias legend and PIB legend
                 addLegend(regionColors);
                 addPIBLegend(pibSenData, pibSinData);
+            } else if (type === 'consumption-forecast') {
+                const regionColors = {
+                    "Baja California": "#939594",
+                    "Central": "#6A1C32",
+                    "Noreste": "#235B4E",
+                    "Noroeste": "#DDC9A4",
+                    "Norte": "#10302B",
+                    "Occidental": "#BC955C",
+                    "Oriental": "#9F2240",
+                    "Peninsular": "#A16F4A"
+                };
+
+                styleFunction = function (feature) {
+                    const color = regionColors[feature.properties.name] || '#808080';
+                    return {
+                        fillColor: color,
+                        fill: true,
+                        weight: 2,
+                        opacity: 1,
+                        color: '#555',
+                        dashArray: '3',
+                        fillOpacity: 0.7,
+                        pane: 'gerenciasPane'
+                    };
+                }
+
+                onEachFeatureFunction = function (feature, layer) {
+                    layer.on({
+                        mouseover: function (e) {
+                            const targetLayer = e.target;
+                            const originalColor = regionColors[feature.properties.name] || '#808080';
+                            const darkerColor = darkenColor(originalColor, 20);
+
+                            targetLayer.setStyle({
+                                weight: 5,
+                                color: darkerColor,
+                                dashArray: '',
+                                fillOpacity: 0.9
+                            });
+                            targetLayer.bringToFront();
+                        },
+                        mouseout: function (e) {
+                            geoJsonLayer.resetStyle(e.target);
+                        }
+                    });
+                }
+                // Add gerencias legend and consumption legend
+                addLegend(regionColors);
+                addConsumptionLegend(pibSenData, pibSinData);
+            } else if (type === 'capacity-additions') {
+                const regionColors = {
+                    "Baja California": "#939594",
+                    "Central": "#6A1C32",
+                    "Noreste": "#235B4E",
+                    "Noroeste": "#DDC9A4",
+                    "Norte": "#10302B",
+                    "Occidental": "#BC955C",
+                    "Oriental": "#9F2240",
+                    "Peninsular": "#A16F4A"
+                };
+
+                styleFunction = function(feature) {
+                    const color = regionColors[feature.properties.name] || '#808080';
+                    return {
+                        fillColor: color,
+                        fill: true,
+                        weight: 2,
+                        opacity: 1,
+                        color: '#555',
+                        dashArray: '3',
+                        fillOpacity: 0.7,
+                        pane: 'gerenciasPane'
+                    };
+                }
+
+                onEachFeatureFunction = function (feature, layer) {
+                    layer.on({
+                        mouseover: function (e) {
+                            const targetLayer = e.target;
+                            const originalColor = regionColors[feature.properties.name] || '#808080';
+                            const darkerColor = darkenColor(originalColor, 20);
+
+                            targetLayer.setStyle({
+                                weight: 5,
+                                color: darkerColor,
+                                dashArray: '',
+                                fillOpacity: 0.9
+                            });
+                            targetLayer.bringToFront();
+                        },
+                        mouseout: function (e) {
+                            geoJsonLayer.resetStyle(e.target);
+                        }
+                    });
+                }
+                // Add gerencias legend and capacity legend
+                addLegend(regionColors);
+                addCapacityLegend(capacityTotals);
             } else { // regions
                 const regionColors = {
                     "Baja California": "#939594",
@@ -1867,8 +2147,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Specific coordinates for Baja California regions
             const bajaCaliforniaCoords = {
                 'Baja California': { lat: 32.3, lng: -115.5 },      // Cerca de la frontera (Tijuana/Mexicali)
-                'Baja California Sur': { lat: 28.5, lng: -113.0 },  // Donde estaba Baja California (centro-norte península)
-                'Mulegé': { lat: 23.5, lng: -110.0 }                // Cerca de Los Cabos
+                'Baja California Sur': { lat: 23.5, lng: -110.0 },  // Cerca de Los Cabos (era Mulegé)
+                'Mulegé': { lat: 28.5, lng: -113.0 }                // Centro-norte península (era Baja California Sur)
             };
 
             // Load GeoJSON first
@@ -1955,6 +2235,185 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error('Error loading PIB forecast map:', error);
+        } finally {
+            togglePreloader(false);
+        }
+    }
+
+    async function loadConsumptionForecastMap(mapConfig) {
+        // Reutilizar la misma función que PIB pero con el nuevo Google Sheets
+        await loadPIBForecastMap(mapConfig);
+    }
+
+    async function loadCapacityAdditionsMap(mapConfig) {
+        togglePreloader(true);
+        try {
+            // Load GeoJSON and Google Sheets data in parallel
+            const [geoJsonResponse, sheetResponse] = await Promise.all([
+                fetch(mapConfig.geojsonUrl),
+                fetch(mapConfig.googleSheetUrl + (mapConfig.googleSheetUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now())
+            ]);
+
+            const geoJsonData = await geoJsonResponse.json();
+            const csvText = await sheetResponse.text();
+            const capacityData = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+
+            // Get dynamic column names (excluding Id, GCR, and UNIDADES)
+            const allColumns = capacityData.length > 0 ? Object.keys(capacityData[0]) : [];
+            const capacityColumns = allColumns.filter(col => 
+                col !== 'Id' && col !== 'GCR' && col !== 'UNIDADES' && col.trim() !== ''
+            );
+
+            console.log('Capacity columns found:', capacityColumns);
+
+            // Create a map for quick lookup
+            const capacityDataMap = new Map();
+            
+            // Calculate totals by column and row
+            const columnTotals = {};
+            capacityColumns.forEach(col => columnTotals[col] = 0);
+            let grandTotal = 0;
+
+            capacityData.forEach(row => {
+                const gcrName = row.GCR;
+                let rowTotal = 0;
+                const rowData = { GCR: gcrName };
+                
+                capacityColumns.forEach(col => {
+                    const value = parseFloat(row[col] || 0);
+                    rowData[col] = value;
+                    rowTotal += value;
+                    columnTotals[col] += value;
+                });
+                
+                rowData.TOTAL = rowTotal;
+                grandTotal += rowTotal;
+                capacityDataMap.set(gcrName, rowData);
+            });
+
+            // Store totals globally
+            capacityTotals = {
+                columns: columnTotals,
+                total: grandTotal,
+                columnNames: capacityColumns
+            };
+
+            console.log('Capacity totals:', capacityTotals);
+
+            // Specific coordinates for Baja California regions
+            const bajaCaliforniaCoords = {
+                'Baja California': { lat: 32.3, lng: -115.5 },
+                'Baja California Sur': { lat: 23.5, lng: -110.0 },  // Cerca de Los Cabos (era Mulegé)
+                'Mulegé': { lat: 28.5, lng: -113.0 }                // Centro-norte península (era Baja California Sur)
+            };
+
+            // Load GeoJSON first
+            await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
+
+            // Add labels for each region
+            if (geoJsonLayer) {
+                geoJsonLayer.eachLayer(layer => {
+                    const regionName = layer.feature.properties.name;
+                    const capacityInfo = capacityDataMap.get(regionName);
+
+                    if (capacityInfo) {
+                        const bounds = layer.getBounds();
+                        let center = bounds.getCenter();
+
+                        // Override position for Baja California
+                        if (regionName === 'Baja California') {
+                            center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
+                        }
+
+                        const gcrName = regionName;
+                        const total = capacityInfo.TOTAL || 0;
+
+                        // Only show label if there's capacity > 0
+                        if (total > 0) {
+                            // Build label HTML dynamically
+                            let labelHTML = `<div class="pib-label-content">
+                                <div class="pib-label-id">${gcrName}</div>`;
+                            
+                            // Add each capacity type with institutional colors
+                            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                            capacityColumns.forEach((col, index) => {
+                                const value = capacityInfo[col] || 0;
+                                if (value > 0) {
+                                    const color = colors[index % colors.length];
+                                    labelHTML += `<div class="pib-row" style="color: ${color};">
+                                        <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
+                                    </div>`;
+                                }
+                            });
+                            
+                            labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
+                                <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
+                            </div></div>`;
+
+                            const marker = L.marker([center.lat, center.lng], {
+                                icon: L.divIcon({
+                                    className: 'pib-label',
+                                    html: labelHTML,
+                                    iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
+                                })
+                            });
+
+                            marker.addTo(markersLayer);
+                        }
+                    }
+                });
+            }
+
+            // Add special points for Baja California Sur and Mulegé if they have capacity
+            ['Baja California Sur', 'Mulegé'].forEach(regionName => {
+                const capacityInfo = capacityDataMap.get(regionName);
+                const coords = bajaCaliforniaCoords[regionName];
+
+                if (capacityInfo && coords) {
+                    const gcrName = regionName;
+                    const total = capacityInfo.TOTAL || 0;
+
+                    if (total > 0) {
+                        // Build label HTML dynamically
+                        let labelHTML = `<div class="pib-label-content">
+                            <div class="pib-label-id">${gcrName}</div>`;
+                        
+                        // Add each capacity type with institutional colors
+                        const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                        capacityColumns.forEach((col, index) => {
+                            const value = capacityInfo[col] || 0;
+                            if (value > 0) {
+                                const color = colors[index % colors.length];
+                                labelHTML += `<div class="pib-row" style="color: ${color};">
+                                    <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
+                                </div>`;
+                            }
+                        });
+                        
+                        labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
+                            <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
+                        </div></div>`;
+
+                        const marker = L.marker([coords.lat, coords.lng], {
+                            icon: L.divIcon({
+                                className: 'pib-label',
+                                html: labelHTML,
+                                iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
+                            })
+                        });
+
+                        marker.addTo(markersLayer);
+                    }
+                }
+            });
+
+            // Add legend with capacity totals
+            addCapacityLegend(capacityTotals, mapConfig.name);
+
+            updateTimestamp();
+
+        } catch (error) {
+            console.error('Error loading capacity additions map:', error);
         } finally {
             togglePreloader(false);
         }
@@ -2079,6 +2538,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (mapConfig && mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
                     // Recargar datos del mapa PIB
                     await loadPIBForecastMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
+                    // Recargar datos del mapa de consumo
+                    await loadConsumptionForecastMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
+                    // Recargar datos del mapa de adiciones de capacidad CFE
+                    await loadCapacityAdditionsMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
+                    // Recargar datos del mapa de adiciones de capacidad del Estado
+                    await loadCapacityAdditionsMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad por Particulares') {
+                    // Recargar datos del mapa de adiciones de capacidad por Particulares
+                    await loadCapacityAdditionsMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
+                    // Recargar datos del mapa de adiciones de capacidad para desarrollarse por Particulares
+                    await loadCapacityAdditionsMap(mapConfig);
                 } else {
                     // Para otros mapas, usar la función normal
                     loadAndRender({ silent: false });
@@ -2178,6 +2652,66 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectedInstrument && mapConfigurations[selectedInstrument]) {
                 const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
                 if (mapConfig) {
+                    // Check if map is under construction
+                    if (mapConfig.underConstruction) {
+                        currentMapTitle = mapConfig.name;
+                        updateMapTitleDisplay(currentMapTitle);
+                        
+                        // Show construction message
+                        if (mapDescriptionEl) {
+                            const titleEl = document.getElementById('map-description-title');
+                            const contentEl = document.getElementById('map-description-content');
+                            
+                            if (titleEl) {
+                                titleEl.innerHTML = '<i class="bi bi-cone-striped"></i> En Construcción';
+                                titleEl.style.color = '#f0ad4e';
+                            }
+                            if (contentEl) {
+                                contentEl.innerHTML = 'Este mapa está actualmente en desarrollo. Pronto estará disponible con información actualizada.';
+                            }
+                            mapDescriptionEl.style.display = 'block';
+                        }
+                        
+                        // Show construction overlay on map
+                        const constructionOverlay = document.createElement('div');
+                        constructionOverlay.id = 'construction-overlay';
+                        constructionOverlay.style.cssText = `
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(255, 255, 255, 0.9);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 1000;
+                            pointer-events: none;
+                        `;
+                        constructionOverlay.innerHTML = `
+                            <div style="text-align: center; font-family: 'Montserrat', sans-serif;">
+                                <i class="bi bi-cone-striped" style="font-size: 80px; color: #f0ad4e; display: block; margin-bottom: 20px;"></i>
+                                <h2 style="color: #601623; font-size: 32px; margin: 0 0 10px 0;">En Construcción</h2>
+                                <p style="color: #555; font-size: 18px; margin: 0;">Este mapa estará disponible próximamente</p>
+                            </div>
+                        `;
+                        
+                        // Remove existing construction overlay if any
+                        const existing = document.getElementById('construction-overlay');
+                        if (existing) existing.remove();
+                        
+                        // Add to map container
+                        document.getElementById('map').appendChild(constructionOverlay);
+                        
+                        currentSheetUrl = null;
+                        updateSheetInfo(null, 'Mapa en construcción');
+                        return;
+                    }
+                    
+                    // Remove construction overlay if switching from construction map
+                    const existing = document.getElementById('construction-overlay');
+                    if (existing) existing.remove();
+                    
                     currentMapTitle = mapConfig.name; // Update the current map title
                     updateMapTitleDisplay(currentMapTitle);
 
@@ -2209,6 +2743,36 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
                         updateSheetInfo(mapConfig);
                         await loadPIBForecastMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
+                        updateSheetInfo(mapConfig);
+                        await loadConsumptionForecastMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
+                        updateSheetInfo(mapConfig);
+                        await loadCapacityAdditionsMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
+                        updateSheetInfo(mapConfig);
+                        await loadCapacityAdditionsMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Adiciones de capacidad por Particulares') {
+                        updateSheetInfo(mapConfig);
+                        await loadCapacityAdditionsMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
+                        updateSheetInfo(mapConfig);
+                        await loadCapacityAdditionsMap(mapConfig);
                         return;
                     }
 
@@ -2254,6 +2818,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 mapDescriptionEl.innerHTML = '';
                 mapDescriptionEl.style.display = 'none';
             }
+        });
+    }
+
+    // Welcome screen handling
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const welcomeStartBtn = document.getElementById('welcome-start-btn');
+    
+    if (welcomeScreen && welcomeStartBtn) {
+        // Show welcome screen on load
+        welcomeScreen.style.display = 'flex';
+        
+        // Hide welcome screen when start button is clicked
+        welcomeStartBtn.addEventListener('click', function() {
+            welcomeScreen.style.display = 'none';
         });
     }
 });

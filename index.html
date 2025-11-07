@@ -24,6 +24,64 @@
         </div>
     </div>
 
+    <!-- Pantalla de Bienvenida -->
+    <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-content">
+            <div class="welcome-header">
+                <img src="img/logo_sener.png" alt="SENER" class="welcome-logo-sener">
+                <div class="welcome-title-container">
+                    <h1 class="welcome-title">Automatización de Mapas SNIEn</h1>
+                    <p class="welcome-subtitle">Sistema Nacional de Información Energética</p>
+                </div>
+                <img src="img/SNIEN.png" alt="SNIEn" class="welcome-logo-snien">
+            </div>
+
+            <div class="welcome-instructions">
+                <div class="instruction-item">
+                    <div class="instruction-number">1</div>
+                    <div class="instruction-content">
+                        <h3>Seleccione un Instrumento</h3>
+                        <p>Elija entre PLADESE, PLADESHI, PLATEASE, PROSENER u otros instrumentos energéticos
+                            disponibles.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-item">
+                    <div class="instruction-number">2</div>
+                    <div class="instruction-content">
+                        <h3>Elija un Mapa</h3>
+                        <p>Seleccione el mapa específico que desea visualizar según el instrumento elegido.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-item">
+                    <div class="instruction-number">3</div>
+                    <div class="instruction-content">
+                        <h3>Interactúe con el Mapa</h3>
+                        <p>Haga clic en regiones, acerque/aleje el zoom y explore la información geoespacial.</p>
+                    </div>
+                </div>
+
+                <div class="instruction-item">
+                    <div class="instruction-number">4</div>
+                    <div class="instruction-content">
+                        <h3>Consulte los Datos</h3>
+                        <p>Los datos se actualizan automáticamente desde Google Sheets. Use el botón "Actualizar datos"
+                            si es necesario.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="welcome-start-btn" class="welcome-btn">
+                Comenzar
+            </button>
+
+            <div class="welcome-footer">
+                <p>Secretaría de Energía - Sistema Nacional de Información Energética</p>
+            </div>
+        </div>
+    </div>
+
     <header class="site-header">
         <div class="container header-content">
             <div class="brand">
@@ -100,7 +158,8 @@
                     </div>
 
                     <div id="map" class="map-view" role="region" aria-label="Mapa interactivo del SNIEn">
-                        <div id="selected-region-banner" class="selected-region-banner" style="display: none;" aria-live="polite">
+                        <div id="selected-region-banner" class="selected-region-banner" style="display: none;"
+                            aria-live="polite">
                             <span id="selected-region-text"></span>
                         </div>
                     </div>
