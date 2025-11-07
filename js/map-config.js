@@ -219,9 +219,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
-        center: [24.1, -102],
-        zoom: 4,
-        minZoom: 5,
+        center: [23.6345, -102.5528],  // Centro de México
+        zoom: 5.2,  // Zoom para escala de ~500km
+        minZoom: 4,  // Permitir más alejamiento
         maxZoom: 18,
         maxBounds: graticuleBounds,
         maxBoundsViscosity: 1,
@@ -723,6 +723,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let municipalitiesData = null;
     let electrificationData = null;
     let focusedRegion = null; // Track currently focused region for electrification map
+    let pibSenData = null; // Store SEN data for PIB map
+    let pibSinData = null; // Store SIN data for PIB map
 
     const mapConfigurations = {
         'PLADESE': [
@@ -786,6 +788,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 regionDescriptions: {
                     // Descriptions will be added later
                 }
+            },
+            {
+                name: 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'pib-forecast',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVE7N8gjuivL9JiM59vFBjiej5k48foC60TrSRGXjEAbJXvW0NXTZ3Fq0-kWzY73kmMPSq68xtpZE2/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1NumCWqCiRd6Ph1vXOrsc1lcyv4Hx-v_1Lve1QIV2kdE/edit?usp=sharing'
             }
             // ... other PLADESE maps can be added here
         ],
@@ -996,6 +1005,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    let pibLegendControl;
+
+    function addPIBLegend(senData, sinData) {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+        }
+
+        pibLegendControl = L.control({ position: 'bottomleft' });
+
+        pibLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = '<strong>Tasa de Crecimiento PIB</strong><br>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #1f7a62; width: 20px; height: 3px; border: none;"></i> 2025-2030</div>';
+            div.innerHTML += '<div class="legend-item"><i style="background: #601623; width: 20px; height: 3px; border: none;"></i> 2025-2039</div>';
+
+            // Add SEN and SIN data if available
+            if (senData || sinData) {
+                div.innerHTML += '<br><strong style="font-size: 11px;">TMACA Nacional (%)</strong><br>';
+                div.innerHTML += '<div style="font-size: 11px; line-height: 1.6;">';
+
+                if (senData) {
+                    div.innerHTML += '<div><strong>SEN:</strong></div>';
+                    if (senData['2025-2030']) {
+                        div.innerHTML += '<div style="color: #1f7a62; margin-left: 8px;">2025-2030: ' + senData['2025-2030'] + '%</div>';
+                    }
+                    if (senData['2025-2039']) {
+                        div.innerHTML += '<div style="color: #601623; margin-left: 8px;">2025-2039: ' + senData['2025-2039'] + '%</div>';
+                    }
+                }
+
+                if (sinData) {
+                    div.innerHTML += '<div style="margin-top: 4px;"><strong>SIN:</strong></div>';
+                    if (sinData['2025-2030']) {
+                        div.innerHTML += '<div style="color: #1f7a62; margin-left: 8px;">2025-2030: ' + sinData['2025-2030'] + '%</div>';
+                    }
+                    if (sinData['2025-2039']) {
+                        div.innerHTML += '<div style="color: #601623; margin-left: 8px;">2025-2039: ' + sinData['2025-2039'] + '%</div>';
+                    }
+                }
+
+                div.innerHTML += '</div>';
+            }
+
+            return div;
+        };
+
+        pibLegendControl.addTo(map);
+    }
+
+    function removePIBLegend() {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+            pibLegendControl = null;
+        }
+    }
+
     async function loadGeoJSON(url, options) {
         const showPreloader = !(options && options.silent);
         const type = options && options.type || 'regions';
@@ -1011,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let onEachFeatureFunction;
 
             if (type === 'states') {
-                styleFunction = function(feature) {
+                styleFunction = function (feature) {
                     return {
                         fillColor: '#E0E0E0',
                         fill: true,
@@ -1034,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     "Peninsular": "#A16F4A"
                 };
 
-                styleFunction = function(feature) {
+                styleFunction = function (feature) {
                     const color = regionColors[feature.properties.name] || '#808080';
                     return {
                         fillColor: color,
@@ -1090,18 +1155,18 @@ document.addEventListener('DOMContentLoaded', function () {
                         geoJsonLayer.resetStyle(l);
                     });
                     municipalitiesLayerGroup.clearLayers();
-                    
+
                     // Remove municipalities legend and restore gerencias legend
                     removeMunicipalitiesLegend();
                     if (legendControl) {
                         map.removeControl(legendControl);
                     }
                     addLegend(regionColors);
-                    
+
                     if (selectedRegionBanner) {
                         selectedRegionBanner.style.display = 'none';
                     }
-                    
+
                     // Hide description
                     if (mapDescriptionEl) {
                         mapDescriptionEl.style.display = 'none';
@@ -1147,7 +1212,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 const titleEl = document.getElementById('map-description-title');
                                 const contentEl = document.getElementById('map-description-content');
                                 const gcrInfo = gcrDescriptions[clickedRegionName];
-                                
+
                                 if (gcrInfo && titleEl && contentEl) {
                                     titleEl.innerHTML = gcrInfo.title;
                                     contentEl.innerHTML = gcrInfo.description;
@@ -1217,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
 
                             const municipalitiesLayer = L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
-                                style: function(feature) {
+                                style: function (feature) {
                                     const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
 
                                     if (!municipalityData || municipalityData.PENDIENTE === undefined || municipalityData.PENDIENTE === null) {
@@ -1237,13 +1302,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                         fillOpacity: 0.8
                                     };
                                 },
-                                onEachFeature: function(feature, layer) {
+                                onEachFeature: function (feature, layer) {
                                     const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
                                     const pendientes = municipalityData ? municipalityData.PENDIENTE : 'N/A';
                                     const gcr = municipalityData ? municipalityData.GCR : 'N/A';
                                     const cvegeo = feature.properties.CVEGEO || 'N/A';
                                     const nomgeo = feature.properties.NOMGEO || 'Sin nombre';
-                                    
+
                                     const popupContent = `
                                         <div style="font-family: 'Montserrat', sans-serif;">
                                             <strong style="font-size: 14px; color: #601623;">${nomgeo}</strong><br>
@@ -1252,15 +1317,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <strong>Localidades pendientes:</strong> ${pendientes}
                                         </div>
                                     `;
-                                    
+
                                     // Usar tooltip en lugar de popup
                                     layer.bindTooltip(popupContent, {
                                         permanent: false,
                                         direction: 'top',
                                         className: 'municipality-tooltip'
                                     });
-                                    
-                                    layer.on('mouseover', function(e) {
+
+                                    layer.on('mouseover', function (e) {
                                         console.log('Municipio hover:', {
                                             CVEGEO: cvegeo,
                                             NOMGEO: nomgeo,
@@ -1286,13 +1351,62 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Evento para hacer clic fuera de las gerencias y restablecer todo
-                map.on('click', function(e) {
+                map.on('click', function (e) {
                     if (focusedRegion !== null) {
                         resetAllRegionsToInitialState();
                     }
                 });
 
                 addLegend(regionColors);
+            } else if (type === 'pib-forecast') {
+                const regionColors = {
+                    "Baja California": "#939594",
+                    "Central": "#6A1C32",
+                    "Noreste": "#235B4E",
+                    "Noroeste": "#DDC9A4",
+                    "Norte": "#10302B",
+                    "Occidental": "#BC955C",
+                    "Oriental": "#9F2240",
+                    "Peninsular": "#A16F4A"
+                };
+
+                styleFunction = function (feature) {
+                    const color = regionColors[feature.properties.name] || '#808080';
+                    return {
+                        fillColor: color,
+                        fill: true,
+                        weight: 2,
+                        opacity: 1,
+                        color: '#555',
+                        dashArray: '3',
+                        fillOpacity: 0.7,
+                        pane: 'gerenciasPane'
+                    };
+                }
+
+                onEachFeatureFunction = function (feature, layer) {
+                    layer.on({
+                        mouseover: function (e) {
+                            const targetLayer = e.target;
+                            const originalColor = regionColors[feature.properties.name] || '#808080';
+                            const darkerColor = darkenColor(originalColor, 20);
+
+                            targetLayer.setStyle({
+                                weight: 5,
+                                color: darkerColor,
+                                dashArray: '',
+                                fillOpacity: 0.9
+                            });
+                            targetLayer.bringToFront();
+                        },
+                        mouseout: function (e) {
+                            geoJsonLayer.resetStyle(e.target);
+                        }
+                    });
+                }
+                // Add gerencias legend and PIB legend
+                addLegend(regionColors);
+                addPIBLegend(pibSenData, pibSinData);
             } else { // regions
                 const regionColors = {
                     "Baja California": "#939594",
@@ -1305,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     "Peninsular": "#A16F4A"
                 };
 
-                styleFunction = function(feature) {
+                styleFunction = function (feature) {
                     const color = regionColors[feature.properties.name] || '#808080'; // Default color
                     return {
                         fillColor: color,
@@ -1354,7 +1468,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 insetControllers.forEach(controller => {
                     controller.polygonsLayer.clearLayers();
 
-                    const insetStyleFunction = function(feature) {
+                    const insetStyleFunction = function (feature) {
                         const style = styleFunction(feature);
                         delete style.pane;
                         return style;
@@ -1627,10 +1741,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             bounds.push([lat, lng]);
         });
-        if (bounds.length) {
-            const calculatedBounds = L.latLngBounds(bounds);
-            map.fitBounds(bounds.length === 1 ? calculatedBounds.pad(0.25) : calculatedBounds.pad(0.2));
-        }
+        // Don't auto-fit bounds, keep the default center and zoom
+        // if (bounds.length) {
+        //     const calculatedBounds = L.latLngBounds(bounds);
+        //     map.fitBounds(bounds.length === 1 ? calculatedBounds.pad(0.25) : calculatedBounds.pad(0.2));
+        // }
     }
 
     async function loadAndRender(options) {
@@ -1690,15 +1805,170 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function loadPIBForecastMap(mapConfig) {
+        togglePreloader(true);
+        try {
+            // Load GeoJSON and Google Sheets data in parallel
+            const [geoJsonResponse, sheetResponse] = await Promise.all([
+                fetch(mapConfig.geojsonUrl),
+                fetch(mapConfig.googleSheetUrl + (mapConfig.googleSheetUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now())
+            ]);
+
+            const geoJsonData = await geoJsonResponse.json();
+            const csvText = await sheetResponse.text();
+            const pibData = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+
+            // Create a map for quick lookup
+            const pibDataMap = new Map(pibData.map(row => [row.GCR, row]));
+
+            // Extract SEN and SIN data from columns G, H, I
+            pibSenData = null;
+            pibSinData = null;
+
+            if (pibData.length > 0) {
+                pibSenData = { '2025-2030': 'N/A', '2025-2039': 'N/A' };
+                pibSinData = { '2025-2030': 'N/A', '2025-2039': 'N/A' };
+
+                // Look for rows with SISTEMA, TMCA(%), AÑOS columns
+                pibData.forEach(row => {
+                    const sistema = row['SISTEMA'] || '';
+                    const tmca = row['TMCA(%)'] || row['TMACA(%)'] || '';
+                    const años = row['AÑOS'] || row['ANOS'] || '';
+
+                    console.log('Row:', sistema, tmca, años);
+
+                    if (sistema.includes('SEN')) {
+                        if (años.includes('2025-2030')) {
+                            pibSenData['2025-2030'] = tmca;
+                            console.log('Found SEN 2025-2030:', tmca);
+                        }
+                        if (años.includes('2025-2039') || años.includes('2025- 2039')) {
+                            pibSenData['2025-2039'] = tmca;
+                            console.log('Found SEN 2025-2039:', tmca);
+                        }
+                    }
+
+                    if (sistema.includes('SIN')) {
+                        if (años.includes('2025-2030')) {
+                            pibSinData['2025-2030'] = tmca;
+                            console.log('Found SIN 2025-2030:', tmca);
+                        }
+                        if (años.includes('2025-2039') || años.includes('2025- 2039')) {
+                            pibSinData['2025-2039'] = tmca;
+                            console.log('Found SIN 2025-2039:', tmca);
+                        }
+                    }
+                });
+            }
+
+            console.log('Final SEN data:', pibSenData);
+            console.log('Final SIN data:', pibSinData);
+
+            // Specific coordinates for Baja California regions
+            const bajaCaliforniaCoords = {
+                'Baja California': { lat: 32.3, lng: -115.5 },      // Cerca de la frontera (Tijuana/Mexicali)
+                'Baja California Sur': { lat: 28.5, lng: -113.0 },  // Donde estaba Baja California (centro-norte península)
+                'Mulegé': { lat: 23.5, lng: -110.0 }                // Cerca de Los Cabos
+            };
+
+            // Load GeoJSON first
+            await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
+
+            // Add labels for each region using the loaded layer
+            if (geoJsonLayer) {
+                geoJsonLayer.eachLayer(layer => {
+                    const regionName = layer.feature.properties.name;
+                    const pibInfo = pibDataMap.get(regionName);
+
+                    if (pibInfo) {
+                        // Get the center of the layer bounds
+                        const bounds = layer.getBounds();
+                        let center = bounds.getCenter();
+
+                        // Override position for Baja California to move it to the border
+                        if (regionName === 'Baja California') {
+                            center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
+                        }
+
+                        // Create two markers for each value
+                        const gcrName = regionName;
+                        const value2025_2030 = pibInfo['2025-2030'] || 'N/A';
+                        const value2025_2039 = pibInfo['2025-2039'] || 'N/A';
+
+                        console.log('Creating labels for:', regionName, gcrName, value2025_2030, value2025_2039);
+
+                        // Create single marker with both values
+                        const marker = L.marker([center.lat, center.lng], {
+                            icon: L.divIcon({
+                                className: 'pib-label',
+                                html: `<div class="pib-label-content">
+                                    <div class="pib-label-id">${gcrName}</div>
+                                    <div class="pib-row pib-row-2030">
+                                        <span class="pib-value">${value2025_2030}%</span>
+                                    </div>
+                                    <div class="pib-row pib-row-2039">
+                                        <span class="pib-value">${value2025_2039}%</span>
+                                    </div>
+                                </div>`,
+                                iconSize: [80, 42]
+                            })
+                        });
+
+                        marker.addTo(markersLayer);
+                    }
+                });
+            }
+
+            // Add special points for Baja California Sur and Mulegé
+            ['Baja California Sur', 'Mulegé'].forEach(regionName => {
+                const pibInfo = pibDataMap.get(regionName);
+                const coords = bajaCaliforniaCoords[regionName];
+
+                if (pibInfo && coords) {
+                    const gcrName = regionName;
+                    const value2025_2030 = pibInfo['2025-2030'] || 'N/A';
+                    const value2025_2039 = pibInfo['2025-2039'] || 'N/A';
+
+                    console.log('Creating special point for:', regionName, gcrName, value2025_2030, value2025_2039);
+
+                    const marker = L.marker([coords.lat, coords.lng], {
+                        icon: L.divIcon({
+                            className: 'pib-label',
+                            html: `<div class="pib-label-content">
+                                <div class="pib-label-id">${gcrName}</div>
+                                <div class="pib-row pib-row-2030">
+                                    <span class="pib-value">${value2025_2030}%</span>
+                                </div>
+                                <div class="pib-row pib-row-2039">
+                                    <span class="pib-value">${value2025_2039}%</span>
+                                </div>
+                            </div>`,
+                            iconSize: [80, 42]
+                        })
+                    });
+
+                    marker.addTo(markersLayer);
+                }
+            });
+
+            updateTimestamp();
+
+        } catch (error) {
+            console.error('Error loading PIB forecast map:', error);
+        } finally {
+            togglePreloader(false);
+        }
+    }
+
     // Event listeners
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async function () {
             const selectedInstrument = instrumentSelect.value;
             const selectedMapName = mapSelect.value;
-            
+
             if (selectedInstrument && selectedMapName && mapConfigurations[selectedInstrument]) {
                 const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
-                
+
                 // Si es el mapa de electrificación
                 if (mapConfig && mapConfig.name === 'Municipios con localidades sin electrificar') {
                     togglePreloader(true);
@@ -1709,20 +1979,20 @@ document.addEventListener('DOMContentLoaded', function () {
                         const response = await fetch(url, { cache: 'no-store' });
                         const csvText = await response.text();
                         electrificationData = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
-                        
+
                         console.log('Datos de electrificación actualizados:', electrificationData.length, 'registros');
-                        
+
                         // Si hay una región enfocada, actualizar los municipios mostrados
                         if (focusedRegion) {
                             // Trigger click event on the focused region to refresh municipalities
                             municipalitiesLayerGroup.clearLayers();
-                            
+
                             const electrificationDataMap = new Map(electrificationData.map(row => [row.CVEGEO, row]));
                             const filteredFeatures = municipalitiesData.features.filter(f => {
                                 const municipalityData = electrificationDataMap.get(f.properties.CVEGEO);
                                 return municipalityData && municipalityData.GCR === focusedRegion;
                             });
-                            
+
                             // Re-render municipalities with updated data
                             const regionColors = {
                                 "Baja California": "#939594",
@@ -1734,7 +2004,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 "Oriental": "#9F2240",
                                 "Peninsular": "#A16F4A"
                             };
-                            
+
                             function getColor(pendientes) {
                                 const p = parseInt(pendientes, 10);
                                 if (isNaN(p)) return '#ccc';
@@ -1745,9 +2015,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 if (p <= 80) return '#A3384D';
                                 return '#601623';
                             }
-                            
+
                             const municipalitiesLayer = L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
-                                style: function(feature) {
+                                style: function (feature) {
                                     const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
                                     if (!municipalityData || municipalityData.PENDIENTE === undefined || municipalityData.PENDIENTE === null) {
                                         return { fillOpacity: 0, opacity: 0, interactive: false };
@@ -1761,13 +2031,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                         fillOpacity: 0.8
                                     };
                                 },
-                                onEachFeature: function(feature, layer) {
+                                onEachFeature: function (feature, layer) {
                                     const municipalityData = electrificationDataMap.get(feature.properties.CVEGEO);
                                     const pendientes = municipalityData ? municipalityData.PENDIENTE : 'N/A';
                                     const gcr = municipalityData ? municipalityData.GCR : 'N/A';
                                     const cvegeo = feature.properties.CVEGEO || 'N/A';
                                     const nomgeo = feature.properties.NOMGEO || 'Sin nombre';
-                                    
+
                                     const popupContent = `
                                         <div style="font-family: 'Montserrat', sans-serif;">
                                             <strong style="font-size: 14px; color: #601623;">${nomgeo}</strong><br>
@@ -1776,14 +2046,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <strong>Localidades pendientes:</strong> ${pendientes}
                                         </div>
                                     `;
-                                    
+
                                     layer.bindTooltip(popupContent, {
                                         permanent: false,
                                         direction: 'top',
                                         className: 'municipality-tooltip'
                                     });
-                                    
-                                    layer.on('mouseover', function(e) {
+
+                                    layer.on('mouseover', function (e) {
                                         console.log('Municipio hover:', {
                                             CVEGEO: cvegeo,
                                             NOMGEO: nomgeo,
@@ -1793,19 +2063,22 @@ document.addEventListener('DOMContentLoaded', function () {
                                     });
                                 }
                             });
-                            
+
                             municipalitiesLayerGroup.addLayer(municipalitiesLayer);
                             if (typeof municipalitiesLayer.bringToFront === 'function') {
                                 municipalitiesLayer.bringToFront();
                             }
                         }
-                        
+
                         updateTimestamp();
                     } catch (error) {
                         console.error('Error actualizando datos de electrificación:', error);
                     } finally {
                         togglePreloader(false);
                     }
+                } else if (mapConfig && mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
+                    // Recargar datos del mapa PIB
+                    await loadPIBForecastMap(mapConfig);
                 } else {
                     // Para otros mapas, usar la función normal
                     loadAndRender({ silent: false });
@@ -1881,6 +2154,7 @@ document.addEventListener('DOMContentLoaded', function () {
             destroyInsetMaps();
             removeLegend(); // Remove legend when changing map
             removeMunicipalitiesLegend(); // Remove municipalities legend when changing map
+            removePIBLegend(); // Remove PIB legend when changing map
             if (selectedRegionBanner) {
                 selectedRegionBanner.style.display = 'none'; // Hide region banner when changing map
             }
@@ -1930,6 +2204,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         updateSheetInfo(mapConfig); // Update sheet info for this map
                         loadElectrificationMap(mapConfig);
                         return; // Stop further processing for this map for now
+                    }
+
+                    if (mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
+                        updateSheetInfo(mapConfig);
+                        await loadPIBForecastMap(mapConfig);
+                        return;
                     }
 
                     if (Array.isArray(mapConfig.insets) && mapConfig.insets.length) {
