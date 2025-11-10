@@ -1860,3 +1860,106 @@ Notification system */
 .leaflet-tooltip.node-label::before {
     border-top-color: rgba(31, 122, 98, 0.3);
 }
+
+/* Marker Cluster Styles - Traffic Light Colors (Semáforo) */
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 50%;
+    z-index: 650 !important; /* Force high z-index */
+}
+
+.marker-cluster div {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 30px;
+    color: #ffffff;
+    font-weight: 700;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Custom electricity marker icon */
+.electricity-marker-icon {
+    background: transparent !important;
+    border: none !important;
+    z-index: 650 !important;
+}
+
+.electricity-marker-icon img {
+    display: block;
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* Menos elementos = Verde */
+.marker-cluster-small {
+    background-color: rgba(76, 175, 80, 0.5);
+}
+
+.marker-cluster-small div {
+    background-color: rgba(76, 175, 80, 0.8);
+}
+
+/* Medio = Ámbar */
+.marker-cluster-medium {
+    background-color: rgba(255, 152, 0, 0.5);
+}
+
+.marker-cluster-medium div {
+    background-color: rgba(255, 152, 0, 0.8);
+}
+
+/* Más elementos = Rojo */
+.marker-cluster-large {
+    background-color: rgba(244, 67, 54, 0.5);
+}
+
+.marker-cluster-large div {
+    background-color: rgba(244, 67, 54, 0.8);
+}
+
+/* Force marker cluster layer to be on top */
+.leaflet-pane.leaflet-electricitymarkers-pane {
+    z-index: 650 !important;
+}
+
+.leaflet-marker-pane .electricity-marker-icon {
+    z-index: 650 !important;
+}
+
+/* Override Leaflet's default marker pane z-index */
+.leaflet-pane.leaflet-marker-pane {
+    z-index: 650 !important;
+}
+
+/* Ensure cluster markers are above everything */
+.leaflet-marker-icon.marker-cluster {
+    z-index: 650 !important;
+}
+
+.leaflet-marker-icon.electricity-marker-icon {
+    z-index: 650 !important;
+}
+
+/* Search field specific styles */
+#search-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#search-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+#permit-search {
+    min-width: 150px;
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Mapa de Electricidad</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        h1 {
+            color: #1f7a62;
+        }
+        .instructions {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .instructions h2 {
+            margin-top: 0;
+            color: #601623;
+        }
+        .instructions ol {
+            margin: 10px 0;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #1f7a62;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background: #165845;
+        }
+    </style>
+</head>
+<body>
+    <h1>✅ Mapa de Electricidad Configurado</h1>
+    
+    <div class="instructions">
+        <h2>Cambios Implementados:</h2>
+        <ol>
+            <li><strong>Clusters tipo semáforo:</strong>
+                <ul>
+                    <li>🟢 Verde: Menos elementos (< 10)</li>
+                    <li>🟠 Ámbar: Medio (10-100)</li>
+                    <li>🔴 Rojo: Más elementos (> 100)</li>
+                </ul>
+            </li>
+            <li><strong>Icono personalizado:</strong> Usando planta_generacion.png de CDN</li>
+            <li><strong>Z-index ajustado:</strong> Marcadores ahora aparecen encima de las gerencias (z-index: 630)</li>
+            <li><strong>Buscador:</strong> Busca permisos por número en tiempo real</li>
+        </ol>
+
+        <h2>Cómo probar:</h2>
+        <ol>
+            <li>Abre el archivo <code>index.html</code></li>
+            <li>Haz clic en "Comenzar" en la pantalla de bienvenida</li>
+            <li>Selecciona <strong>"ELECTRICIDAD"</strong> en el selector de instrumentos</li>
+            <li>Selecciona <strong>"Permisos de Generación de Electricidad"</strong></li>
+            <li>Observa los clusters de colores (verde, ámbar, rojo)</li>
+            <li>Haz clic en un cluster para expandir</li>
+            <li>Haz clic en un marcador con icono de planta para ver detalles</li>
+            <li>Usa el campo "Buscar permiso" para encontrar un permiso específico</li>
+        </ol>
+    </div>
+
+    <a href="index.html" class="button">Abrir Aplicación Principal</a>
+</body>
+</html>

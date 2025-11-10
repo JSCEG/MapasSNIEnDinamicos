@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
@@ -130,6 +132,10 @@
                         <div class="toolbar-group sheet-info-group">
                             <span class="sheet-info-label">Hoja de c&aacute;lculo</span>
                             <span id="sheet-info" class="sheet-info-value">Sin fuente de datos seleccionada.</span>
+                        </div>
+                        <div class="toolbar-group" id="search-group" style="display: none;">
+                            <label for="permit-search">Buscar permiso</label>
+                            <input type="text" id="permit-search" class="control" placeholder="Número de permiso" style="max-width: 200px;">
                         </div>
                         <div class="toolbar-group">
                             <button type="button" id="refresh-data" class="btn-secondary btn-icon"
@@ -349,6 +355,7 @@
 
     <!-- Core libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.umd.min.js"></script>
     <script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>

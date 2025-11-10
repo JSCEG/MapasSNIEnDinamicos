@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Icono Planta</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        h1 {
+            color: #1f7a62;
+        }
+        .test-container {
+            border: 2px solid #1f7a62;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .icon-test {
+            margin: 10px 0;
+        }
+        img {
+            border: 1px solid #ccc;
+            padding: 5px;
+            background: white;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Icono de Planta</h1>
+    
+    <div class="test-container">
+        <h2>1. Test Directo de Imagen</h2>
+        <div class="icon-test">
+            <p>Cargando icono desde CDN:</p>
+            <img id="test-icon" src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" 
+                 alt="Icono Planta" width="32" height="32"
+                 onload="document.getElementById('status1').className='success'; document.getElementById('status1').textContent='✓ Icono cargado correctamente';"
+                 onerror="document.getElementById('status1').className='error'; document.getElementById('status1').textContent='✗ Error al cargar el icono';">
+            <p id="status1">Cargando...</p>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>2. Test con Diferentes Tamaños</h2>
+        <div class="icon-test">
+            <p>16x16:</p>
+            <img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" width="16" height="16">
+            
+            <p>32x32:</p>
+            <img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" width="32" height="32">
+            
+            <p>64x64:</p>
+            <img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" width="64" height="64">
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>3. Test en Div (como en Leaflet)</h2>
+        <div class="icon-test">
+            <div style="width: 32px; height: 32px; border: 1px solid #ccc; padding: 5px;">
+                <img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" 
+                     style="width: 32px; height: 32px; display: block;">
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>4. Información de la Imagen</h2>
+        <div id="image-info">
+            <p>URL: <code>https://cdn.sassoapps.com/iconos_snien/planta_generacion.png</code></p>
+            <p id="dimensions">Dimensiones: Cargando...</p>
+            <p id="file-type">Tipo: Cargando...</p>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>5. Verificaciones</h2>
+        <ul id="checks">
+            <li>Verificando URL...</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Verificar dimensiones reales de la imagen
+        const testImg = document.getElementById('test-icon');
+        testImg.addEventListener('load', function() {
+            const dims = document.getElementById('dimensions');
+            dims.innerHTML = `Dimensiones reales: ${this.naturalWidth}x${this.naturalHeight} píxeles`;
+            
+            const fileType = document.getElementById('file-type');
+            fileType.innerHTML = `Tipo: PNG`;
+            
+            // Checks adicionales
+            const checks = document.getElementById('checks');
+            checks.innerHTML = `
+                <li class="success">✓ URL accesible</li>
+                <li class="success">✓ Imagen PNG válida</li>
+                <li class="success">✓ Dimensiones: ${this.naturalWidth}x${this.naturalHeight}px</li>
+                <li class="${this.naturalWidth >= 32 ? 'success' : 'error'}">
+                    ${this.naturalWidth >= 32 ? '✓' : '✗'} 
+                    Tamaño adecuado para marcadores (mínimo 32px)
+                </li>
+            `;
+        });
+        
+        testImg.addEventListener('error', function() {
+            const checks = document.getElementById('checks');
+            checks.innerHTML = `
+                <li class="error">✗ No se pudo cargar la imagen</li>
+                <li class="error">✗ Verifica la URL del CDN</li>
+                <li class="error">✗ Puede haber un problema de CORS</li>
+            `;
+        });
+    </script>
+    
+    <div class="test-container">
+        <h2>📋 Soluciones si el icono no carga:</h2>
+        <ol>
+            <li>Verificar que la URL del CDN es correcta</li>
+            <li>Revisar la consola del navegador para errores CORS</li>
+            <li>Probar con una imagen local temporalmente</li>
+            <li>Verificar que el servidor CDN permite peticiones desde tu dominio</li>
+        </ol>
+    </div>
+    
+    <a href="index.html" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #1f7a62; color: white; text-decoration: none; border-radius: 5px;">
+        ← Volver a la aplicación
+    </a>
+</body>
+</html>

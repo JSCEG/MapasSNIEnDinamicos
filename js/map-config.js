@@ -486,6 +486,8 @@ document.addEventListener('DOMContentLoaded', function () {
     map.fitBounds(mexicoBounds.pad(-0.15));
 
     const markersLayer = L.layerGroup().addTo(map);
+    let markersClusterGroup = null;
+    let electricityPermitsData = []; // Store electricity permits data for search
 
     // Funciones auxiliares
     function togglePreloader(show) {
@@ -673,6 +675,16 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearData() {
         markersLayer.clearLayers();
         clearInsetMarkers();
+        
+        // Clear cluster group if exists
+        if (markersClusterGroup) {
+            map.removeLayer(markersClusterGroup);
+            markersClusterGroup = null;
+        }
+        
+        // Clear electricity permits data
+        electricityPermitsData = [];
+        
         if (lastUpdatedEl) {
             lastUpdatedEl.textContent = '--';
         }
@@ -684,7 +696,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapSelect = document.getElementById('map-select');
     const sheetInfoEl = document.getElementById('sheet-info');
     map.createPane('gerenciasPane');
+    map.getPane('gerenciasPane').style.zIndex = 400; // Set explicit z-index for gerencias
     map.createPane('statesPane');
+    map.getPane('statesPane').style.zIndex = 400; // Same level as gerencias
     const instrumentLayerGroup = L.layerGroup({ pane: 'gerenciasPane' }).addTo(map);
     map.createPane('connectionsPane');
     const connectionsLayerGroup = L.layerGroup({ pane: 'connectionsPane' }).addTo(map);
@@ -697,6 +711,15 @@ document.addEventListener('DOMContentLoaded', function () {
         nodesPane.style.zIndex = 620;
         nodesPane.style.pointerEvents = 'auto';
     }
+    
+    // Create pane for electricity permits markers (above gerencias)
+    map.createPane('electricityMarkersPane');
+    const electricityMarkersPane = map.getPane('electricityMarkersPane');
+    if (electricityMarkersPane) {
+        electricityMarkersPane.style.zIndex = 650; // Increased to be well above everything
+        electricityMarkersPane.style.pointerEvents = 'auto';
+    }
+    
     const connectionsPane = map.getPane('connectionsPane');
     if (connectionsPane) {
         connectionsPane.style.zIndex = 610;
@@ -868,8 +891,15 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         'ELECTRICIDAD': [
             {
-                name: 'En construcción',
-                underConstruction: true
+                name: 'Permisos de Generación de Electricidad',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'regions',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTuFBY3k10223uLmvRWSycRyAea6NjtKVLTHuTnpFMQZgWyxoCqwbXNNjTSY9nTleUoxKDtuuP_bbtn/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTuFBY3k10223uLmvRWSycRyAea6NjtKVLTHuTnpFMQZgWyxoCqwbXNNjTSY9nTleUoxKDtuuP_bbtn/pub?gid=0&single=true&output=csv',
+                useClusters: true,
+                enableSearch: true,
+                descriptionTitle: 'Permisos de Generación de Electricidad',
+                description: 'Mapa de permisos de generación de electricidad en México. Los marcadores están agrupados para facilitar la visualización. Haga clic en un grupo para ampliar o en un marcador individual para ver los detalles del permiso.'
             }
         ],
         'GAS NATURAL': [
@@ -2028,6 +2058,96 @@ document.addEventListener('DOMContentLoaded', function () {
         // }
     }
 
+    function drawElectricityPermits(rows) {
+        // Clear existing markers
+        markersLayer.clearLayers();
+        if (markersClusterGroup) {
+            map.removeLayer(markersClusterGroup);
+            markersClusterGroup = null;
+        }
+        
+        // Store data for search
+        electricityPermitsData = rows;
+        
+        // Create cluster group
+        markersClusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                let c = ' marker-cluster-';
+                if (count < 10) {
+                    c += 'small';
+                } else if (count < 100) {
+                    c += 'medium';
+                } else {
+                    c += 'large';
+                }
+                return new L.DivIcon({ 
+                    html: '<div><span>' + count + '</span></div>', 
+                    className: 'marker-cluster' + c, 
+                    iconSize: new L.Point(40, 40) 
+                });
+            }
+        });
+        
+        rows.forEach(function (row) {
+            const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
+            const lngRaw = row.lng || row.Lng || row.lon || row.Lon || row.longitude || row.Longitud || '';
+            const lat = parseFloat(latRaw.toString().replace(',', '.'));
+            const lng = parseFloat(lngRaw.toString().replace(',', '.'));
+            
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return;
+            }
+
+            // Create popup content
+            const popup = [
+                '<div style="font-family: \'Montserrat\', sans-serif; max-width: 300px;">',
+                '<div style="margin-bottom: 8px;"><strong style="font-size: 14px; color: #601623;">' + (row.NumeroPermiso || 'N/A') + '</strong></div>',
+                '<div><strong>Razón Social:</strong> ' + (row.RazonSocial || 'N/A') + '</div>',
+                '<div><strong>Estado:</strong> ' + (row.EfId || 'N/A') + '</div>',
+                '<div><strong>Municipio:</strong> ' + (row.MpoId || 'N/A') + '</div>',
+                '<div><strong>Estatus:</strong> ' + (row.Estatus || 'N/A') + '</div>',
+                '<div><strong>Tipo de Permiso:</strong> ' + (row.TipoPermiso || 'N/A') + '</div>',
+                '<div><strong>Capacidad (MW):</strong> ' + (row.CapacidadAutorizadaMW || 'N/A') + '</div>',
+                '<div><strong>Tecnología:</strong> ' + (row.Tecnología || 'N/A') + '</div>',
+                '<div><strong>Fuente de Energía:</strong> ' + (row.FuenteEnergía || 'N/A') + '</div>',
+                '<div><strong>Fecha de Otorgamiento:</strong> ' + (row.FechaOtorgamiento || 'N/A') + '</div>',
+                '</div>'
+            ].join('');
+
+            // Create marker with DivIcon containing image
+            const plantIcon = L.divIcon({
+                className: 'electricity-marker-icon',
+                html: '<img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" style="width: 32px; height: 32px;">',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+            
+            const marker = L.marker([lat, lng], {
+                icon: plantIcon,
+                zIndexOffset: 1000 // Force markers to be on top
+            });
+            
+            marker.bindPopup(popup);
+            marker.permitData = row; // Store permit data for search
+            markersClusterGroup.addLayer(marker);
+        });
+        
+        // Add cluster to map
+        map.addLayer(markersClusterGroup);
+        
+        // Move cluster layer to correct pane after adding
+        if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
+            const markerPane = map.getPane('markerPane');
+            markerPane.style.zIndex = 650;
+        }
+    }
+
     async function loadAndRender(options) {
         const silent = options && options.silent;
         const sourceUrl = (currentSheetUrl || '').trim();
@@ -2048,7 +2168,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (expectedUrl === (currentSheetUrl || '').trim()) {
                 const selectedInstrument = instrumentSelect.value;
                 const mapConfig = selectedInstrument && mapConfigurations[selectedInstrument] ? mapConfigurations[selectedInstrument].find(m => m.name === currentMapTitle) : null;
-                drawRows(parsed.data, mapConfig);
+                
+                // Use cluster function for electricity permits
+                if (mapConfig && mapConfig.useClusters) {
+                    drawElectricityPermits(parsed.data);
+                } else {
+                    drawRows(parsed.data, mapConfig);
+                }
+                
                 updateTimestamp();
             }
         } catch (error) {
@@ -2639,6 +2766,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateSheetInfo(null, SELECT_MAP_MESSAGE);
                 currentMapTitle = DEFAULT_MAP_TITLE;
                 updateMapTitleDisplay(DEFAULT_MAP_TITLE);
+                
+                // Hide search field
+                const searchGroup = document.getElementById('search-group');
+                if (searchGroup) {
+                    searchGroup.style.display = 'none';
+                }
+                
                 if (mapDescriptionEl) {
                     mapDescriptionEl.innerHTML = '';
                     mapDescriptionEl.style.display = 'none';
@@ -2734,6 +2868,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
 
+                    // Show/hide search field based on map config
+                    const searchGroup = document.getElementById('search-group');
+                    if (searchGroup) {
+                        searchGroup.style.display = mapConfig.enableSearch ? 'flex' : 'none';
+                    }
+
                     if (mapConfig.name === 'Municipios con localidades sin electrificar') {
                         updateSheetInfo(mapConfig); // Update sheet info for this map
                         loadElectrificationMap(mapConfig);
@@ -2817,6 +2957,43 @@ document.addEventListener('DOMContentLoaded', function () {
             if (mapDescriptionEl) {
                 mapDescriptionEl.innerHTML = '';
                 mapDescriptionEl.style.display = 'none';
+            }
+        });
+    }
+
+    // Search functionality for electricity permits
+    const permitSearchInput = document.getElementById('permit-search');
+    if (permitSearchInput) {
+        permitSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toUpperCase();
+            
+            if (!searchTerm || !markersClusterGroup) {
+                return;
+            }
+            
+            // Search through the cluster group
+            let found = false;
+            markersClusterGroup.eachLayer(function(layer) {
+                if (layer.permitData && layer.permitData.NumeroPermiso) {
+                    const permitNumber = layer.permitData.NumeroPermiso.toUpperCase();
+                    if (permitNumber.includes(searchTerm)) {
+                        // Found the permit, zoom to it and open popup
+                        const latLng = layer.getLatLng();
+                        map.setView(latLng, 12);
+                        
+                        // Wait for cluster to spiderfy
+                        setTimeout(function() {
+                            layer.openPopup();
+                        }, 300);
+                        
+                        found = true;
+                        return false; // Break the loop
+                    }
+                }
+            });
+            
+            if (!found && searchTerm.length > 3) {
+                console.log('No se encontró el permiso:', searchTerm);
             }
         });
     }
