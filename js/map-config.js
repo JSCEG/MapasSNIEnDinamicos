@@ -488,6 +488,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const markersLayer = L.layerGroup().addTo(map);
     let markersClusterGroup = null;
     let electricityPermitsData = []; // Store electricity permits data for search
+    let currentFilter = null; // Store current filter {type: 'gcr'|'tech', value: 'name'}
+    let gcrGeometries = null; // Store GCR geometries from GeoJSON
+    let electricityStats = {
+        byState: {}, // By EfId (Estado/Entidad Federativa)
+        byGCR: {}, // By GCR geometry (calculated with Turf.js)
+        byTech: {},
+        matrix: {}, // GCR x Technology matrix
+        totals: {
+            capacity: 0,
+            generation: 0,
+            count: 0
+        }
+    };
 
     // Funciones auxiliares
     function togglePreloader(show) {
@@ -684,6 +697,14 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Clear electricity permits data
         electricityPermitsData = [];
+        currentFilter = null;
+        // Don't clear gcrGeometries - we can reuse it
+        
+        // Hide filters panel
+        const filtersPanel = document.getElementById('electricity-filters-panel');
+        if (filtersPanel) {
+            filtersPanel.style.display = 'none';
+        }
         
         if (lastUpdatedEl) {
             lastUpdatedEl.textContent = '--';
@@ -2058,40 +2079,428 @@ document.addEventListener('DOMContentLoaded', function () {
         // }
     }
 
-    function drawElectricityPermits(rows) {
-        // Clear existing markers
-        markersLayer.clearLayers();
-        if (markersClusterGroup) {
-            map.removeLayer(markersClusterGroup);
-            markersClusterGroup = null;
+    // Electricity filters and statistics functions
+    
+    // Function to assign permits to GCRs using Turf.js spatial analysis
+    function assignPermitsToGCR(data, gcrGeoJSON) {
+        const assignments = {};
+        
+        if (!gcrGeoJSON || !gcrGeoJSON.features) {
+            console.warn('GCR GeoJSON not loaded');
+            return assignments;
         }
         
-        // Store data for search
-        electricityPermitsData = rows;
-        
-        // Create cluster group
-        markersClusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
-            iconCreateFunction: function(cluster) {
-                const count = cluster.getChildCount();
-                let c = ' marker-cluster-';
-                if (count < 10) {
-                    c += 'small';
-                } else if (count < 100) {
-                    c += 'medium';
-                } else {
-                    c += 'large';
+        data.forEach(row => {
+            const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
+            const lngRaw = row.lng || row.Lng || row.lon || row.Lon || row.longitude || row.Longitud || '';
+            const lat = parseFloat(latRaw.toString().replace(',', '.'));
+            const lng = parseFloat(lngRaw.toString().replace(',', '.'));
+            
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return;
+            }
+            
+            // Create point using Turf
+            const point = turf.point([lng, lat]);
+            
+            // Check which GCR polygon contains this point
+            for (const feature of gcrGeoJSON.features) {
+                const gcrName = feature.properties.name;
+                
+                try {
+                    if (turf.booleanPointInPolygon(point, feature)) {
+                        if (!assignments[gcrName]) {
+                            assignments[gcrName] = [];
+                        }
+                        assignments[gcrName].push(row);
+                        break; // Stop after finding the first match
+                    }
+                } catch (e) {
+                    console.warn('Error checking point in polygon:', e);
                 }
-                return new L.DivIcon({ 
-                    html: '<div><span>' + count + '</span></div>', 
-                    className: 'marker-cluster' + c, 
-                    iconSize: new L.Point(40, 40) 
-                });
             }
         });
+        
+        return assignments;
+    }
+    
+    function calculateElectricityStats(data) {
+        const stats = {
+            byState: {}, // By Estado (EfId)
+            byGCR: {}, // By GCR (spatial)
+            byTech: {},
+            matrix: {}, // GCR x Technology
+            totals: {
+                capacity: 0,
+                generation: 0,
+                count: 0
+            }
+        };
+        
+        // Calculate by State and Technology
+        data.forEach(row => {
+            const capacity = parseFloat(row.CapacidadAutorizadaMW) || 0;
+            const generation = parseFloat(row.Generación_estimada_anual) || 0;
+            const state = (row.EfId || 'Sin Estado').trim();
+            const tech = (row.Tecnología || 'Sin Tecnología').trim();
+            
+            // Totals
+            stats.totals.capacity += capacity;
+            stats.totals.generation += generation;
+            stats.totals.count++;
+            
+            // By State (EfId)
+            if (!stats.byState[state]) {
+                stats.byState[state] = { capacity: 0, generation: 0, count: 0 };
+            }
+            stats.byState[state].capacity += capacity;
+            stats.byState[state].generation += generation;
+            stats.byState[state].count++;
+            
+            // By Technology
+            if (!stats.byTech[tech]) {
+                stats.byTech[tech] = { capacity: 0, generation: 0, count: 0 };
+            }
+            stats.byTech[tech].capacity += capacity;
+            stats.byTech[tech].generation += generation;
+            stats.byTech[tech].count++;
+        });
+        
+        // Calculate by GCR using spatial analysis with Turf.js
+        if (gcrGeometries) {
+            const gcrAssignments = assignPermitsToGCR(data, gcrGeometries);
+            
+            Object.keys(gcrAssignments).forEach(gcrName => {
+                const permits = gcrAssignments[gcrName];
+                stats.byGCR[gcrName] = {
+                    capacity: 0,
+                    generation: 0,
+                    count: permits.length,
+                    technologies: {}
+                };
+                
+                permits.forEach(row => {
+                    const capacity = parseFloat(row.CapacidadAutorizadaMW) || 0;
+                    const generation = parseFloat(row.Generación_estimada_anual) || 0;
+                    const tech = (row.Tecnología || 'Sin Tecnología').trim();
+                    
+                    stats.byGCR[gcrName].capacity += capacity;
+                    stats.byGCR[gcrName].generation += generation;
+                    
+                    // Track by technology within this GCR
+                    if (!stats.byGCR[gcrName].technologies[tech]) {
+                        stats.byGCR[gcrName].technologies[tech] = {
+                            capacity: 0,
+                            generation: 0,
+                            count: 0
+                        };
+                    }
+                    stats.byGCR[gcrName].technologies[tech].capacity += capacity;
+                    stats.byGCR[gcrName].technologies[tech].generation += generation;
+                    stats.byGCR[gcrName].technologies[tech].count++;
+                });
+            });
+            
+            // Create matrix (for easy access)
+            stats.matrix = stats.byGCR;
+        }
+        
+        return stats;
+    }
+    
+    function updateElectricityTotals(stats) {
+        const capacityEl = document.getElementById('total-capacity');
+        const generationEl = document.getElementById('total-generation');
+        const permitsEl = document.getElementById('total-permits');
+        
+        if (capacityEl) {
+            capacityEl.textContent = stats.totals.capacity.toLocaleString('es-MX', { maximumFractionDigits: 2 }) + ' MW';
+        }
+        if (generationEl) {
+            generationEl.textContent = stats.totals.generation.toLocaleString('es-MX', { maximumFractionDigits: 2 }) + ' GWh';
+        }
+        if (permitsEl) {
+            permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
+        }
+    }
+    
+    function createFilterCards(stats, type) {
+        let container, data;
+        
+        if (type === 'state') {
+            container = document.getElementById('state-cards');
+            data = stats.byState;
+        } else if (type === 'gcr') {
+            container = document.getElementById('gcr-cards');
+            data = stats.byGCR;
+        } else {
+            container = document.getElementById('tech-cards');
+            data = stats.byTech;
+        }
+        
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const sortedKeys = Object.keys(data).sort((a, b) => data[b].capacity - data[a].capacity);
+        
+        sortedKeys.forEach(key => {
+            const item = data[key];
+            const card = document.createElement('div');
+            card.className = 'filter-card';
+            card.dataset.filterType = type;
+            card.dataset.filterValue = key;
+            
+            card.innerHTML = `
+                <div class="filter-card-header">
+                    <div class="filter-card-title">${key}</div>
+                    <div class="filter-card-count">${item.count}</div>
+                </div>
+                <div class="filter-card-stats">
+                    <div class="filter-stat">
+                        <span class="filter-stat-label">⚡ Capacidad:</span>
+                        <span class="filter-stat-value">${item.capacity.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MW</span>
+                    </div>
+                    <div class="filter-stat">
+                        <span class="filter-stat-label">🔋 Generación:</span>
+                        <span class="filter-stat-value">${item.generation.toLocaleString('es-MX', { maximumFractionDigits: 2 })} GWh</span>
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', function() {
+                filterElectricityPermits(type, key);
+                
+                // Update active state
+                container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+            });
+            
+            container.appendChild(card);
+        });
+    }
+    
+    function createMatrixView(stats) {
+        const container = document.getElementById('matrix-view');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (!stats.byGCR || Object.keys(stats.byGCR).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: var(--color-muted); padding: 40px;">No hay datos de GCR disponibles. Asegúrate de que el GeoJSON esté cargado.</p>';
+            return;
+        }
+        
+        // Sort GCRs by capacity
+        const sortedGCRs = Object.keys(stats.byGCR).sort((a, b) => 
+            stats.byGCR[b].capacity - stats.byGCR[a].capacity
+        );
+        
+        sortedGCRs.forEach(gcrName => {
+            const gcr = stats.byGCR[gcrName];
+            
+            const section = document.createElement('div');
+            section.className = 'matrix-gcr-section';
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'matrix-gcr-header';
+            header.innerHTML = `
+                <div class="matrix-gcr-title">${gcrName}</div>
+                <div class="matrix-gcr-totals">
+                    <div class="matrix-total-item">
+                        <span class="matrix-total-label">Permisos</span>
+                        <span class="matrix-total-value">${gcr.count}</span>
+                    </div>
+                    <div class="matrix-total-item">
+                        <span class="matrix-total-label">Capacidad</span>
+                        <span class="matrix-total-value">${gcr.capacity.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MW</span>
+                    </div>
+                    <div class="matrix-total-item">
+                        <span class="matrix-total-label">Generación</span>
+                        <span class="matrix-total-value">${gcr.generation.toLocaleString('es-MX', { maximumFractionDigits: 2 })} GWh</span>
+                    </div>
+                </div>
+            `;
+            
+            // Click on header to filter by this GCR
+            header.addEventListener('click', function() {
+                filterElectricityPermitsByGCRGeometry(gcrName);
+            });
+            
+            section.appendChild(header);
+            
+            // Technology grid
+            if (gcr.technologies && Object.keys(gcr.technologies).length > 0) {
+                const techGrid = document.createElement('div');
+                techGrid.className = 'matrix-tech-grid';
+                
+                // Sort technologies by capacity
+                const sortedTechs = Object.keys(gcr.technologies).sort((a, b) => 
+                    gcr.technologies[b].capacity - gcr.technologies[a].capacity
+                );
+                
+                sortedTechs.forEach(techName => {
+                    const tech = gcr.technologies[techName];
+                    
+                    const techCard = document.createElement('div');
+                    techCard.className = 'matrix-tech-card';
+                    techCard.innerHTML = `
+                        <div class="matrix-tech-name">${techName}</div>
+                        <div class="matrix-tech-stats">
+                            <div class="matrix-tech-stat">
+                                <span class="matrix-tech-stat-label">Permisos:</span>
+                                <span class="matrix-tech-stat-value">${tech.count}</span>
+                            </div>
+                            <div class="matrix-tech-stat">
+                                <span class="matrix-tech-stat-label">Capacidad:</span>
+                                <span class="matrix-tech-stat-value">${tech.capacity.toLocaleString('es-MX', { maximumFractionDigits: 2 })} MW</span>
+                            </div>
+                            <div class="matrix-tech-stat">
+                                <span class="matrix-tech-stat-label">Generación:</span>
+                                <span class="matrix-tech-stat-value">${tech.generation.toLocaleString('es-MX', { maximumFractionDigits: 2 })} GWh</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Click on tech card to filter by GCR + Tech
+                    techCard.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Don't trigger GCR header click
+                        filterElectricityPermitsByGCRAndTech(gcrName, techName);
+                    });
+                    
+                    techGrid.appendChild(techCard);
+                });
+                
+                section.appendChild(techGrid);
+            }
+            
+            container.appendChild(section);
+        });
+    }
+    
+    function filterElectricityPermits(type, value) {
+        if (!markersClusterGroup || !electricityPermitsData.length) return;
+        
+        currentFilter = { type, value };
+        
+        // Clear existing cluster
+        map.removeLayer(markersClusterGroup);
+        markersClusterGroup.clearLayers();
+        
+        // Filter data
+        let filteredData;
+        if (type === 'state') {
+            filteredData = electricityPermitsData.filter(row => 
+                (row.EfId || 'Sin Estado').trim() === value
+            );
+        } else if (type === 'tech') {
+            filteredData = electricityPermitsData.filter(row => 
+                (row.Tecnología || 'Sin Tecnología').trim() === value
+            );
+        } else if (type === 'gcr') {
+            // Filter using spatial analysis
+            if (gcrGeometries) {
+                const gcrAssignments = assignPermitsToGCR(electricityPermitsData, gcrGeometries);
+                filteredData = gcrAssignments[value] || [];
+            } else {
+                filteredData = [];
+            }
+        }
+        
+        // Recalculate stats for filtered data
+        const filteredStats = calculateElectricityStats(filteredData);
+        updateElectricityTotals(filteredStats);
+        
+        // Redraw markers with filtered data
+        drawElectricityMarkersOnly(filteredData);
+    }
+    
+    function filterElectricityPermitsByGCRGeometry(gcrName) {
+        filterElectricityPermits('gcr', gcrName);
+        
+        // Update active state in matrix view
+        document.querySelectorAll('.matrix-gcr-section').forEach(section => {
+            if (section.querySelector('.matrix-gcr-title').textContent === gcrName) {
+                section.style.borderColor = 'var(--color-verde-profundo)';
+                section.style.background = 'rgba(31, 122, 98, 0.03)';
+            } else {
+                section.style.borderColor = '#eef3f6';
+                section.style.background = 'white';
+            }
+        });
+    }
+    
+    function filterElectricityPermitsByGCRAndTech(gcrName, techName) {
+        if (!gcrGeometries || !electricityPermitsData.length) return;
+        
+        // Get permits in this GCR
+        const gcrAssignments = assignPermitsToGCR(electricityPermitsData, gcrGeometries);
+        const gcrPermits = gcrAssignments[gcrName] || [];
+        
+        // Filter by technology
+        const filteredData = gcrPermits.filter(row => 
+            (row.Tecnología || 'Sin Tecnología').trim() === techName
+        );
+        
+        currentFilter = { type: 'gcr-tech', gcr: gcrName, tech: techName };
+        
+        // Clear existing cluster
+        if (markersClusterGroup) {
+            map.removeLayer(markersClusterGroup);
+            markersClusterGroup.clearLayers();
+        }
+        
+        // Recalculate stats
+        const filteredStats = calculateElectricityStats(filteredData);
+        updateElectricityTotals(filteredStats);
+        
+        // Redraw markers
+        drawElectricityMarkersOnly(filteredData);
+    }
+    
+    function resetElectricityFilters() {
+        currentFilter = null;
+        
+        // Remove active class from all cards
+        document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+        
+        // Recalculate stats for all data
+        updateElectricityTotals(electricityStats);
+        
+        // Redraw all markers
+        if (electricityPermitsData.length) {
+            drawElectricityPermitsWithStats(electricityPermitsData);
+        }
+    }
+    
+    function drawElectricityMarkersOnly(rows) {
+        if (!markersClusterGroup) {
+            markersClusterGroup = L.markerClusterGroup({
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                iconCreateFunction: function(cluster) {
+                    const count = cluster.getChildCount();
+                    let c = ' marker-cluster-';
+                    if (count < 10) {
+                        c += 'small';
+                    } else if (count < 100) {
+                        c += 'medium';
+                    } else {
+                        c += 'large';
+                    }
+                    return new L.DivIcon({ 
+                        html: '<div><span>' + count + '</span></div>', 
+                        className: 'marker-cluster' + c, 
+                        iconSize: new L.Point(40, 40) 
+                    });
+                }
+            });
+        } else {
+            markersClusterGroup.clearLayers();
+        }
         
         rows.forEach(function (row) {
             const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
@@ -2103,7 +2512,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Create popup content
             const popup = [
                 '<div style="font-family: \'Montserrat\', sans-serif; max-width: 300px;">',
                 '<div style="margin-bottom: 8px;"><strong style="font-size: 14px; color: #601623;">' + (row.NumeroPermiso || 'N/A') + '</strong></div>',
@@ -2119,7 +2527,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 '</div>'
             ].join('');
 
-            // Create marker with DivIcon containing image
             const plantIcon = L.divIcon({
                 className: 'electricity-marker-icon',
                 html: '<img src="https://cdn.sassoapps.com/iconos_snien/planta_generacion.png" style="width: 32px; height: 32px;">',
@@ -2130,22 +2537,79 @@ document.addEventListener('DOMContentLoaded', function () {
             
             const marker = L.marker([lat, lng], {
                 icon: plantIcon,
-                zIndexOffset: 1000 // Force markers to be on top
+                zIndexOffset: 1000
             });
             
             marker.bindPopup(popup);
-            marker.permitData = row; // Store permit data for search
+            marker.permitData = row;
             markersClusterGroup.addLayer(marker);
         });
         
-        // Add cluster to map
         map.addLayer(markersClusterGroup);
         
-        // Move cluster layer to correct pane after adding
         if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
             const markerPane = map.getPane('markerPane');
             markerPane.style.zIndex = 650;
         }
+    }
+
+    function drawElectricityPermits(rows) {
+        drawElectricityPermitsWithStats(rows);
+    }
+    
+    function drawElectricityPermitsWithStats(rows) {
+        // Clear existing markers
+        markersLayer.clearLayers();
+        if (markersClusterGroup) {
+            map.removeLayer(markersClusterGroup);
+            markersClusterGroup = null;
+        }
+        
+        // Store data for search
+        electricityPermitsData = rows;
+        
+        // Load GCR geometries if not loaded
+        if (!gcrGeometries) {
+            fetch('https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    gcrGeometries = data;
+                    console.log('GCR geometries loaded:', gcrGeometries.features.map(f => f.properties.name));
+                    
+                    // Now calculate stats with GCR data
+                    electricityStats = calculateElectricityStats(rows);
+                    updateElectricityTotals(electricityStats);
+                    createFilterCards(electricityStats, 'state');
+                    createFilterCards(electricityStats, 'gcr');
+                    createFilterCards(electricityStats, 'tech');
+                    createMatrixView(electricityStats);
+                })
+                .catch(error => {
+                    console.error('Error loading GCR geometries:', error);
+                    // Calculate without GCR data
+                    electricityStats = calculateElectricityStats(rows);
+                    updateElectricityTotals(electricityStats);
+                    createFilterCards(electricityStats, 'state');
+                    createFilterCards(electricityStats, 'tech');
+                });
+        } else {
+            // Calculate statistics
+            electricityStats = calculateElectricityStats(rows);
+            updateElectricityTotals(electricityStats);
+            createFilterCards(electricityStats, 'state');
+            createFilterCards(electricityStats, 'gcr');
+            createFilterCards(electricityStats, 'tech');
+            createMatrixView(electricityStats);
+        }
+        
+        // Show filters panel
+        const filtersPanel = document.getElementById('electricity-filters-panel');
+        if (filtersPanel) {
+            filtersPanel.style.display = 'block';
+        }
+        
+        // Draw markers
+        drawElectricityMarkersOnly(rows);
     }
 
     async function loadAndRender(options) {
@@ -2976,7 +3440,9 @@ document.addEventListener('DOMContentLoaded', function () {
             markersClusterGroup.eachLayer(function(layer) {
                 if (layer.permitData && layer.permitData.NumeroPermiso) {
                     const permitNumber = layer.permitData.NumeroPermiso.toUpperCase();
-                    if (permitNumber.includes(searchTerm)) {
+                    const razonSocial = (layer.permitData.RazonSocial || '').toUpperCase();
+                    
+                    if (permitNumber.includes(searchTerm) || razonSocial.includes(searchTerm)) {
                         // Found the permit, zoom to it and open popup
                         const latLng = layer.getLatLng();
                         map.setView(latLng, 12);
@@ -2995,6 +3461,31 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!found && searchTerm.length > 3) {
                 console.log('No se encontró el permiso:', searchTerm);
             }
+        });
+    }
+
+    // Event listeners for electricity filters
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
+            // Update tabs
+            filterTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.filter-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(targetTab + '-filters').classList.add('active');
+        });
+    });
+    
+    const resetFiltersBtn = document.getElementById('reset-filters-btn');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            resetElectricityFilters();
         });
     }
 

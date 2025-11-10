@@ -169,6 +169,73 @@
                             <span id="selected-region-text"></span>
                         </div>
                     </div>
+                    
+                    <!-- Panel de Filtros y Estadísticas (solo para electricidad) -->
+                    <div id="electricity-filters-panel" class="filters-panel" style="display: none;">
+                        <div class="filters-header">
+                            <h3>📊 Estadísticas y Filtros</h3>
+                            <button id="reset-filters-btn" class="btn-secondary btn-small">
+                                <i class="bi bi-arrow-counterclockwise"></i> Ver Todos
+                            </button>
+                        </div>
+                        
+                        <!-- Totales Generales -->
+                        <div class="totals-section">
+                            <div class="total-card total-general">
+                                <div class="total-icon">⚡</div>
+                                <div class="total-content">
+                                    <div class="total-label">Capacidad Total</div>
+                                    <div class="total-value" id="total-capacity">0 MW</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">🔋</div>
+                                <div class="total-content">
+                                    <div class="total-label">Generación Anual</div>
+                                    <div class="total-value" id="total-generation">0 GWh</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">📍</div>
+                                <div class="total-content">
+                                    <div class="total-label">Permisos</div>
+                                    <div class="total-value" id="total-permits">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs para GCR y Tecnología -->
+                        <div class="filters-tabs">
+                            <button class="filter-tab active" data-tab="state">Por Estado</button>
+                            <button class="filter-tab" data-tab="gcr">Por Gerencia</button>
+                            <button class="filter-tab" data-tab="tech">Por Tecnología</button>
+                            <button class="filter-tab" data-tab="matrix">Vista Detallada</button>
+                        </div>
+                        
+                        <!-- Contenido de Tabs -->
+                        <div class="filters-content">
+                            <!-- Filtros por Estado (Entidad Federativa) -->
+                            <div id="state-filters" class="filter-tab-content active">
+                                <div id="state-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por GCR (Gerencia de Control Regional) -->
+                            <div id="gcr-filters" class="filter-tab-content">
+                                <div id="gcr-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por Tecnología -->
+                            <div id="tech-filters" class="filter-tab-content">
+                                <div id="tech-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Vista Detallada GCR x Tecnología -->
+                            <div id="matrix-filters" class="filter-tab-content">
+                                <div id="matrix-view" class="matrix-view"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="map-description" class="map-description">
                         <h4 id="map-description-title"></h4>
                         <p id="map-description-content"></p>
@@ -359,6 +426,7 @@
     <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.umd.min.js"></script>
     <script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <!-- Export dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
