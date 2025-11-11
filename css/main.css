@@ -2253,6 +2253,30 @@ Notification system */
     border-bottom-color: var(--color-verde-profundo);
 }
 
+/* Petroliferos Tabs */
+.filter-tab-petroliferos {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.filter-tab-petroliferos:hover {
+    color: var(--color-verde-profundo);
+}
+
+.filter-tab-petroliferos.active {
+    color: var(--color-verde-profundo);
+    border-bottom-color: var(--color-verde-profundo);
+}
+
 /* Filter Tab Content */
 .filter-tab-content {
     display: none;

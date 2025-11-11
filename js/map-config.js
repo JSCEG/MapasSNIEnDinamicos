@@ -494,6 +494,48 @@ document.addEventListener('DOMContentLoaded', function () {
     let statesGeometries = null; // Store States geometries from GeoJSON
     let gcrLayerGroup = null; // Layer for GCR highlighting
     let statesLayerGroup = null; // Layer for States highlighting
+    
+    // State ID to Name mapping
+    const stateIdToName = {
+        '01': 'Aguascalientes',
+        '02': 'Baja California',
+        '03': 'Baja California Sur',
+        '04': 'Campeche',
+        '05': 'Coahuila',
+        '06': 'Colima',
+        '07': 'Chiapas',
+        '08': 'Chihuahua',
+        '09': 'Ciudad de México',
+        '10': 'Durango',
+        '11': 'Guanajuato',
+        '12': 'Guerrero',
+        '13': 'Hidalgo',
+        '14': 'Jalisco',
+        '15': 'México',
+        '16': 'Michoacán',
+        '17': 'Morelos',
+        '18': 'Nayarit',
+        '19': 'Nuevo León',
+        '20': 'Oaxaca',
+        '21': 'Puebla',
+        '22': 'Querétaro',
+        '23': 'Quintana Roo',
+        '24': 'San Luis Potosí',
+        '25': 'Sinaloa',
+        '26': 'Sonora',
+        '27': 'Tabasco',
+        '28': 'Tamaulipas',
+        '29': 'Tlaxcala',
+        '30': 'Veracruz',
+        '31': 'Yucatán',
+        '32': 'Zacatecas'
+    };
+    
+    // Petrolíferos data
+    let petroliferosPermitsData = []; // Store petroliferos permits data
+    let petroliferosStats = {}; // Store petroliferos statistics
+    let currentPetroliferosFilter = null; // Current filter for petroliferos
+    let currentPetroliferosFilteredData = []; // Filtered data for petroliferos
     let electricityStats = {
         byState: {}, // By EfId (Estado/Entidad Federativa)
         byGCR: {}, // By GCR geometry (calculated with Turf.js)
@@ -703,6 +745,12 @@ document.addEventListener('DOMContentLoaded', function () {
         electricityPermitsData = [];
         currentFilteredData = [];
         currentFilter = null;
+        
+        // Clear petroliferos permits data
+        petroliferosPermitsData = [];
+        currentPetroliferosFilteredData = [];
+        currentPetroliferosFilter = null;
+        
         // Don't clear gcrGeometries and statesGeometries - we can reuse them
         
         // Clear search box
@@ -711,10 +759,15 @@ document.addEventListener('DOMContentLoaded', function () {
         // Hide geometry layers
         hideGeometryLayers();
         
-        // Hide filters panel
-        const filtersPanel = document.getElementById('electricity-filters-panel');
-        if (filtersPanel) {
-            filtersPanel.style.display = 'none';
+        // Hide filters panels
+        const electricityFiltersPanel = document.getElementById('electricity-filters-panel');
+        if (electricityFiltersPanel) {
+            electricityFiltersPanel.style.display = 'none';
+        }
+        
+        const petroliferosFiltersPanel = document.getElementById('petroliferos-filters-panel');
+        if (petroliferosFiltersPanel) {
+            petroliferosFiltersPanel.style.display = 'none';
         }
         
         if (lastUpdatedEl) {
@@ -927,7 +980,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'regions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTuFBY3k10223uLmvRWSycRyAea6NjtKVLTHuTnpFMQZgWyxoCqwbXNNjTSY9nTleUoxKDtuuP_bbtn/pub?gid=0&single=true&output=csv',
-                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTuFBY3k10223uLmvRWSycRyAea6NjtKVLTHuTnpFMQZgWyxoCqwbXNNjTSY9nTleUoxKDtuuP_bbtn/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/17k0jfGdINb-i6IPREu6wxkOdWdTQPAXqOaSm3MN5KmE/edit?usp=sharing',
                 useClusters: true,
                 enableSearch: true,
                 descriptionTitle: 'Permisos de Generación de Electricidad',
@@ -948,8 +1001,16 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         'PETROLIFEROS': [
             {
-                name: 'En construcción',
-                underConstruction: true
+                name: 'Permisos de Petrolíferos',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson',
+                geojsonUrlType: 'states',
+                googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAPC9kG5ZmMtP3Zsn6RZani7ABURGlHQOEnuZ8u8S8XeFYJrYaSqHbO66yavlc5J4WrQ0iw23Qgv-q/pub?gid=0&single=true&output=csv',
+                googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1J_W50xbDv2ceiQlsPvYg7ViK0XomzgnpTN3eZ5RColA/edit?usp=sharing',
+                useClusters: true,
+                enableSearch: true,
+                mapType: 'petroliferos',
+                descriptionTitle: 'Permisos de Petrolíferos',
+                description: 'Mapa de permisos de expendios y estaciones de servicio de petrolíferos en México. Los marcadores están agrupados para facilitar la visualización. Haga clic en un grupo para ampliar o en un marcador individual para ver los detalles del permiso.'
             }
         ]
         // ... other instruments will be added here
@@ -3030,6 +3091,351 @@ document.addEventListener('DOMContentLoaded', function () {
         drawElectricityMarkersOnly(rows);
     }
 
+    // ==========================================
+    // PETROLIFEROS FUNCTIONS
+    // ==========================================
+    
+    // Helper function to get state name from ID
+    function getStateName(stateId) {
+        if (!stateId) return 'Sin Estado';
+        const id = stateId.toString().trim();
+        return stateIdToName[id] || stateId;
+    }
+    
+    function calculatePetroliferosStats(data) {
+        const stats = {
+            byState: {}, // By Estado (EfId)
+            byType: {}, // By TipoPermiso
+            byBrand: {}, // By Marca
+            totals: {
+                capacity: 0,
+                investment: 0,
+                count: 0
+            }
+        };
+        
+        data.forEach(row => {
+            const stateId = (row.EfId || 'Sin Estado').trim();
+            const stateName = getStateName(stateId);
+            const type = (row.TipoPermiso || 'Sin Tipo').trim();
+            const brand = (row.Marca || 'Sin Marca').trim();
+            const capacity = parseFloat(row.CapacidadAutorizadaBarriles) || 0;
+            const investment = parseFloat(row.InversionEstimada) || 0;
+            
+            // By State (using state name instead of ID)
+            if (!stats.byState[stateName]) {
+                stats.byState[stateName] = { capacity: 0, investment: 0, count: 0, stateId: stateId };
+            }
+            stats.byState[stateName].capacity += capacity;
+            stats.byState[stateName].investment += investment;
+            stats.byState[stateName].count++;
+            
+            // By Type
+            if (!stats.byType[type]) {
+                stats.byType[type] = { capacity: 0, investment: 0, count: 0 };
+            }
+            stats.byType[type].capacity += capacity;
+            stats.byType[type].investment += investment;
+            stats.byType[type].count++;
+            
+            // By Brand
+            if (!stats.byBrand[brand]) {
+                stats.byBrand[brand] = { capacity: 0, investment: 0, count: 0 };
+            }
+            stats.byBrand[brand].capacity += capacity;
+            stats.byBrand[brand].investment += investment;
+            stats.byBrand[brand].count++;
+            
+            // Totals
+            stats.totals.capacity += capacity;
+            stats.totals.investment += investment;
+            stats.totals.count++;
+        });
+        
+        return stats;
+    }
+    
+    function drawPetroliferosPermits(rows) {
+        // Clear existing markers
+        markersLayer.clearLayers();
+        if (markersClusterGroup) {
+            map.removeLayer(markersClusterGroup);
+            markersClusterGroup = null;
+        }
+        
+        // Store data
+        petroliferosPermitsData = rows;
+        
+        // Calculate statistics
+        petroliferosStats = calculatePetroliferosStats(rows);
+        updatePetroliferosTotals(petroliferosStats);
+        createPetroliferosFilterCards(petroliferosStats, 'state');
+        createPetroliferosFilterCards(petroliferosStats, 'type');
+        createPetroliferosFilterCards(petroliferosStats, 'brand');
+        
+        // Show States layer by default
+        showStatesLayer(null);
+        
+        // Show filters panel
+        const filtersPanel = document.getElementById('petroliferos-filters-panel');
+        if (filtersPanel) {
+            filtersPanel.style.display = 'block';
+        }
+        
+        // Draw markers
+        drawPetroliferosMarkersOnly(rows);
+    }
+    
+    function drawPetroliferosMarkersOnly(rows) {
+        if (!markersClusterGroup) {
+            markersClusterGroup = L.markerClusterGroup({
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                iconCreateFunction: function(cluster) {
+                    const count = cluster.getChildCount();
+                    let className = 'marker-cluster-small';
+                    if (count >= 100) {
+                        className = 'marker-cluster-large';
+                    } else if (count >= 10) {
+                        className = 'marker-cluster-medium';
+                    }
+                    return L.divIcon({
+                        html: '<div><span>' + count + '</span></div>',
+                        className: 'marker-cluster ' + className,
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            });
+        } else {
+            markersClusterGroup.clearLayers();
+        }
+        
+        rows.forEach(row => {
+            const latRaw = row.lat || '';
+            const lngRaw = row.lon || '';
+            const lat = parseFloat(latRaw.toString().replace(',', '.'));
+            const lng = parseFloat(lngRaw.toString().replace(',', '.'));
+            
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return;
+            }
+            
+            const popup = [
+                '<div class="permit-popup">',
+                '<div class="permit-header">',
+                '<strong>' + (row.NumeroPermiso || 'S/N') + '</strong>',
+                '</div>',
+                '<div class="permit-details">',
+                '<div><strong>Razón Social:</strong> ' + (row.RazonSocial || 'N/A') + '</div>',
+                '<div><strong>Estado:</strong> ' + getStateName(row.EfId) + '</div>',
+                '<div><strong>Municipio:</strong> ' + (row.MpoId || 'N/A') + '</div>',
+                '<div><strong>Estatus:</strong> ' + (row.Estatus || 'N/A') + '</div>',
+                '<div><strong>Tipo:</strong> ' + (row.TipoPermiso || 'N/A') + '</div>',
+                '<div><strong>Marca:</strong> ' + (row.Marca || 'N/A') + '</div>',
+                '<div><strong>Capacidad:</strong> ' + (row.CapacidadAutorizadaBarriles || '0') + ' Barriles</div>',
+                '<div><strong>Inversión:</strong> $' + (parseFloat(row.InversionEstimada) || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 }) + '</div>',
+                row.FechaOtorgamiento ? '<div><strong>Fecha:</strong> ' + row.FechaOtorgamiento + '</div>' : '',
+                '</div>',
+                '</div>'
+            ].join('');
+
+            const gasIcon = L.divIcon({
+                className: 'electricity-marker-icon',
+                html: '<img src="https://cdn.sassoapps.com/iconos_snien/gasolinera.png" style="width: 32px; height: 32px;">',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+            
+            const marker = L.marker([lat, lng], {
+                icon: gasIcon,
+                zIndexOffset: 1000
+            });
+            
+            marker.bindPopup(popup);
+            marker.permitData = row;
+            markersClusterGroup.addLayer(marker);
+        });
+        
+        map.addLayer(markersClusterGroup);
+        
+        if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
+            const markerPane = map.getPane('markerPane');
+            markerPane.style.zIndex = 650;
+        }
+    }
+    
+    function updatePetroliferosTotals(stats) {
+        const capacityEl = document.getElementById('total-petroliferos-capacity');
+        const investmentEl = document.getElementById('total-petroliferos-investment');
+        const permitsEl = document.getElementById('total-petroliferos-permits');
+        
+        if (capacityEl) {
+            capacityEl.textContent = stats.totals.capacity.toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' Barriles';
+        }
+        if (investmentEl) {
+            investmentEl.textContent = '$' + stats.totals.investment.toLocaleString('es-MX', { maximumFractionDigits: 2 });
+        }
+        if (permitsEl) {
+            permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
+        }
+    }
+    
+    function createPetroliferosFilterCards(stats, type) {
+        let container, data;
+        
+        if (type === 'state') {
+            container = document.getElementById('petroliferos-state-cards');
+            data = stats.byState;
+        } else if (type === 'type') {
+            container = document.getElementById('petroliferos-type-cards');
+            data = stats.byType;
+        } else {
+            container = document.getElementById('petroliferos-brand-cards');
+            data = stats.byBrand;
+        }
+        
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const sortedKeys = Object.keys(data).sort((a, b) => data[b].capacity - data[a].capacity);
+        
+        sortedKeys.forEach(key => {
+            const item = data[key];
+            const card = document.createElement('div');
+            card.className = 'filter-card';
+            card.dataset.filterType = type;
+            card.dataset.filterValue = key;
+            
+            card.innerHTML = `
+                <div class="filter-card-header">
+                    <div class="filter-card-title">${key}</div>
+                    <div class="filter-card-count">${item.count}</div>
+                </div>
+                <div class="filter-card-stats">
+                    <div class="filter-stat">
+                        <span class="filter-stat-label">⛽ Capacidad:</span>
+                        <span class="filter-stat-value">${item.capacity.toLocaleString('es-MX', { maximumFractionDigits: 0 })} Barriles</span>
+                    </div>
+                    <div class="filter-stat">
+                        <span class="filter-stat-label">💰 Inversión:</span>
+                        <span class="filter-stat-value">$${item.investment.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</span>
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', function() {
+                filterPetroliferosPermits(type, key);
+                
+                // Update active state
+                container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+            });
+            
+            container.appendChild(card);
+        });
+    }
+    
+    function filterPetroliferosPermits(type, value) {
+        if (!markersClusterGroup || !petroliferosPermitsData.length) return;
+        
+        currentPetroliferosFilter = { type, value };
+        
+        // Clear search box
+        clearSearchBox();
+        
+        // Clear existing cluster
+        map.removeLayer(markersClusterGroup);
+        markersClusterGroup.clearLayers();
+        
+        // Show/hide geometry layers based on filter type
+        if (type === 'state') {
+            showStatesLayer(value);
+        } else {
+            // For other filters, show states without highlighting
+            showStatesLayer(null);
+        }
+        
+        // Filter data
+        let filteredData;
+        if (type === 'state') {
+            // When filtering by state name, we need to match by state ID
+            // Find the state ID for this state name from the stats
+            const stateId = petroliferosStats.byState[value] ? petroliferosStats.byState[value].stateId : null;
+            
+            console.log('Filtering by state:', value, 'State ID:', stateId);
+            
+            if (stateId) {
+                filteredData = petroliferosPermitsData.filter(row => 
+                    (row.EfId || '').trim() === stateId
+                );
+            } else {
+                // Fallback: try to match by name
+                filteredData = petroliferosPermitsData.filter(row => {
+                    const rowStateName = getStateName(row.EfId);
+                    return rowStateName === value;
+                });
+            }
+        } else if (type === 'type') {
+            filteredData = petroliferosPermitsData.filter(row => 
+                (row.TipoPermiso || 'Sin Tipo').trim() === value
+            );
+        } else if (type === 'brand') {
+            filteredData = petroliferosPermitsData.filter(row => 
+                (row.Marca || 'Sin Marca').trim() === value
+            );
+        }
+        
+        // Store filtered data for search
+        currentPetroliferosFilteredData = filteredData;
+        console.log('Petroliferos filter applied:', type, value, '- Showing', filteredData.length, 'permits');
+        
+        // Recalculate stats for filtered data
+        const filteredStats = calculatePetroliferosStats(filteredData);
+        updatePetroliferosTotals(filteredStats);
+        
+        // Redraw markers with filtered data
+        drawPetroliferosMarkersOnly(filteredData);
+    }
+    
+    function resetPetroliferosFilters() {
+        currentPetroliferosFilter = null;
+        currentPetroliferosFilteredData = [];
+        
+        console.log('Petroliferos filters reset - searching in all', petroliferosPermitsData.length, 'permits');
+        
+        // Clear search box
+        clearSearchBox();
+        
+        // Remove active class from all cards
+        document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+        
+        // Show layer based on active tab
+        const activeTab = document.querySelector('.filter-tab-petroliferos.active');
+        if (activeTab) {
+            const tabType = activeTab.dataset.tab;
+            
+            if (tabType === 'state') {
+                showStatesLayer(null);
+            } else {
+                showStatesLayer(null);
+            }
+        } else {
+            showStatesLayer(null);
+        }
+        
+        // Recalculate stats for all data
+        updatePetroliferosTotals(petroliferosStats);
+        
+        // Redraw all markers
+        if (petroliferosPermitsData.length) {
+            drawPetroliferosMarkersOnly(petroliferosPermitsData);
+        }
+    }
+
     async function loadAndRender(options) {
         const silent = options && options.silent;
         const sourceUrl = (currentSheetUrl || '').trim();
@@ -3051,9 +3457,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 const selectedInstrument = instrumentSelect.value;
                 const mapConfig = selectedInstrument && mapConfigurations[selectedInstrument] ? mapConfigurations[selectedInstrument].find(m => m.name === currentMapTitle) : null;
                 
-                // Use cluster function for electricity permits
+                // Use cluster function for electricity and petroliferos permits
                 if (mapConfig && mapConfig.useClusters) {
-                    drawElectricityPermits(parsed.data);
+                    if (mapConfig.mapType === 'petroliferos') {
+                        drawPetroliferosPermits(parsed.data);
+                    } else {
+                        drawElectricityPermits(parsed.data);
+                    }
                 } else {
                     drawRows(parsed.data, mapConfig);
                 }
@@ -3976,12 +4386,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function showSearchSuggestions(searchTerm) {
         const upperSearch = searchTerm.toUpperCase();
         
-        // Determine which dataset to search
-        // If there's an active filter, search only in filtered data
-        // Otherwise, search in all data
-        const dataToSearch = currentFilteredData.length > 0 ? currentFilteredData : electricityPermitsData;
+        // Determine which dataset to search based on active map
+        let dataToSearch;
+        let isPetroliferos = petroliferosPermitsData.length > 0 && document.getElementById('petroliferos-filters-panel').style.display === 'block';
         
-        console.log('Searching in:', currentFilteredData.length > 0 ? 'filtered data (' + currentFilteredData.length + ' permits)' : 'all data (' + electricityPermitsData.length + ' permits)');
+        if (isPetroliferos) {
+            dataToSearch = currentPetroliferosFilteredData.length > 0 ? currentPetroliferosFilteredData : petroliferosPermitsData;
+            console.log('Searching in petroliferos:', currentPetroliferosFilteredData.length > 0 ? 'filtered data (' + currentPetroliferosFilteredData.length + ' permits)' : 'all data (' + petroliferosPermitsData.length + ' permits)');
+        } else {
+            dataToSearch = currentFilteredData.length > 0 ? currentFilteredData : electricityPermitsData;
+            console.log('Searching in electricity:', currentFilteredData.length > 0 ? 'filtered data (' + currentFilteredData.length + ' permits)' : 'all data (' + electricityPermitsData.length + ' permits)');
+        }
         
         // Find matches
         const matches = dataToSearch.filter(row => {
@@ -3993,7 +4408,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!searchSuggestionsEl) return;
         
         if (matches.length === 0) {
-            const noResultsMsg = currentFilteredData.length > 0 
+            const noResultsMsg = (isPetroliferos ? currentPetroliferosFilteredData.length : currentFilteredData.length) > 0 
                 ? 'No se encontraron resultados en el filtro actual' 
                 : 'No se encontraron resultados';
             searchSuggestionsEl.innerHTML = '<div class="search-no-results">' + noResultsMsg + '</div>';
@@ -4009,11 +4424,20 @@ document.addEventListener('DOMContentLoaded', function () {
             item.className = 'search-suggestion-item';
             item.dataset.index = index;
             
-            item.innerHTML = `
-                <div class="suggestion-permit">${row.NumeroPermiso || 'S/N'}</div>
-                <div class="suggestion-company">${row.RazonSocial || 'Sin razón social'}</div>
-                <div class="suggestion-details">${row.EfId || ''} • ${row.CapacidadAutorizadaMW || '0'} MW • ${row.Tecnología || ''}</div>
-            `;
+            // Different format for petroliferos vs electricity
+            if (isPetroliferos) {
+                item.innerHTML = `
+                    <div class="suggestion-permit">${row.NumeroPermiso || 'S/N'}</div>
+                    <div class="suggestion-company">${row.RazonSocial || 'Sin razón social'}</div>
+                    <div class="suggestion-details">${getStateName(row.EfId)} • ${row.TipoPermiso || ''} • ${row.Marca || ''}</div>
+                `;
+            } else {
+                item.innerHTML = `
+                    <div class="suggestion-permit">${row.NumeroPermiso || 'S/N'}</div>
+                    <div class="suggestion-company">${row.RazonSocial || 'Sin razón social'}</div>
+                    <div class="suggestion-details">${row.EfId || ''} • ${row.CapacidadAutorizadaMW || '0'} MW • ${row.Tecnología || ''}</div>
+                `;
+            }
             
             item.addEventListener('click', function() {
                 selectPermit(row);
@@ -4086,6 +4510,32 @@ document.addEventListener('DOMContentLoaded', function () {
             
             console.log('Tab clicked:', targetTab);
             
+            // Reset filters when changing tabs
+            if (currentFilter) {
+                console.log('Resetting filters on tab change');
+                currentFilter = null;
+                currentFilteredData = [];
+                
+                // Restore all markers
+                if (electricityPermitsData.length) {
+                    drawElectricityMarkersOnly(electricityPermitsData);
+                }
+                
+                // Update totals to show all data
+                updateElectricityTotals(electricityStats);
+            }
+            
+            // Remove active class from all filter cards
+            document.querySelectorAll('.filter-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Reset matrix view highlighting
+            document.querySelectorAll('.matrix-gcr-section').forEach(section => {
+                section.style.borderColor = '#eef3f6';
+                section.style.background = 'white';
+            });
+            
             // Update tabs
             filterTabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
@@ -4147,6 +4597,68 @@ document.addEventListener('DOMContentLoaded', function () {
         // Hide welcome screen when start button is clicked
         welcomeStartBtn.addEventListener('click', function() {
             welcomeScreen.style.display = 'none';
+        });
+    }
+    
+    // ==========================================
+    // PETROLIFEROS EVENT LISTENERS
+    // ==========================================
+    
+    // Event listeners for petroliferos filters tabs
+    const petroliferosTabs = document.querySelectorAll('.filter-tab-petroliferos');
+    petroliferosTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
+            console.log('Petroliferos tab clicked:', targetTab);
+            
+            // Reset filters when changing tabs
+            if (currentPetroliferosFilter) {
+                console.log('Resetting petroliferos filters on tab change');
+                currentPetroliferosFilter = null;
+                currentPetroliferosFilteredData = [];
+                
+                // Restore all markers
+                if (petroliferosPermitsData.length) {
+                    drawPetroliferosMarkersOnly(petroliferosPermitsData);
+                }
+                
+                // Update totals to show all data
+                updatePetroliferosTotals(petroliferosStats);
+            }
+            
+            // Remove active class from all filter cards
+            document.querySelectorAll('.filter-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Update tabs
+            petroliferosTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.filter-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById('petroliferos-' + targetTab + '-filters').classList.add('active');
+            
+            // Show/hide layers based on tab
+            if (targetTab === 'state') {
+                console.log('Showing States layer');
+                showStatesLayer(null);
+            } else {
+                // For type and brand, show states without highlighting
+                console.log('Showing States layer without highlighting');
+                showStatesLayer(null);
+            }
+        });
+    });
+    
+    // Reset button for petroliferos
+    const resetPetroliferosBtn = document.getElementById('reset-petroliferos-filters-btn');
+    if (resetPetroliferosBtn) {
+        resetPetroliferosBtn.addEventListener('click', function() {
+            resetPetroliferosFilters();
         });
     }
 });

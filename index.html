@@ -242,6 +242,66 @@
                         </div>
                     </div>
                     
+                    <!-- Panel de Filtros para Petrolíferos -->
+                    <div id="petroliferos-filters-panel" class="filters-panel" style="display: none;">
+                        <div class="filters-header">
+                            <h3><i class="bi bi-fuel-pump"></i> Filtros de Permisos de Petrolíferos</h3>
+                            <button type="button" id="reset-petroliferos-filters-btn" class="btn-secondary btn-small">
+                                <i class="bi bi-arrow-counterclockwise"></i> Resetear Filtros
+                            </button>
+                        </div>
+                        
+                        <!-- Totales Generales -->
+                        <div class="totals-section">
+                            <div class="total-card total-general">
+                                <div class="total-icon">⛽</div>
+                                <div class="total-content">
+                                    <div class="total-label">Capacidad Total</div>
+                                    <div class="total-value" id="total-petroliferos-capacity">0 Barriles</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">💰</div>
+                                <div class="total-content">
+                                    <div class="total-label">Inversión Total</div>
+                                    <div class="total-value" id="total-petroliferos-investment">$0</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">📍</div>
+                                <div class="total-content">
+                                    <div class="total-label">Permisos</div>
+                                    <div class="total-value" id="total-petroliferos-permits">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs para Estado, Tipo de Permiso y Marca -->
+                        <div class="filters-tabs">
+                            <button class="filter-tab-petroliferos active" data-tab="state">Por Estado</button>
+                            <button class="filter-tab-petroliferos" data-tab="type">Por Tipo de Permiso</button>
+                            <button class="filter-tab-petroliferos" data-tab="brand">Por Marca</button>
+                        </div>
+                        
+                        <!-- Contenido de Tabs -->
+                        <div class="filters-content">
+                            <!-- Filtros por Estado (Entidad Federativa) -->
+                            <div id="petroliferos-state-filters" class="filter-tab-content active">
+                                <div id="petroliferos-state-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por Tipo de Permiso -->
+                            <div id="petroliferos-type-filters" class="filter-tab-content">
+                                <div id="petroliferos-type-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por Marca -->
+                            <div id="petroliferos-brand-filters" class="filter-tab-content">
+                                <div id="petroliferos-brand-cards" class="filter-cards"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="map-description" class="map-description">
                         <h4 id="map-description-title"></h4>
                         <p id="map-description-content"></p>
