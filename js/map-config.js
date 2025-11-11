@@ -823,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const instrumentSelect = document.getElementById('instrument-select');
     const mapSelect = document.getElementById('map-select');
     const sheetInfoEl = document.getElementById('sheet-info');
+    
     map.createPane('gerenciasPane');
     map.getPane('gerenciasPane').style.zIndex = 400; // Set explicit z-index for gerencias
     map.createPane('statesPane');
@@ -6534,6 +6535,56 @@ document.addEventListener('DOMContentLoaded', function () {
     if (resetGasNaturalBtn) {
         resetGasNaturalBtn.addEventListener('click', function() {
             resetGasNaturalFilters();
+        });
+    }
+    
+    // ==========================================
+    // INSTRUMENT SELECT AUTO-LOAD (at the end to ensure all functions are defined)
+    // ==========================================
+    
+    if (instrumentSelect) {
+        instrumentSelect.addEventListener('change', async function() {
+            const selectedInstrument = this.value;
+            console.log('Instrument changed to:', selectedInstrument);
+            
+            if (!selectedInstrument || !mapConfigurations[selectedInstrument]) {
+                // Clear map select if no instrument selected
+                if (mapSelect) {
+                    mapSelect.innerHTML = '<option value="">Seleccione un mapa</option>';
+                    mapSelect.disabled = true;
+                }
+                return;
+            }
+            
+            const maps = mapConfigurations[selectedInstrument];
+            console.log('Maps available:', maps.length, maps.map(m => m.name));
+            
+            // Populate mapSelect
+            if (mapSelect) {
+                mapSelect.innerHTML = '<option value="">Seleccione un mapa</option>';
+                maps.forEach(mapConfig => {
+                    const option = document.createElement('option');
+                    option.value = mapConfig.name;
+                    option.textContent = mapConfig.name;
+                    mapSelect.appendChild(option);
+                });
+                mapSelect.disabled = false;
+                console.log('Map select populated with', maps.length, 'options');
+                
+                // Auto-load if only one map available
+                if (maps.length === 1) {
+                    console.log('Auto-loading single map for instrument:', selectedInstrument, maps[0].name);
+                    mapSelect.value = maps[0].name;
+                    console.log('Map select value set to:', mapSelect.value);
+                    
+                    // Trigger the change event on mapSelect instead of duplicating logic
+                    setTimeout(() => {
+                        console.log('Triggering map select change event');
+                        const event = new Event('change', { bubbles: true });
+                        mapSelect.dispatchEvent(event);
+                    }, 100);
+                }
+            }
         });
     }
 });
