@@ -488,8 +488,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const markersLayer = L.layerGroup().addTo(map);
     let markersClusterGroup = null;
     let electricityPermitsData = []; // Store electricity permits data for search
+    let currentFilteredData = []; // Store currently filtered/visible permits
     let currentFilter = null; // Store current filter {type: 'gcr'|'tech', value: 'name'}
     let gcrGeometries = null; // Store GCR geometries from GeoJSON
+    let statesGeometries = null; // Store States geometries from GeoJSON
+    let gcrLayerGroup = null; // Layer for GCR highlighting
+    let statesLayerGroup = null; // Layer for States highlighting
     let electricityStats = {
         byState: {}, // By EfId (Estado/Entidad Federativa)
         byGCR: {}, // By GCR geometry (calculated with Turf.js)
@@ -697,8 +701,15 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Clear electricity permits data
         electricityPermitsData = [];
+        currentFilteredData = [];
         currentFilter = null;
-        // Don't clear gcrGeometries - we can reuse it
+        // Don't clear gcrGeometries and statesGeometries - we can reuse them
+        
+        // Clear search box
+        clearSearchBox();
+        
+        // Hide geometry layers
+        hideGeometryLayers();
         
         // Hide filters panel
         const filtersPanel = document.getElementById('electricity-filters-panel');
@@ -2081,6 +2092,336 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Electricity filters and statistics functions
     
+    // Function to load and display GCR layer with highlighting
+    function showGCRLayer(highlightGCR = null) {
+        console.log('showGCRLayer called with:', highlightGCR);
+        
+        // FORCE remove States layer completely
+        if (statesLayerGroup) {
+            console.log('FORCE Removing States layer');
+            try {
+                map.removeLayer(statesLayerGroup);
+            } catch(e) {
+                console.warn('Error removing states layer:', e);
+            }
+            statesLayerGroup = null;
+        }
+        
+        // FORCE remove existing GCR layer completely
+        if (gcrLayerGroup) {
+            console.log('FORCE Removing existing GCR layer');
+            try {
+                map.removeLayer(gcrLayerGroup);
+            } catch(e) {
+                console.warn('Error removing GCR layer:', e);
+            }
+            gcrLayerGroup = null;
+        }
+        
+        // Double check - remove all layers from gerenciasPane
+        map.eachLayer(function(layer) {
+            if (layer.options && layer.options.pane === 'gerenciasPane') {
+                console.log('Found stray layer in gerenciasPane, removing');
+                map.removeLayer(layer);
+            }
+        });
+        
+        if (!gcrGeometries) {
+            console.warn('GCR geometries not loaded');
+            return;
+        }
+        
+        console.log('Creating NEW GCR layer with highlighting:', highlightGCR);
+        
+        gcrLayerGroup = L.geoJSON(gcrGeometries, {
+            style: function(feature) {
+                const isHighlighted = highlightGCR && feature.properties.name === highlightGCR;
+                
+                return {
+                    fillColor: isHighlighted ? '#1f7a62' : '#ffffff',
+                    fillOpacity: isHighlighted ? 0.4 : 0.2,
+                    color: isHighlighted ? '#1f7a62' : '#5e6b7e',
+                    weight: isHighlighted ? 3 : 2,
+                    opacity: isHighlighted ? 1 : 0.7
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const gcrName = feature.properties.name;
+                
+                // Tooltip
+                layer.bindTooltip(gcrName, {
+                    permanent: false,
+                    direction: 'center',
+                    className: 'gcr-tooltip'
+                });
+                
+                // Click to filter
+                layer.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    filterElectricityPermits('gcr', gcrName);
+                    
+                    document.querySelectorAll('#gcr-cards .filter-card').forEach(card => {
+                        if (card.dataset.filterValue === gcrName) {
+                            card.classList.add('active');
+                            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        } else {
+                            card.classList.remove('active');
+                        }
+                    });
+                });
+            },
+            pane: 'gerenciasPane'
+        }).addTo(map);
+        
+        console.log('GCR layer added to map - bringing to back');
+        
+        if (gcrLayerGroup) {
+            gcrLayerGroup.bringToBack();
+        }
+    }
+    
+    // Function to load and display States layer with highlighting
+    function showStatesLayer(highlightState = null) {
+        console.log('showStatesLayer called with:', highlightState);
+        
+        // FORCE remove GCR layer completely
+        if (gcrLayerGroup) {
+            console.log('FORCE Removing GCR layer');
+            try {
+                map.removeLayer(gcrLayerGroup);
+            } catch(e) {
+                console.warn('Error removing GCR layer:', e);
+            }
+            gcrLayerGroup = null;
+        }
+        
+        // FORCE remove existing States layer completely
+        if (statesLayerGroup) {
+            console.log('FORCE Removing existing States layer');
+            try {
+                map.removeLayer(statesLayerGroup);
+            } catch(e) {
+                console.warn('Error removing states layer:', e);
+            }
+            statesLayerGroup = null;
+        }
+        
+        // Double check - remove all layers from gerenciasPane
+        map.eachLayer(function(layer) {
+            if (layer.options && layer.options.pane === 'gerenciasPane') {
+                console.log('Found stray layer in gerenciasPane, removing');
+                map.removeLayer(layer);
+            }
+        });
+        
+        // Load states GeoJSON if not loaded
+        if (!statesGeometries) {
+            console.log('Loading states GeoJSON...');
+            fetch('https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson')
+                .then(response => {
+                    console.log('States GeoJSON response:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('States geometries loaded:', data.features.length, 'states');
+                    statesGeometries = data;
+                    displayStatesLayer(highlightState);
+                })
+                .catch(error => {
+                    console.error('Error loading States geometries:', error);
+                });
+        } else {
+            console.log('States geometries already loaded, displaying...');
+            displayStatesLayer(highlightState);
+        }
+    }
+    
+    function displayStatesLayer(highlightState) {
+        console.log('displayStatesLayer called with:', highlightState);
+        
+        if (!statesGeometries) {
+            console.error('States geometries not loaded!');
+            return;
+        }
+        
+        console.log('Creating NEW states layer with', statesGeometries.features?.length, 'features');
+        
+        // Helper function to normalize state names for comparison
+        function normalizeStateName(name) {
+            if (!name) return '';
+            // Remove leading numbers and spaces (e.g., "09 CDMX" -> "CDMX")
+            return name.replace(/^\d+\s*/, '').trim().toUpperCase();
+        }
+        
+        // Helper function to get the main state name (without "de Zaragoza", etc.)
+        function getMainStateName(name) {
+            const normalized = normalizeStateName(name);
+            // Remove common suffixes
+            return normalized
+                .replace(/\s+DE\s+ZARAGOZA$/i, '')
+                .replace(/\s+DE\s+JUAREZ$/i, '')
+                .replace(/\s+DE\s+IGNACIO\s+DE\s+LA\s+LLAVE$/i, '')
+                .trim();
+        }
+        
+        const normalizedHighlight = normalizeStateName(highlightState);
+        const mainHighlight = getMainStateName(highlightState);
+        
+        statesLayerGroup = L.geoJSON(statesGeometries, {
+            style: function(feature) {
+                const stateName = feature.properties.name || feature.properties.NOMGEO || feature.properties.NOM_ENT || feature.properties.estado;
+                const normalizedStateName = normalizeStateName(stateName);
+                const mainStateName = getMainStateName(stateName);
+                
+                // Check if highlighted using flexible matching
+                let isHighlighted = false;
+                if (highlightState) {
+                    // Try exact match first
+                    if (normalizedStateName === normalizedHighlight) {
+                        isHighlighted = true;
+                    }
+                    // Try main name match (Coahuila matches Coahuila de Zaragoza)
+                    else if (mainStateName === mainHighlight) {
+                        isHighlighted = true;
+                    }
+                    // Try partial match in both directions
+                    else if (normalizedStateName.includes(mainHighlight) || 
+                             mainHighlight.includes(normalizedStateName)) {
+                        isHighlighted = true;
+                    }
+                }
+                
+                console.log('State:', stateName, '| Normalized:', normalizedStateName, '| Main:', mainStateName, '| Highlight?', isHighlighted);
+                
+                return {
+                    fillColor: isHighlighted ? '#601623' : '#ffffff',
+                    fillOpacity: isHighlighted ? 0.4 : 0.25,
+                    color: isHighlighted ? '#601623' : '#5e6b7e',
+                    weight: isHighlighted ? 3 : 2,
+                    opacity: isHighlighted ? 1 : 0.8
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const stateName = feature.properties.name || feature.properties.NOMGEO || feature.properties.NOM_ENT || feature.properties.estado;
+                
+                if (stateName) {
+                    layer.bindTooltip(stateName, {
+                        permanent: false,
+                        direction: 'center',
+                        className: 'state-tooltip'
+                    });
+                    
+                    layer.on('click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        
+                        console.log('State clicked:', stateName);
+                        
+                        // Helper function to normalize state names
+                        function normalizeStateName(name) {
+                            if (!name) return '';
+                            return name.replace(/^\d+\s*/, '').trim().toUpperCase();
+                        }
+                        
+                        // Helper function to get the main state name (without "de Zaragoza", etc.)
+                        function getMainStateName(name) {
+                            const normalized = normalizeStateName(name);
+                            // Remove common suffixes
+                            return normalized
+                                .replace(/\s+DE\s+ZARAGOZA$/i, '')
+                                .replace(/\s+DE\s+JUAREZ$/i, '')
+                                .replace(/\s+DE\s+IGNACIO\s+DE\s+LA\s+LLAVE$/i, '')
+                                .trim();
+                        }
+                        
+                        const normalizedClickedState = normalizeStateName(stateName);
+                        const mainClickedState = getMainStateName(stateName);
+                        
+                        console.log('Normalized:', normalizedClickedState, '| Main:', mainClickedState);
+                        
+                        // Find matching state in data
+                        const matchingState = Object.keys(electricityStats.byState).find(state => {
+                            const normalizedDataState = normalizeStateName(state);
+                            const mainDataState = getMainStateName(state);
+                            
+                            // Try exact match first
+                            if (normalizedDataState === normalizedClickedState) return true;
+                            
+                            // Try main name match (Coahuila matches Coahuila de Zaragoza)
+                            if (mainDataState === mainClickedState) return true;
+                            
+                            // Try partial match in both directions
+                            if (normalizedDataState.includes(mainClickedState) || 
+                                mainClickedState.includes(normalizedDataState)) return true;
+                            
+                            return false;
+                        });
+                        
+                        console.log('Matching state in data:', matchingState);
+                        
+                        if (matchingState) {
+                            filterElectricityPermits('state', matchingState);
+                            
+                            document.querySelectorAll('#state-cards .filter-card').forEach(card => {
+                                if (card.dataset.filterValue === matchingState) {
+                                    card.classList.add('active');
+                                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                } else {
+                                    card.classList.remove('active');
+                                }
+                            });
+                        }
+                    });
+                }
+            },
+            pane: 'gerenciasPane'
+        }).addTo(map);
+        
+        console.log('States layer added to map - bringing to back');
+        
+        if (statesLayerGroup) {
+            statesLayerGroup.bringToBack();
+        }
+    }
+    
+    // Function to hide both layers
+    function hideGeometryLayers() {
+        console.log('hideGeometryLayers called - FORCE removing all');
+        
+        // FORCE remove GCR
+        if (gcrLayerGroup) {
+            console.log('FORCE Removing GCR layer');
+            try {
+                map.removeLayer(gcrLayerGroup);
+            } catch(e) {
+                console.warn('Error removing GCR layer:', e);
+            }
+            gcrLayerGroup = null;
+        }
+        
+        // FORCE remove States
+        if (statesLayerGroup) {
+            console.log('FORCE Removing States layer');
+            try {
+                map.removeLayer(statesLayerGroup);
+            } catch(e) {
+                console.warn('Error removing states layer:', e);
+            }
+            statesLayerGroup = null;
+        }
+        
+        // Clean up any stray layers in gerenciasPane
+        let removed = 0;
+        map.eachLayer(function(layer) {
+            if (layer.options && layer.options.pane === 'gerenciasPane') {
+                console.log('Found stray layer in gerenciasPane, removing');
+                map.removeLayer(layer);
+                removed++;
+            }
+        });
+        
+        console.log('All geometry layers hidden. Removed', removed, 'stray layers');
+    }
+    
     // Function to assign permits to GCRs using Turf.js spatial analysis
     function assignPermitsToGCR(data, gcrGeoJSON) {
         const assignments = {};
@@ -2384,9 +2725,22 @@ document.addEventListener('DOMContentLoaded', function () {
         
         currentFilter = { type, value };
         
+        // Clear search box
+        clearSearchBox();
+        
         // Clear existing cluster
         map.removeLayer(markersClusterGroup);
         markersClusterGroup.clearLayers();
+        
+        // Show/hide geometry layers based on filter type
+        if (type === 'state') {
+            showStatesLayer(value);
+        } else if (type === 'gcr') {
+            showGCRLayer(value);
+        } else {
+            // For technology filter, hide geometry layers
+            hideGeometryLayers();
+        }
         
         // Filter data
         let filteredData;
@@ -2408,6 +2762,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         
+        // Store filtered data for search
+        currentFilteredData = filteredData;
+        console.log('Filter applied:', type, value, '- Showing', filteredData.length, 'permits');
+        
         // Recalculate stats for filtered data
         const filteredStats = calculateElectricityStats(filteredData);
         updateElectricityTotals(filteredStats);
@@ -2417,7 +2775,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function filterElectricityPermitsByGCRGeometry(gcrName) {
+        // Clear search box
+        clearSearchBox();
+        
         filterElectricityPermits('gcr', gcrName);
+        
+        // Show GCR layer with highlight
+        showGCRLayer(gcrName);
         
         // Update active state in matrix view
         document.querySelectorAll('.matrix-gcr-section').forEach(section => {
@@ -2434,6 +2798,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function filterElectricityPermitsByGCRAndTech(gcrName, techName) {
         if (!gcrGeometries || !electricityPermitsData.length) return;
         
+        // Clear search box
+        clearSearchBox();
+        
         // Get permits in this GCR
         const gcrAssignments = assignPermitsToGCR(electricityPermitsData, gcrGeometries);
         const gcrPermits = gcrAssignments[gcrName] || [];
@@ -2444,6 +2811,13 @@ document.addEventListener('DOMContentLoaded', function () {
         );
         
         currentFilter = { type: 'gcr-tech', gcr: gcrName, tech: techName };
+        
+        // Store filtered data for search
+        currentFilteredData = filteredData;
+        console.log('GCR+Tech filter applied:', gcrName, '+', techName, '- Showing', filteredData.length, 'permits');
+        
+        // Show GCR layer with highlight
+        showGCRLayer(gcrName);
         
         // Clear existing cluster
         if (markersClusterGroup) {
@@ -2461,16 +2835,51 @@ document.addEventListener('DOMContentLoaded', function () {
     
     function resetElectricityFilters() {
         currentFilter = null;
+        currentFilteredData = []; // Clear filtered data - search will use all data
+        
+        console.log('Filters reset - searching in all', electricityPermitsData.length, 'permits');
+        
+        // Clear search box
+        clearSearchBox();
         
         // Remove active class from all cards
         document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+        
+        // Reset matrix view highlighting
+        document.querySelectorAll('.matrix-gcr-section').forEach(section => {
+            section.style.borderColor = '#eef3f6';
+            section.style.background = 'white';
+        });
+        
+        // Show layer based on active tab
+        const activeTab = document.querySelector('.filter-tab.active');
+        if (activeTab) {
+            const tabType = activeTab.dataset.tab;
+            
+            if (tabType === 'state') {
+                // Tab "Por Estado" - Mostrar Estados sin highlighting
+                showStatesLayer(null);
+            } else if (tabType === 'gcr') {
+                // Tab "Por Gerencia" - Mostrar GCR sin highlighting
+                showGCRLayer(null);
+            } else if (tabType === 'tech') {
+                // Tab "Por Tecnología" - Ocultar capas
+                hideGeometryLayers();
+            } else if (tabType === 'matrix') {
+                // Tab "Vista Detallada" - Mostrar GCR sin highlighting
+                showGCRLayer(null);
+            }
+        } else {
+            // Default: show states layer
+            showStatesLayer(null);
+        }
         
         // Recalculate stats for all data
         updateElectricityTotals(electricityStats);
         
         // Redraw all markers
         if (electricityPermitsData.length) {
-            drawElectricityPermitsWithStats(electricityPermitsData);
+            drawElectricityMarkersOnly(electricityPermitsData);
         }
     }
     
@@ -2583,6 +2992,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     createFilterCards(electricityStats, 'gcr');
                     createFilterCards(electricityStats, 'tech');
                     createMatrixView(electricityStats);
+                    
+                    // Show States layer by default (since "Por Estado" tab is active)
+                    showStatesLayer(null);
                 })
                 .catch(error => {
                     console.error('Error loading GCR geometries:', error);
@@ -2591,6 +3003,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     updateElectricityTotals(electricityStats);
                     createFilterCards(electricityStats, 'state');
                     createFilterCards(electricityStats, 'tech');
+                    
+                    // Show States layer by default
+                    showStatesLayer(null);
                 });
         } else {
             // Calculate statistics
@@ -2600,6 +3015,9 @@ document.addEventListener('DOMContentLoaded', function () {
             createFilterCards(electricityStats, 'gcr');
             createFilterCards(electricityStats, 'tech');
             createMatrixView(electricityStats);
+            
+            // Show States layer by default (since "Por Estado" tab is active)
+            showStatesLayer(null);
         }
         
         // Show filters panel
@@ -3427,41 +3845,237 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Search functionality for electricity permits
     const permitSearchInput = document.getElementById('permit-search');
+    const searchSuggestionsEl = document.getElementById('search-suggestions');
+    const searchHelpBtn = document.getElementById('search-help-btn');
+    let selectedSuggestionIndex = -1;
+    
+    // Search help button
+    if (searchHelpBtn) {
+        searchHelpBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openSearchHelpModal();
+        });
+    }
+    
+    // Search help modal functions
+    function openSearchHelpModal() {
+        const modal = document.getElementById('search-help-modal');
+        const statusEl = document.getElementById('search-help-status');
+        
+        if (!modal) return;
+        
+        // Update status text dynamically
+        const hasFilter = currentFilteredData.length > 0;
+        if (statusEl) {
+            if (hasFilter) {
+                statusEl.innerHTML = `
+                    <i class="bi bi-funnel" style="margin-right: 6px;"></i>
+                    <strong>Filtro activo:</strong> Buscando solo en ${currentFilteredData.length} permiso(s) filtrado(s).
+                `;
+                statusEl.style.borderLeftColor = 'var(--color-guinda)';
+            } else {
+                statusEl.innerHTML = `
+                    <i class="bi bi-globe" style="margin-right: 6px;"></i>
+                    <strong>Sin filtro:</strong> Buscando en todos los ${electricityPermitsData.length} permisos disponibles.
+                `;
+                statusEl.style.borderLeftColor = 'var(--color-verde-profundo)';
+            }
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeSearchHelpModal() {
+        const modal = document.getElementById('search-help-modal');
+        if (!modal) return;
+        
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+    }
+    
+    // Event listeners for closing the modal
+    const searchHelpModalCloseButtons = document.querySelectorAll('.search-help-modal-close');
+    searchHelpModalCloseButtons.forEach(btn => {
+        btn.addEventListener('click', closeSearchHelpModal);
+    });
+    
+    // Close on overlay click
+    const searchHelpModal = document.getElementById('search-help-modal');
+    if (searchHelpModal) {
+        const overlay = searchHelpModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeSearchHelpModal);
+        }
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && searchHelpModal.style.display === 'flex') {
+                closeSearchHelpModal();
+            }
+        });
+    }
+    
     if (permitSearchInput) {
+        // Input event for live suggestions
         permitSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim().toUpperCase();
+            const searchTerm = this.value.trim();
             
-            if (!searchTerm || !markersClusterGroup) {
+            if (!searchTerm || searchTerm.length < 2) {
+                hideSuggestions();
                 return;
             }
             
-            // Search through the cluster group
-            let found = false;
-            markersClusterGroup.eachLayer(function(layer) {
-                if (layer.permitData && layer.permitData.NumeroPermiso) {
-                    const permitNumber = layer.permitData.NumeroPermiso.toUpperCase();
-                    const razonSocial = (layer.permitData.RazonSocial || '').toUpperCase();
-                    
-                    if (permitNumber.includes(searchTerm) || razonSocial.includes(searchTerm)) {
-                        // Found the permit, zoom to it and open popup
-                        const latLng = layer.getLatLng();
-                        map.setView(latLng, 12);
-                        
-                        // Wait for cluster to spiderfy
-                        setTimeout(function() {
-                            layer.openPopup();
-                        }, 300);
-                        
-                        found = true;
-                        return false; // Break the loop
-                    }
-                }
-            });
+            if (!electricityPermitsData.length) {
+                return;
+            }
             
-            if (!found && searchTerm.length > 3) {
-                console.log('No se encontró el permiso:', searchTerm);
+            // Search and show suggestions
+            showSearchSuggestions(searchTerm);
+        });
+        
+        // Keydown for navigation
+        permitSearchInput.addEventListener('keydown', function(e) {
+            const suggestions = document.querySelectorAll('.search-suggestion-item');
+            
+            if (!suggestions.length) return;
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestions.length - 1);
+                updateSuggestionSelection(suggestions);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                updateSuggestionSelection(suggestions);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
+                    suggestions[selectedSuggestionIndex].click();
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
             }
         });
+        
+        // Click outside to close
+        document.addEventListener('click', function(e) {
+            if (!permitSearchInput.contains(e.target) && !searchSuggestionsEl.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+    }
+    
+    function showSearchSuggestions(searchTerm) {
+        const upperSearch = searchTerm.toUpperCase();
+        
+        // Determine which dataset to search
+        // If there's an active filter, search only in filtered data
+        // Otherwise, search in all data
+        const dataToSearch = currentFilteredData.length > 0 ? currentFilteredData : electricityPermitsData;
+        
+        console.log('Searching in:', currentFilteredData.length > 0 ? 'filtered data (' + currentFilteredData.length + ' permits)' : 'all data (' + electricityPermitsData.length + ' permits)');
+        
+        // Find matches
+        const matches = dataToSearch.filter(row => {
+            const permitNumber = (row.NumeroPermiso || '').toUpperCase();
+            const razonSocial = (row.RazonSocial || '').toUpperCase();
+            return permitNumber.includes(upperSearch) || razonSocial.includes(upperSearch);
+        }).slice(0, 8); // Limit to 8 results
+        
+        if (!searchSuggestionsEl) return;
+        
+        if (matches.length === 0) {
+            const noResultsMsg = currentFilteredData.length > 0 
+                ? 'No se encontraron resultados en el filtro actual' 
+                : 'No se encontraron resultados';
+            searchSuggestionsEl.innerHTML = '<div class="search-no-results">' + noResultsMsg + '</div>';
+            searchSuggestionsEl.style.display = 'block';
+            return;
+        }
+        
+        // Create suggestion items
+        searchSuggestionsEl.innerHTML = '';
+        
+        matches.forEach((row, index) => {
+            const item = document.createElement('div');
+            item.className = 'search-suggestion-item';
+            item.dataset.index = index;
+            
+            item.innerHTML = `
+                <div class="suggestion-permit">${row.NumeroPermiso || 'S/N'}</div>
+                <div class="suggestion-company">${row.RazonSocial || 'Sin razón social'}</div>
+                <div class="suggestion-details">${row.EfId || ''} • ${row.CapacidadAutorizadaMW || '0'} MW • ${row.Tecnología || ''}</div>
+            `;
+            
+            item.addEventListener('click', function() {
+                selectPermit(row);
+            });
+            
+            searchSuggestionsEl.appendChild(item);
+        });
+        
+        searchSuggestionsEl.style.display = 'block';
+        selectedSuggestionIndex = -1;
+    }
+    
+    function updateSuggestionSelection(suggestions) {
+        suggestions.forEach((item, index) => {
+            if (index === selectedSuggestionIndex) {
+                item.classList.add('active');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+    
+    function selectPermit(row) {
+        if (!markersClusterGroup) return;
+        
+        // Find marker with this permit
+        let found = false;
+        markersClusterGroup.eachLayer(function(layer) {
+            if (layer.permitData && layer.permitData.NumeroPermiso === row.NumeroPermiso) {
+                const latLng = layer.getLatLng();
+                map.setView(latLng, 12);
+                
+                setTimeout(function() {
+                    layer.openPopup();
+                }, 300);
+                
+                found = true;
+                return false;
+            }
+        });
+        
+        if (found) {
+            // Update search input
+            permitSearchInput.value = row.NumeroPermiso || '';
+            hideSuggestions();
+        }
+    }
+    
+    function hideSuggestions() {
+        if (searchSuggestionsEl) {
+            searchSuggestionsEl.style.display = 'none';
+            searchSuggestionsEl.innerHTML = '';
+        }
+        selectedSuggestionIndex = -1;
+    }
+    
+    function clearSearchBox() {
+        if (permitSearchInput) {
+            permitSearchInput.value = '';
+        }
+        hideSuggestions();
     }
 
     // Event listeners for electricity filters
@@ -3469,6 +4083,8 @@ document.addEventListener('DOMContentLoaded', function () {
     filterTabs.forEach(tab => {
         tab.addEventListener('click', function() {
             const targetTab = this.dataset.tab;
+            
+            console.log('Tab clicked:', targetTab);
             
             // Update tabs
             filterTabs.forEach(t => t.classList.remove('active'));
@@ -3479,6 +4095,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 content.classList.remove('active');
             });
             document.getElementById(targetTab + '-filters').classList.add('active');
+            
+            // Show/hide layers based on tab
+            if (targetTab === 'state') {
+                // Tab "Por Estado" - Mostrar Estados, ocultar GCR
+                console.log('Showing States layer');
+                showStatesLayer(null);
+            } else if (targetTab === 'gcr') {
+                // Tab "Por Gerencia" - Mostrar GCR, ocultar Estados
+                console.log('Showing GCR layer');
+                showGCRLayer(null);
+            } else if (targetTab === 'tech') {
+                // Tab "Por Tecnología" - Ocultar ambas (nivel nacional)
+                console.log('Hiding all layers');
+                hideGeometryLayers();
+            } else if (targetTab === 'matrix') {
+                // Tab "Vista Detallada" - Mostrar GCR, ocultar Estados
+                console.log('Showing GCR layer for matrix');
+                showGCRLayer(null);
+            }
         });
     });
     
@@ -3488,6 +4123,18 @@ document.addEventListener('DOMContentLoaded', function () {
             resetElectricityFilters();
         });
     }
+    
+    // Click on map (outside polygons) to reset filter
+    map.on('click', function(e) {
+        // Only reset if we're on electricity map and have a filter active
+        if (!electricityPermitsData.length || !currentFilter) {
+            return;
+        }
+        
+        // Check if click was on a polygon (it would have been stopped)
+        // If we get here, it means click was NOT on a polygon
+        resetElectricityFilters();
+    });
 
     // Welcome screen handling
     const welcomeScreen = document.getElementById('welcome-screen');

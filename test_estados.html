@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Estados GeoJSON</title>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        body { margin: 0; padding: 20px; }
+        #status { padding: 10px; margin-bottom: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Test de Capa de Estados</h1>
+    <div id="status">Cargando...</div>
+    <div id="map"></div>
+    
+    <script>
+        const statusEl = document.getElementById('status');
+        
+        // Crear mapa
+        const map = L.map('map').setView([23.6345, -102.5528], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        // Cargar GeoJSON de estados
+        statusEl.textContent = 'Descargando GeoJSON de estados...';
+        
+        fetch('https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson')
+            .then(response => {
+                statusEl.textContent = 'Response status: ' + response.status;
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                statusEl.textContent = 'GeoJSON cargado: ' + data.features.length + ' estados encontrados';
+                console.log('Estados GeoJSON:', data);
+                
+                // Mostrar en mapa
+                L.geoJSON(data, {
+                    style: {
+                        fillColor: '#601623',
+                        fillOpacity: 0.2,
+                        color: '#601623',
+                        weight: 2,
+                        opacity: 1
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const name = feature.properties.name || 
+                                    feature.properties.NOMGEO || 
+                                    feature.properties.NOM_ENT || 
+                                    feature.properties.estado ||
+                                    'Sin nombre';
+                        
+                        layer.bindPopup('Estado: ' + name);
+                        console.log('Estado encontrado:', name, feature.properties);
+                    }
+                }).addTo(map);
+                
+                statusEl.textContent += ' - ¡Capa visible!';
+                statusEl.style.background = '#90EE90';
+            })
+            .catch(error => {
+                statusEl.textContent = 'ERROR: ' + error.message;
+                statusEl.style.background = '#ffcccc';
+                console.error('Error:', error);
+            });
+    </script>
+</body>
+</html>

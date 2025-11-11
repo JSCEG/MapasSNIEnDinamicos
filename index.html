@@ -135,7 +135,13 @@
                         </div>
                         <div class="toolbar-group" id="search-group" style="display: none;">
                             <label for="permit-search">Buscar permiso</label>
-                            <input type="text" id="permit-search" class="control" placeholder="Número de permiso" style="max-width: 200px;">
+                            <div class="search-container">
+                                <input type="text" id="permit-search" class="control" placeholder="Número de permiso o razón social" style="max-width: 250px;" autocomplete="off">
+                                <button type="button" id="search-help-btn" class="search-help-btn" title="Ayuda de búsqueda">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                                <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
+                            </div>
                         </div>
                         <div class="toolbar-group">
                             <button type="button" id="refresh-data" class="btn-secondary btn-icon"
@@ -284,6 +290,70 @@
             <p>Sistema Nacional de Informaci&oacute;n Energ&eacute;tica &middot; Secretar&iacute;a de Energ&iacute;a</p>
         </div>
     </footer>
+
+    <!-- Modal de ayuda de búsqueda -->
+    <div id="search-help-modal" class="modal" role="dialog" aria-labelledby="search-help-modal-title" aria-hidden="true" style="display: none;">
+        <div class="modal-overlay" aria-hidden="true"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="search-help-modal-title" class="modal-title">
+                    <i class="bi bi-search"></i> Ayuda del Buscador de Permisos
+                </h3>
+                <button type="button" class="modal-close search-help-modal-close" aria-label="Cerrar modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div class="search-help-content">
+                    <div class="search-help-section">
+                        <h4><i class="bi bi-info-circle-fill" style="color: var(--color-verde-profundo);"></i> Cómo usar el buscador</h4>
+                        <ul class="search-help-list">
+                            <li><strong>Escribe</strong> el número de permiso o razón social en el campo de búsqueda</li>
+                            <li>La búsqueda es <strong>en tiempo real</strong> (mínimo 2 caracteres)</li>
+                            <li>Usa las <strong>flechas ↑↓</strong> del teclado para navegar por los resultados</li>
+                            <li>Presiona <strong>Enter</strong> para seleccionar un resultado</li>
+                            <li>Presiona <strong>Esc</strong> para cerrar las sugerencias</li>
+                        </ul>
+                    </div>
+
+                    <div class="search-help-section">
+                        <h4><i class="bi bi-funnel-fill" style="color: var(--color-guinda);"></i> Búsqueda con filtros</h4>
+                        <p class="search-help-highlight" id="search-help-status">
+                            <!-- Se actualiza dinámicamente con JavaScript -->
+                        </p>
+                        <p class="search-help-description">
+                            El buscador <strong>respeta los filtros activos</strong>. Si tienes un filtro aplicado 
+                            (Estado, GCR o Tecnología), la búsqueda solo mostrará resultados dentro de ese filtro.
+                        </p>
+                    </div>
+
+                    <div class="search-help-section">
+                        <h4><i class="bi bi-lightbulb-fill" style="color: #f0ad4e;"></i> Consejos útiles</h4>
+                        <ul class="search-help-list">
+                            <li>Aplica <strong>filtros</strong> antes de buscar para resultados más precisos</li>
+                            <li>Puedes buscar por <strong>parte del nombre</strong> de la empresa</li>
+                            <li>Los resultados muestran: Estado, Capacidad (MW) y Tecnología</li>
+                            <li>Al seleccionar, el mapa se centra automáticamente en el permiso</li>
+                        </ul>
+                    </div>
+
+                    <div class="search-help-example">
+                        <h5><i class="bi bi-code-square"></i> Ejemplo:</h5>
+                        <div class="search-help-example-box">
+                            <p><strong>1.</strong> Aplica filtro "Por Estado" → Selecciona "09 CDMX"</p>
+                            <p><strong>2.</strong> Escribe en el buscador: "G/123"</p>
+                            <p><strong>3.</strong> Solo verás permisos de CDMX que coincidan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: center; padding: 20px;">
+                <button type="button" class="btn-primary search-help-modal-close">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de configuración de exportación -->
     <div id="export-modal" class="modal" role="dialog" aria-labelledby="export-modal-title" aria-hidden="true">

@@ -1951,6 +1951,7 @@ Notification system */
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    position: relative;
 }
 
 #search-group label {
@@ -1960,8 +1961,193 @@ Notification system */
     white-space: nowrap;
 }
 
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 #permit-search {
     min-width: 150px;
+}
+
+.search-help-btn {
+    background: none;
+    border: none;
+    color: var(--color-verde-profundo);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.search-help-btn:hover {
+    background: rgba(31, 122, 98, 0.1);
+    color: var(--color-verde-claro);
+    transform: scale(1.1);
+}
+
+.search-help-btn:active {
+    transform: scale(0.95);
+}
+
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--color-verde-profundo);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.search-suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eef3f6;
+    transition: background 0.2s ease;
+}
+
+.search-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.search-suggestion-item:hover {
+    background: rgba(31, 122, 98, 0.1);
+}
+
+.search-suggestion-item.active {
+    background: rgba(31, 122, 98, 0.15);
+}
+
+.suggestion-permit {
+    font-weight: 700;
+    color: var(--color-guinda);
+    font-size: 0.9rem;
+}
+
+.suggestion-company {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+.suggestion-details {
+    color: var(--color-text);
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.search-no-results {
+    padding: 12px;
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
+/* Search Help Modal */
+.search-help-content {
+    color: var(--color-text);
+}
+
+.search-help-section {
+    margin-bottom: 25px;
+}
+
+.search-help-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.search-help-section h4 {
+    color: var(--color-verde-profundo);
+    font-size: 1.1rem;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-help-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.search-help-list li {
+    padding: 8px 0 8px 24px;
+    position: relative;
+    line-height: 1.6;
+}
+
+.search-help-list li::before {
+    content: "•";
+    position: absolute;
+    left: 8px;
+    color: var(--color-verde-profundo);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.search-help-highlight {
+    background: linear-gradient(135deg, rgba(31, 122, 98, 0.1) 0%, rgba(96, 22, 35, 0.1) 100%);
+    border-left: 4px solid var(--color-verde-profundo);
+    padding: 15px;
+    border-radius: 4px;
+    margin: 12px 0;
+    font-weight: 600;
+}
+
+.search-help-description {
+    color: var(--color-muted);
+    line-height: 1.6;
+    margin: 8px 0;
+}
+
+.search-help-example {
+    background: var(--color-surface-soft);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.search-help-example h5 {
+    color: var(--color-text);
+    font-size: 1rem;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-help-example-box {
+    background: white;
+    border: 2px dashed var(--color-verde-profundo);
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.search-help-example-box p {
+    margin: 8px 0;
+    line-height: 1.8;
+}
+
+.search-help-example-box p:first-child {
+    margin-top: 0;
+}
+
+.search-help-example-box p:last-child {
+    margin-bottom: 0;
 }
 
 /* Electricity Filters Panel */
@@ -2297,4 +2483,37 @@ Notification system */
     .matrix-tech-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* GCR and States Tooltips */
+.gcr-tooltip,
+.state-tooltip {
+    background: rgba(31, 122, 98, 0.95) !important;
+    border: 2px solid #1f7a62 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(4px);
+}
+
+.state-tooltip {
+    background: rgba(96, 22, 35, 0.95) !important;
+    border-color: #601623 !important;
+}
+
+.gcr-tooltip::before,
+.state-tooltip::before {
+    border-top-color: transparent !important;
+}
+
+/* Leaflet tooltip arrow fix */
+.leaflet-tooltip-top.gcr-tooltip::before {
+    border-top-color: #1f7a62 !important;
+}
+
+.leaflet-tooltip-top.state-tooltip::before {
+    border-top-color: #601623 !important;
 }
