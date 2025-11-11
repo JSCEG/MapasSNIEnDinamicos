@@ -240,6 +240,19 @@
                                 <div id="matrix-view" class="matrix-view"></div>
                             </div>
                         </div>
+                        
+                        <!-- Gráficos de Electricidad -->
+                        <div class="charts-section">
+                            <h4 class="charts-title"><i class="bi bi-bar-chart-fill"></i> Análisis Visual</h4>
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <canvas id="electricity-tech-chart"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="electricity-states-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Panel de Filtros para Petrolíferos -->
@@ -298,6 +311,153 @@
                             <!-- Filtros por Marca -->
                             <div id="petroliferos-brand-filters" class="filter-tab-content">
                                 <div id="petroliferos-brand-cards" class="filter-cards"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gráficos de Petrolíferos -->
+                        <div class="charts-section">
+                            <h4 class="charts-title"><i class="bi bi-bar-chart-fill"></i> Análisis Visual</h4>
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <canvas id="petroliferos-brand-chart"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="petroliferos-states-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel de Filtros para Gas LP -->
+                    <div id="gaslp-filters-panel" class="filters-panel" style="display: none;">
+                        <div class="filters-header">
+                            <h3><i class="bi bi-droplet-fill"></i> Filtros de Permisos de Gas L.P.</h3>
+                            <button type="button" id="reset-gaslp-filters-btn" class="btn-secondary btn-small">
+                                <i class="bi bi-arrow-counterclockwise"></i> Resetear Filtros
+                            </button>
+                        </div>
+                        
+                        <!-- Totales Generales -->
+                        <div class="totals-section">
+                            <div class="total-card total-general">
+                                <div class="total-icon">💧</div>
+                                <div class="total-content">
+                                    <div class="total-label">Capacidad Total</div>
+                                    <div class="total-value" id="total-gaslp-capacity">0 Litros</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">🛢️</div>
+                                <div class="total-content">
+                                    <div class="total-label">Capacidad Tanques</div>
+                                    <div class="total-value" id="total-gaslp-investment">0 L</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">📍</div>
+                                <div class="total-content">
+                                    <div class="total-label">Permisos</div>
+                                    <div class="total-value" id="total-gaslp-permits">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs para Estado y Tipo de Permiso -->
+                        <div class="filters-tabs">
+                            <button class="filter-tab-gaslp active" data-tab="state">Por Estado</button>
+                            <button class="filter-tab-gaslp" data-tab="type">Por Tipo de Permiso</button>
+                        </div>
+                        
+                        <!-- Contenido de Tabs -->
+                        <div class="filters-content">
+                            <!-- Filtros por Estado (Entidad Federativa) -->
+                            <div id="gaslp-state-filters" class="filter-tab-content active">
+                                <div id="gaslp-state-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por Tipo de Permiso -->
+                            <div id="gaslp-type-filters" class="filter-tab-content">
+                                <div id="gaslp-type-cards" class="filter-cards"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gráficos de Gas LP -->
+                        <div class="charts-section">
+                            <h4 class="charts-title"><i class="bi bi-bar-chart-fill"></i> Análisis Visual</h4>
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <canvas id="gaslp-type-chart"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="gaslp-states-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel de Filtros para Gas Natural -->
+                    <div id="gasnatural-filters-panel" class="filters-panel" style="display: none;">
+                        <div class="filters-header">
+                            <h3><i class="bi bi-fire"></i> Filtros de Permisos de Gas Natural</h3>
+                            <button type="button" id="reset-gasnatural-filters-btn" class="btn-secondary btn-small">
+                                <i class="bi bi-arrow-counterclockwise"></i> Resetear Filtros
+                            </button>
+                        </div>
+                        
+                        <!-- Totales Generales -->
+                        <div class="totals-section">
+                            <div class="total-card total-general">
+                                <div class="total-icon">💰</div>
+                                <div class="total-content">
+                                    <div class="total-label">Inversión Total</div>
+                                    <div class="total-value" id="total-gasnatural-investment">$0</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">⚙️</div>
+                                <div class="total-content">
+                                    <div class="total-label">Compresores</div>
+                                    <div class="total-value" id="total-gasnatural-compressors">0</div>
+                                </div>
+                            </div>
+                            <div class="total-card total-general">
+                                <div class="total-icon">📍</div>
+                                <div class="total-content">
+                                    <div class="total-label">Permisos</div>
+                                    <div class="total-value" id="total-gasnatural-permits">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabs para Estado y Tipo de Permiso -->
+                        <div class="filters-tabs">
+                            <button class="filter-tab-gasnatural active" data-tab="state">Por Estado</button>
+                            <button class="filter-tab-gasnatural" data-tab="type">Por Tipo de Permiso</button>
+                        </div>
+                        
+                        <!-- Contenido de Tabs -->
+                        <div class="filters-content">
+                            <!-- Filtros por Estado (Entidad Federativa) -->
+                            <div id="gasnatural-state-filters" class="filter-tab-content active">
+                                <div id="gasnatural-state-cards" class="filter-cards"></div>
+                            </div>
+                            
+                            <!-- Filtros por Tipo de Permiso -->
+                            <div id="gasnatural-type-filters" class="filter-tab-content">
+                                <div id="gasnatural-type-cards" class="filter-cards"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gráficos de Gas Natural -->
+                        <div class="charts-section">
+                            <h4 class="charts-title"><i class="bi bi-bar-chart-fill"></i> Análisis Visual</h4>
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <canvas id="gasnatural-type-chart"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="gasnatural-states-chart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -562,6 +722,9 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <!-- Chart.js for dynamic charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- Modular JavaScript files -->
     <script src="js/export-config.js"></script>

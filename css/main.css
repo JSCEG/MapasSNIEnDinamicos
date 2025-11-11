@@ -1882,6 +1882,25 @@ Notification system */
     font-family: 'Montserrat', sans-serif;
 }
 
+/* State and GCR Tooltips with Enhanced Visibility */
+.leaflet-tooltip.state-tooltip,
+.leaflet-tooltip.gcr-tooltip {
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid var(--color-verde-profundo);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-verde-profundo);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+}
+
+.leaflet-tooltip.state-tooltip::before,
+.leaflet-tooltip.gcr-tooltip::before {
+    border-top-color: var(--color-verde-profundo);
+}
+
 /* Custom electricity marker icon */
 .electricity-marker-icon {
     background: transparent !important;
@@ -2006,10 +2025,23 @@ Notification system */
     border: 2px solid var(--color-verde-profundo);
     border-top: none;
     border-radius: 0 0 6px 6px;
-    max-height: 300px;
+    max-height: 350px;
     overflow-y: auto;
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.search-suggestions-header {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(31, 122, 98, 0.1) 0%, rgba(31, 122, 98, 0.05) 100%);
+    border-bottom: 1px solid rgba(31, 122, 98, 0.2);
+    font-size: 0.75rem;
+    color: var(--color-verde-profundo);
+    text-align: center;
+}
+
+.search-suggestions-header strong {
+    color: var(--color-guinda);
 }
 
 .search-suggestion-item {
@@ -2277,6 +2309,54 @@ Notification system */
     border-bottom-color: var(--color-verde-profundo);
 }
 
+/* Gas LP Tabs */
+.filter-tab-gaslp {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.filter-tab-gaslp:hover {
+    color: var(--color-verde-profundo);
+}
+
+.filter-tab-gaslp.active {
+    color: var(--color-verde-profundo);
+    border-bottom-color: var(--color-verde-profundo);
+}
+
+/* Gas Natural Tabs */
+.filter-tab-gasnatural {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.filter-tab-gasnatural:hover {
+    color: var(--color-verde-profundo);
+}
+
+.filter-tab-gasnatural.active {
+    color: var(--color-verde-profundo);
+    border-bottom-color: var(--color-verde-profundo);
+}
+
 /* Filter Tab Content */
 .filter-tab-content {
     display: none;
@@ -2310,8 +2390,10 @@ Notification system */
 
 .filter-card.active {
     border-color: var(--color-verde-profundo);
-    background: rgba(31, 122, 98, 0.05);
-    box-shadow: 0 4px 12px rgba(31, 122, 98, 0.2);
+    border-width: 3px;
+    background: linear-gradient(135deg, rgba(31, 122, 98, 0.12) 0%, rgba(31, 122, 98, 0.08) 100%);
+    box-shadow: 0 6px 20px rgba(31, 122, 98, 0.35);
+    transform: translateY(-3px);
 }
 
 .filter-card-header {
@@ -2462,6 +2544,58 @@ Notification system */
     background: rgba(31, 122, 98, 0.08);
     border-color: var(--color-verde-profundo);
     transform: translateY(-2px);
+}
+
+/* Charts Section */
+.charts-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 2px solid #eef3f6;
+}
+
+.charts-title {
+    margin: 0 0 20px 0;
+    color: var(--color-guinda);
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.charts-title i {
+    color: var(--color-verde-profundo);
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.chart-container {
+    background: white;
+    border: 2px solid #eef3f6;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 300px;
+}
+
+.chart-container:hover {
+    box-shadow: 0 4px 16px rgba(31, 122, 98, 0.15);
+    border-color: var(--color-verde-profundo);
+}
+
+.chart-container canvas {
+    max-height: 350px;
+}
+
+@media (max-width: 1200px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .matrix-tech-name {
