@@ -1131,12 +1131,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             // ... other PLADESE maps can be added here
         ],
-        'PLADESHI': [
+        'PLADESHI': (typeof PLADESHI_MAPS !== 'undefined' ? PLADESHI_MAPS : [
             {
                 name: 'En construcción',
                 underConstruction: true
             }
-        ],
+        ]),
         'PLATEASE': [
             {
                 name: 'En construcción',
