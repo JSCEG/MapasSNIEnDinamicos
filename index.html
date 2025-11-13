@@ -108,6 +108,147 @@
             right: 90px;
             /* Dejar espacio para los botones flotantes */
         }
+
+        /* Toolbar flotante en pantalla completa */
+        .fullscreen-toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: calc(100% - 140px);
+        }
+
+        .map-card:fullscreen .fullscreen-toolbar {
+            display: flex !important;
+        }
+
+        .fullscreen-toolbar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 180px;
+        }
+
+        .fullscreen-toolbar-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fullscreen-control-input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .fullscreen-control-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .fullscreen-control-input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .fullscreen-toolbar-btn {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #333;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+
+        .fullscreen-toolbar-btn:hover {
+            background: #f0f0f0;
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .fullscreen-toolbar-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Botón de toggle del toolbar */
+        .fullscreen-toolbar-toggle {
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 60px;
+            background: white;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+            z-index: 1;
+        }
+
+        .fullscreen-toolbar-toggle:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .fullscreen-toolbar-toggle i {
+            transition: transform 0.3s;
+        }
+
+        /* Estado colapsado del toolbar */
+        .fullscreen-toolbar.collapsed {
+            width: auto !important;
+            padding: 0 !important;
+        }
+
+        .fullscreen-toolbar.collapsed .fullscreen-toolbar-content {
+            display: none !important;
+        }
+
+        .fullscreen-toolbar.collapsed .fullscreen-toolbar-toggle {
+            position: relative;
+            right: 0;
+            transform: none;
+            border-radius: 8px;
+            margin: 15px;
+        }
+
+        .fullscreen-toolbar.collapsed .fullscreen-toolbar-toggle i {
+            transform: rotate(180deg);
+        }
+
+        .fullscreen-toolbar-content {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
     </style>
 
 </head>
@@ -281,6 +422,50 @@
                             <button id="export-fullscreen-btn" class="fullscreen-control-btn" title="Descargar mapa">
                                 <i class="bi bi-download"></i>
                             </button>
+                        </div>
+
+                        <!-- Panel de controles flotante en pantalla completa -->
+                        <div id="fullscreen-toolbar" class="fullscreen-toolbar" style="display: none;">
+                            <button id="fullscreen-toolbar-toggle" class="fullscreen-toolbar-toggle"
+                                title="Ocultar/Mostrar controles">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+
+                            <div id="fullscreen-toolbar-content" class="fullscreen-toolbar-content">
+                                <div class="fullscreen-toolbar-group">
+                                    <label for="fullscreen-instrument-select">Instrumento</label>
+                                    <select id="fullscreen-instrument-select" class="fullscreen-control-input">
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+
+                                <div class="fullscreen-toolbar-group">
+                                    <label for="fullscreen-map-select">Mapa</label>
+                                    <select id="fullscreen-map-select" class="fullscreen-control-input" disabled>
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+
+                                <div class="fullscreen-toolbar-group" id="fullscreen-search-group"
+                                    style="display: none;">
+                                    <label for="fullscreen-permit-search">Buscar</label>
+                                    <input type="text" id="fullscreen-permit-search" class="fullscreen-control-input"
+                                        placeholder="Buscar permiso..." autocomplete="off">
+                                </div>
+
+                                <button id="fullscreen-refresh-btn" class="fullscreen-toolbar-btn"
+                                    title="Actualizar datos">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+
+                                <button id="fullscreen-edit-btn" class="fullscreen-toolbar-btn" title="Editar datos">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+
+                                <button id="fullscreen-view-btn" class="fullscreen-toolbar-btn" title="Ver datos">
+                                    <i class="bi bi-table"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -905,6 +1090,7 @@
     <!-- Modular JavaScript files -->
     <script src="js/notification-system.js"></script>
     <script src="js/map-config.js"></script>
+    <script src="js/fullscreen-toolbar.js"></script>
     <script src="js/simple-export.js"></script>
 
 </body>

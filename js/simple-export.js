@@ -132,6 +132,13 @@
                 scaleControl.style.display = 'none';
             }
 
+            // Ocultar toolbar de pantalla completa
+            const fullscreenToolbar = document.getElementById('fullscreen-toolbar');
+            const fullscreenToolbarWasVisible = fullscreenToolbar && fullscreenToolbar.style.display !== 'none';
+            if (fullscreenToolbar) {
+                fullscreenToolbar.style.display = 'none';
+            }
+
             try {
                 console.log('🔄 Esperando carga de tiles...');
                 await waitForTiles();
@@ -161,16 +168,17 @@
                     // Configuración adicional para mejor calidad
                     bgcolor: '#ffffff',
                     filter: function(node) {
-                        // Excluir todos los controles de Leaflet y botones flotantes
+                        // Excluir todos los controles de Leaflet, botones flotantes y toolbar
                         if (node.classList) {
                             return !node.classList.contains('leaflet-control-zoom') &&
                                    !node.classList.contains('leaflet-control-layers') &&
                                    !node.classList.contains('leaflet-control-attribution') &&
                                    !node.classList.contains('leaflet-control-scale') &&
                                    !node.classList.contains('fullscreen-controls') &&
-                                   !node.classList.contains('fullscreen-control-btn');
+                                   !node.classList.contains('fullscreen-control-btn') &&
+                                   !node.classList.contains('fullscreen-toolbar');
                         }
-                        if (node.id === 'fullscreen-controls') {
+                        if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
                             return false;
                         }
                         return true;
@@ -233,6 +241,11 @@
                     if (scaleControl && scaleControlWasVisible) {
                         scaleControl.style.display = '';
                     }
+                    
+                    // Restaurar toolbar de pantalla completa
+                    if (fullscreenToolbar && fullscreenToolbarWasVisible) {
+                        fullscreenToolbar.style.display = '';
+                    }
                 }, 1000);
 
             } catch (error) {
@@ -253,6 +266,10 @@
                 
                 if (scaleControl && scaleControlWasVisible) {
                     scaleControl.style.display = '';
+                }
+                
+                if (fullscreenToolbar && fullscreenToolbarWasVisible) {
+                    fullscreenToolbar.style.display = '';
                 }
                 
                 if (typeof showNotification === 'function') {
