@@ -31,6 +31,20 @@
             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
         }
 
+        #export-word-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #2B579A;
+            transition: all 0.3s ease;
+        }
+
+        #export-word-btn:hover {
+            background: #1e3f6f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(43, 87, 154, 0.4);
+        }
+
         #fullscreen-btn {
             transition: all 0.3s ease;
         }
@@ -100,6 +114,15 @@
 
         .fullscreen-control-btn:active {
             transform: scale(0.95);
+        }
+
+        .fullscreen-control-btn--word {
+            background: #2B579A;
+            color: white;
+        }
+
+        .fullscreen-control-btn--word:hover {
+            background: #1e3f6f;
         }
 
         /* Ajustar posición del control de capas en pantalla completa */
@@ -394,6 +417,12 @@
                             </button>
                         </div>
                         <div class="toolbar-group">
+                            <button type="button" id="export-word-btn" class="btn-export btn-export--word btn-icon"
+                                title="Exportar optimizado para Word (Tamaño Carta)">
+                                <i class="bi bi-file-word"></i>
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
                             <button type="button" id="fullscreen-btn" class="btn-secondary btn-icon"
                                 title="Pantalla completa">
                                 <i class="bi bi-arrows-fullscreen"></i>
@@ -421,6 +450,10 @@
                             </button>
                             <button id="export-fullscreen-btn" class="fullscreen-control-btn" title="Descargar mapa">
                                 <i class="bi bi-download"></i>
+                            </button>
+                            <button id="export-word-fullscreen-btn" class="fullscreen-control-btn fullscreen-control-btn--word" 
+                                    title="Exportar para Word">
+                                <i class="bi bi-file-word"></i>
                             </button>
                         </div>
 

@@ -9,9 +9,11 @@
     // Esperar a que el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
         const exportBtn = document.getElementById('export-map-btn');
+        const exportWordBtn = document.getElementById('export-word-btn');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
         const exportFullscreenBtn = document.getElementById('export-fullscreen-btn');
+        const exportWordFullscreenBtn = document.getElementById('export-word-fullscreen-btn');
         const mapContainer = document.getElementById('map');
         const mapCard = document.querySelector('.map-card');
         
@@ -81,6 +83,152 @@
                 // Timeout de seguridad
                 setTimeout(() => resolve(), 3000);
             });
+        }
+
+        // Exportar mapa optimizado para Word (tamaño carta, 300 DPI)
+        async function exportMapForWord() {
+            // Verificar si MapTiler está activo
+            if (isMapTilerActive()) {
+                showMapTilerWarning();
+                return;
+            }
+
+            // Mostrar overlay de progreso
+            const progressOverlay = document.getElementById('export-progress-overlay');
+            const progressMessage = progressOverlay ? progressOverlay.querySelector('.progress-message') : null;
+            const progressPercentage = progressOverlay ? progressOverlay.querySelector('.progress-percentage') : null;
+            const progressFill = progressOverlay ? progressOverlay.querySelector('.progress-fill') : null;
+
+            if (progressOverlay) {
+                progressOverlay.style.display = 'flex';
+                if (progressMessage) progressMessage.textContent = 'Optimizando para Word...';
+                if (progressPercentage) progressPercentage.textContent = '10%';
+                if (progressFill) progressFill.style.width = '10%';
+            }
+
+            // Ocultar todos los controles
+            const layersControl = document.querySelector('.leaflet-control-layers');
+            const layersControlWasVisible = layersControl && layersControl.style.display !== 'none';
+            if (layersControl) layersControl.style.display = 'none';
+
+            const fullscreenControls = document.getElementById('fullscreen-controls');
+            const fullscreenControlsWasVisible = fullscreenControls && fullscreenControls.style.display !== 'none';
+            if (fullscreenControls) fullscreenControls.style.display = 'none';
+
+            const attribution = document.querySelector('.leaflet-control-attribution');
+            const attributionWasVisible = attribution && attribution.style.display !== 'none';
+            if (attribution) attribution.style.display = 'none';
+
+            const scaleControl = document.querySelector('.leaflet-control-scale');
+            const scaleControlWasVisible = scaleControl && scaleControl.style.display !== 'none';
+            if (scaleControl) scaleControl.style.display = 'none';
+
+            const fullscreenToolbar = document.getElementById('fullscreen-toolbar');
+            const fullscreenToolbarWasVisible = fullscreenToolbar && fullscreenToolbar.style.display !== 'none';
+            if (fullscreenToolbar) fullscreenToolbar.style.display = 'none';
+
+            try {
+                console.log('🔄 Esperando carga de tiles para exportación Word...');
+                await waitForTiles();
+
+                if (progressMessage) progressMessage.textContent = 'Capturando imagen optimizada...';
+                if (progressPercentage) progressPercentage.textContent = '50%';
+                if (progressFill) progressFill.style.width = '50%';
+
+                console.log('🔄 Capturando imagen optimizada para Word (300 DPI, Alta Calidad)...');
+
+                // Calcular dimensiones manteniendo aspect ratio del contenedor
+                // Escala 6x para obtener ~300 DPI en documentos Word
+                const scale = 6;
+                const targetWidth = mapContainer.offsetWidth * scale;
+                const targetHeight = mapContainer.offsetHeight * scale;
+
+                const dataUrl = await domtoimage.toPng(mapContainer, {
+                    quality: 1.0,
+                    width: targetWidth,
+                    height: targetHeight,
+                    style: {
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left',
+                        '-webkit-font-smoothing': 'antialiased',
+                        '-moz-osx-font-smoothing': 'grayscale',
+                        'text-rendering': 'optimizeLegibility'
+                    },
+                    cacheBust: true,
+                    bgcolor: '#ffffff',
+                    filter: function(node) {
+                        if (node.classList) {
+                            return !node.classList.contains('leaflet-control-zoom') &&
+                                   !node.classList.contains('leaflet-control-layers') &&
+                                   !node.classList.contains('leaflet-control-attribution') &&
+                                   !node.classList.contains('leaflet-control-scale') &&
+                                   !node.classList.contains('fullscreen-controls') &&
+                                   !node.classList.contains('fullscreen-control-btn') &&
+                                   !node.classList.contains('fullscreen-toolbar');
+                        }
+                        if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
+                            return false;
+                        }
+                        return true;
+                    }
+                });
+
+                if (progressMessage) progressMessage.textContent = 'Descargando imagen...';
+                if (progressPercentage) progressPercentage.textContent = '90%';
+                if (progressFill) progressFill.style.width = '90%';
+
+                // Descargar imagen con identificador especial para Word
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const mapTitle = window.currentMapTitle || 'mapa_snien';
+                const filename = `${mapTitle.replace(/\s+/g, '_')}_WORD_${timestamp}.png`;
+
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                if (progressPercentage) progressPercentage.textContent = '100%';
+                if (progressFill) progressFill.style.width = '100%';
+
+                console.log('✅ Exportación para Word completada:', filename);
+                console.log(`📐 Dimensiones optimizadas: ${targetWidth}x${targetHeight}px (Escala 6x para 300 DPI)`);
+
+                if (typeof showNotification === 'function') {
+                    showNotification(
+                        'Exportación para Word completada', 
+                        `Imagen optimizada (6x, ~300 DPI) guardada como: ${filename}`, 
+                        'success'
+                    );
+                }
+
+                // Cerrar overlay y restaurar controles
+                setTimeout(() => {
+                    if (progressOverlay) progressOverlay.style.display = 'none';
+                    if (layersControl && layersControlWasVisible) layersControl.style.display = '';
+                    if (fullscreenControls && fullscreenControlsWasVisible) fullscreenControls.style.display = '';
+                    if (attribution && attributionWasVisible) attribution.style.display = '';
+                    if (scaleControl && scaleControlWasVisible) scaleControl.style.display = '';
+                    if (fullscreenToolbar && fullscreenToolbarWasVisible) fullscreenToolbar.style.display = '';
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error en exportación para Word:', error);
+                
+                // Restaurar todos los controles
+                if (layersControl && layersControlWasVisible) layersControl.style.display = '';
+                if (fullscreenControls && fullscreenControlsWasVisible) fullscreenControls.style.display = '';
+                if (attribution && attributionWasVisible) attribution.style.display = '';
+                if (scaleControl && scaleControlWasVisible) scaleControl.style.display = '';
+                if (fullscreenToolbar && fullscreenToolbarWasVisible) fullscreenToolbar.style.display = '';
+                
+                if (typeof showNotification === 'function') {
+                    showNotification('Error en exportación', error.message, 'error');
+                }
+
+                if (progressOverlay) progressOverlay.style.display = 'none';
+            }
         }
 
         // Exportar mapa como PNG usando dom-to-image
@@ -326,6 +474,22 @@
             e.preventDefault();
             exportMapAsPNG();
         });
+
+        if (exportWordBtn) {
+            exportWordBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                exportMapForWord();
+            });
+        }
+
+        if (exportWordFullscreenBtn) {
+            exportWordFullscreenBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                exportMapForWord();
+            });
+        }
         
         if (fullscreenBtn) {
             fullscreenBtn.addEventListener('click', function(e) {

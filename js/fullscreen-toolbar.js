@@ -2,10 +2,10 @@
  * Sincronización de controles en pantalla completa
  */
 
-(function() {
+(function () {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Elementos principales
         const instrumentSelect = document.getElementById('instrument-select');
         const mapSelect = document.getElementById('map-select');
@@ -61,16 +61,16 @@
         syncSearchValue();
 
         // Listeners para cambios en controles principales
-        instrumentSelect.addEventListener('change', function() {
+        instrumentSelect.addEventListener('change', function () {
             fullscreenInstrumentSelect.value = this.value;
         });
 
-        mapSelect.addEventListener('change', function() {
+        mapSelect.addEventListener('change', function () {
             syncMapOptions();
         });
 
         if (permitSearch) {
-            permitSearch.addEventListener('input', function() {
+            permitSearch.addEventListener('input', function () {
                 if (fullscreenPermitSearch) {
                     fullscreenPermitSearch.value = this.value;
                 }
@@ -78,20 +78,20 @@
         }
 
         // Listeners para cambios en controles de pantalla completa
-        fullscreenInstrumentSelect.addEventListener('change', function(e) {
+        fullscreenInstrumentSelect.addEventListener('change', function (e) {
             e.stopPropagation();
             instrumentSelect.value = this.value;
             instrumentSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        fullscreenMapSelect.addEventListener('change', function(e) {
+        fullscreenMapSelect.addEventListener('change', function (e) {
             e.stopPropagation();
             mapSelect.value = this.value;
             mapSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         if (fullscreenPermitSearch) {
-            fullscreenPermitSearch.addEventListener('input', function(e) {
+            fullscreenPermitSearch.addEventListener('input', function (e) {
                 e.stopPropagation();
                 if (permitSearch) {
                     permitSearch.value = this.value;
@@ -100,13 +100,13 @@
             });
 
             // Prevenir propagación de clicks
-            fullscreenPermitSearch.addEventListener('click', function(e) {
+            fullscreenPermitSearch.addEventListener('click', function (e) {
                 e.stopPropagation();
             });
         }
 
         if (fullscreenRefreshBtn) {
-            fullscreenRefreshBtn.addEventListener('click', function(e) {
+            fullscreenRefreshBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 if (refreshBtn) {
@@ -117,20 +117,20 @@
 
         // Prevenir propagación de clicks en el toolbar
         if (fullscreenToolbar) {
-            fullscreenToolbar.addEventListener('click', function(e) {
+            fullscreenToolbar.addEventListener('click', function (e) {
                 e.stopPropagation();
             });
-            fullscreenToolbar.addEventListener('mousedown', function(e) {
+            fullscreenToolbar.addEventListener('mousedown', function (e) {
                 e.stopPropagation();
             });
-            fullscreenToolbar.addEventListener('mouseup', function(e) {
+            fullscreenToolbar.addEventListener('mouseup', function (e) {
                 e.stopPropagation();
             });
         }
 
         // Observer para detectar cambios en las opciones
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
                 if (mutation.type === 'childList' || mutation.type === 'attributes') {
                     syncInstrumentOptions();
                     syncMapOptions();
@@ -142,20 +142,20 @@
         // Observar cambios en los selects principales
         observer.observe(instrumentSelect, { childList: true, subtree: true });
         observer.observe(mapSelect, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
-        
+
         if (searchGroup) {
             observer.observe(searchGroup, { attributes: true, attributeFilter: ['style'] });
         }
 
         // Prevenir propagación de clicks en el toolbar
         if (fullscreenToolbar) {
-            fullscreenToolbar.addEventListener('click', function(e) {
+            fullscreenToolbar.addEventListener('click', function (e) {
                 e.stopPropagation();
             });
-            fullscreenToolbar.addEventListener('mousedown', function(e) {
+            fullscreenToolbar.addEventListener('mousedown', function (e) {
                 e.stopPropagation();
             });
-            fullscreenToolbar.addEventListener('mouseup', function(e) {
+            fullscreenToolbar.addEventListener('mouseup', function (e) {
                 e.stopPropagation();
             });
         }
@@ -163,7 +163,7 @@
         // Toggle para colapsar/expandir toolbar
         const fullscreenToolbarToggle = document.getElementById('fullscreen-toolbar-toggle');
         if (fullscreenToolbarToggle && fullscreenToolbar) {
-            fullscreenToolbarToggle.addEventListener('click', function(e) {
+            fullscreenToolbarToggle.addEventListener('click', function (e) {
                 e.stopPropagation();
                 fullscreenToolbar.classList.toggle('collapsed');
             });
@@ -172,7 +172,7 @@
         // Botón de editar datos
         const fullscreenEditBtn = document.getElementById('fullscreen-edit-btn');
         if (fullscreenEditBtn) {
-            fullscreenEditBtn.addEventListener('click', function(e) {
+            fullscreenEditBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 // Obtener la URL de edición del sheet-info
@@ -191,7 +191,7 @@
         // Botón de ver datos
         const fullscreenViewBtn = document.getElementById('fullscreen-view-btn');
         if (fullscreenViewBtn) {
-            fullscreenViewBtn.addEventListener('click', function(e) {
+            fullscreenViewBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 // Obtener la URL de visualización del sheet-info
