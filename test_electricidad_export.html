@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Exportación Mapa Electricidad</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .controls-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        select,
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.method2 {
+            background: #2196F3;
+        }
+
+        button.method2:hover {
+            background: #0b7dda;
+        }
+
+        button.method3 {
+            background: #FF9800;
+        }
+
+        button.method3:hover {
+            background: #F57C00;
+        }
+
+        button.method4 {
+            background: #9C27B0;
+        }
+
+        button.method4:hover {
+            background: #7B1FA2;
+        }
+
+        .map-wrapper {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .map-header {
+            background: linear-gradient(135deg, #1a5f4a 0%, #2d8659 100%);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .map-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #map {
+            height: 700px;
+            width: 100%;
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-card h3 {
+            color: #1a5f4a;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card li:last-child {
+            border-bottom: none;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+
+        .popup-content {
+            min-width: 200px;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a5f4a;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 13px;
+        }
+
+        .popup-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .popup-value {
+            color: #333;
+        }
+
+        /* Estilos para capas de estados */
+        .state-layer {
+            fill-opacity: 0.3;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .state-layer:hover {
+            fill-opacity: 0.6;
+            stroke-width: 3;
+        }
+
+        /* Cluster personalizado */
+        .marker-cluster {
+            background-color: rgba(76, 175, 80, 0.6);
+            border: 3px solid #4CAF50;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .marker-cluster div {
+            background-color: rgba(76, 175, 80, 0.8);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>⚡ Test de Exportación - Mapa de Electricidad SNIEn</h1>
+
+        <div class="controls-panel">
+            <h3 style="margin-bottom: 15px; color: #333;">⚙️ Configuración de Exportación</h3>
+
+            <h4 style="margin: 20px 0 10px 0; color: #333;">⚙️ Configuración de Exportación</h4>
+
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label for="export-format">Formato:</label>
+                    <select id="export-format">
+                        <option value="png" selected>PNG (Imagen)</option>
+                        <option value="jpeg">JPEG (Comprimido)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="export-quality">Escala de Calidad:</label>
+                    <select id="export-quality">
+                        <option value="1">1x (Estándar)</option>
+                        <option value="2" selected>2x (Alta)</option>
+                        <option value="3">3x (Muy Alta)</option>
+                        <option value="4">4x (Máxima)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="export-width">Ancho (px):</label>
+                    <input type="number" id="export-width" value="1920" min="800" max="4000">
+                </div>
+
+                <div class="control-group">
+                    <label for="export-height">Alto (px):</label>
+                    <input type="number" id="export-height" value="1080" min="600" max="4000">
+                </div>
+            </div>
+
+            <h4 style="margin: 20px 0 10px 0; color: #333;">📥 Exportar Mapa</h4>
+            <div class="buttons-grid">
+                <button onclick="exportMapDomToImage()" class="method3"></button>
+                <i class="bi bi-download"></i>
+                Exportar como PNG (dom-to-image)
+                </button>
+                <button onclick="exportMapHtml2Canvas()">
+                    <i class="bi bi-download"></i>
+                    Exportar como PNG (html2canvas - alternativo)
+                </button>
+            </div>
+
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                ℹ️ <strong>Usa el control de capas</strong> (esquina superior derecha) para activar/desactivar capas
+                antes de exportar.<br>
+                💡 Todos los mapas base están optimizados para exportación sin problemas de CORS.
+            </p>
+        </div>
+
+        <div class="map-wrapper">
+            <div class="map-header">
+                <h2 class="map-title">🗺️ Permisos de Generación Eléctrica en México</h2>
+                <div class="map-stats">
+                    <div class="stat-item">
+                        <i class="bi bi-lightning-fill"></i>
+                        <span id="total-capacity">0 MW</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span id="total-permits">0 permisos</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map"></div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3><i class="bi bi-check-circle-fill" style="color: #4CAF50;"></i> Elementos en el Mapa</h3>
+                <ul>
+                    <li><i class="bi bi-check2"></i> <strong>Control de Capas (esquina superior derecha)</strong></li>
+                    <li><i class="bi bi-check2"></i> 6 Capas base MapTiler + Google + CartoDB</li>
+                    <li><i class="bi bi-check2"></i> Polígonos de estados (GeoJSON local)</li>
+                    <li><i class="bi bi-check2"></i> <strong>Gerencias de Control (GeoJSON externo)</strong></li>
+                    <li><i class="bi bi-check2"></i> Marcadores de permisos con clusters</li>
+                    <li><i class="bi bi-check2"></i> Popups interactivos</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h3><i class="bi bi-info-circle-fill" style="color: #2196F3;"></i> Método de Exportación</h3>
+                <ul>
+                    <li>✅ <strong>dom-to-image</strong> - Método principal</li>
+                    <li>🔄 <strong>html2canvas</strong> - Método alternativo</li>
+                    <li>⚡ Espera automática de carga de tiles</li>
+                    <li>📐 Calidad ajustable (1x a 4x)</li>
+                    <li>📅 Nombre de archivo con timestamp</li>
+                    <li>� Coaptura perfecta de capas vectoriales</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h3><i class="bi bi-gear-fill" style="color: #FF9800;"></i> Capas Base Disponibles</h3>
+                <ul>
+                    <li>⬜ <strong>Positron</strong> - Claro y limpio (predeterminado)</li>
+                    <li>🎨 <strong>Voyager</strong> - Colores suaves</li>
+                    <li>🌙 <strong>Dark Matter</strong> - Oscuro elegante</li>
+                    <li>�️️ <strong>OpenStreetMap</strong> - Estándar</li>
+                    <li>⚫ <strong>Toner</strong> - Alto contraste B/N</li>
+                    <li>�️ a<strong>Terrain</strong> - Relieve y topografía</li>
+                    <li>🛰️ <strong>Satélite ESRI</strong> - Imágenes satelitales</li>
+                    <li>🏙️ <strong>World Street ESRI</strong> - Calles detalladas</li>
+                    <li>❌ <strong>Ninguno</strong> - Fondo blanco</li>
+                </ul>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                    ✅ Todos los mapas base funcionan perfectamente con exportación
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">Generando imagen...</div>
+            <div class="loading-subtext">Por favor espere</div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Marker Cluster -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <!-- MapTiler SDK (igual que index.html) -->
+    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.6.1/maptiler-sdk.umd.min.js"></script>
+    <script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js"></script>
+
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- dom-to-image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+
+    <!-- leaflet-image -->
+    <script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
+
+    <script>
+        // ========== CONFIGURACIÓN DEL MAPA ==========
+        const mapTilerKeys = {
+            personal: 'jAAFQsMBZ9a6VIm2dCwg',
+            amigo: 'xRR3xCujdkUjxkDqlNTG'
+        };
+
+        // Inicializar mapa
+        const map = L.map('map', {
+            center: [23.6345, -102.5528],
+            zoom: 5,
+            maxZoom: 18,
+            minZoom: 4
+        });
+
+        // Variables globales para capas
+        let currentBaseLayer = null;
+        let estadosLayer = null;
+        let estadosVisible = true;
+
+        // Función helper para crear capas MapTiler con fallback (igual que map-config.js)
+        const mapTilerAttribution = '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        const fallbackAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+        function hasMapTilerSDK() {
+            return typeof L !== 'undefined' &&
+                typeof L.maptiler !== 'undefined' &&
+                typeof L.maptiler.maptilerLayer === 'function';
+        }
+
+        function buildMapTilerUrl(styleId, apiKey) {
+            return 'https://api.maptiler.com/maps/' + styleId + '/256/{z}/{x}/{y}.png?key=' + apiKey;
+        }
+
+        function createMapTilerLayer(styleId, keyName, fallbackUrl, name) {
+            const apiKey = mapTilerKeys[keyName];
+            const fallbackLayer = fallbackUrl ? L.tileLayer(fallbackUrl, {
+                attribution: fallbackAttribution,
+                maxZoom: 18,
+                crossOrigin: 'anonymous'
+            }) : null;
+
+            if (!apiKey) {
+                console.warn('No existe API key para', keyName, '; usando fallback para', name);
+                return fallbackLayer;
+            }
+
+            if (hasMapTilerSDK()) {
+                try {
+                    const layer = L.maptiler.maptilerLayer({
+                        apiKey: apiKey,
+                        style: styleId,
+                        maxZoom: 18
+                    });
+                    if (layer && layer.options && !layer.options.maxZoom) {
+                        layer.options.maxZoom = 18;
+                    }
+
+                    // Configurar crossOrigin para exportación
+                    if (layer.options) {
+                        layer.options.crossOrigin = 'anonymous';
+                    }
+
+                    // Hook para configurar crossOrigin en cada tile
+                    layer.on('tileloadstart', function (e) {
+                        if (e.tile && e.tile.tagName === 'IMG') {
+                            e.tile.crossOrigin = 'anonymous';
+                        }
+                    });
+
+                    return layer;
+                } catch (error) {
+                    console.warn('Error creando ' + name + ' con MapTiler SDK:', error);
+                }
+            } else {
+                console.warn('MapTiler SDK no disponible; usando fallback para ' + name);
+            }
+
+            if (fallbackLayer) {
+                return fallbackLayer;
+            }
+
+            return L.tileLayer(buildMapTilerUrl(styleId, apiKey), {
+                attribution: mapTilerAttribution,
+                maxZoom: 18,
+                crossOrigin: 'anonymous'
+            });
+        }
+
+        // Capas base optimizadas para exportación (sin problemas CORS)
+        const layerConfigs = {
+            'carto-positron': {
+                label: 'Positron (Claro y Limpio)',
+                layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'carto-voyager': {
+                label: 'Voyager (Colores Suaves)',
+                layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'carto-dark': {
+                label: 'Dark Matter (Oscuro Elegante)',
+                layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'osm-standard': {
+                label: 'OpenStreetMap (Estándar)',
+                layer: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'stamen-toner': {
+                label: 'Toner (Alto Contraste B/N)',
+                layer: L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}{r}.png', {
+                    attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 20,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'stamen-terrain': {
+                label: 'Terrain (Relieve y Topografía)',
+                layer: L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+                    attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 18,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'esri-worldimagery': {
+                label: 'Satélite (ESRI World Imagery)',
+                layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            },
+            'esri-worldstreet': {
+                label: 'World Street Map (ESRI)',
+                layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous'
+                })
+            }
+        };
+
+        // Crear objeto de capas base para el control
+        const baseLayersForControl = {};
+        Object.entries(layerConfigs).forEach(([key, config]) => {
+            baseLayersForControl[config.label] = config.layer;
+        });
+
+        // Añadir capa "Ninguno" (fondo blanco)
+        const noBaseLayer = L.layerGroup();
+        baseLayersForControl['Ninguno (Fondo Blanco)'] = noBaseLayer;
+
+        // Añadir capa base inicial (Positron por defecto - claro y limpio)
+        currentBaseLayer = layerConfigs['carto-positron'].layer;
+        currentBaseLayer.addTo(map);
+
+        console.log('✅ Capa base inicial cargada (CartoDB Positron)');
+
+        // Manejar el cambio de fondo cuando se selecciona "Ninguno"
+        map.on('baselayerchange', function (e) {
+            if (e.name === 'Ninguno (Fondo Blanco)') {
+                map.getContainer().style.backgroundColor = 'white';
+            } else {
+                map.getContainer().style.backgroundColor = '';
+            }
+            console.log(`✅ Base map cambiado a: ${e.name}`);
+        });
+
+        // ========== CAPA DE ESTADOS (GeoJSON simplificado) ==========
+        // Crear capas overlay para el control
+        const overlayLayers = {};
+
+        const estadosGeoJSON = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "nombre": "Sonora",
+                        "cve": "26",
+                        "capacidad": 150
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-112.0, 32.0], [-112.0, 27.0], [-108.0, 27.0],
+                            [-108.0, 32.0], [-112.0, 32.0]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "nombre": "Oaxaca",
+                        "cve": "20",
+                        "capacidad": 200
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-98.5, 18.5], [-98.5, 15.5], [-94.0, 15.5],
+                            [-94.0, 18.5], [-98.5, 18.5]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "nombre": "Nuevo León",
+                        "cve": "19",
+                        "capacidad": 500
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-101.0, 27.5], [-101.0, 23.5], [-98.5, 23.5],
+                            [-98.5, 27.5], [-101.0, 27.5]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "nombre": "Guanajuato",
+                        "cve": "11",
+                        "capacidad": 100
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-102.0, 21.5], [-102.0, 19.8], [-99.5, 19.8],
+                            [-99.5, 21.5], [-102.0, 21.5]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "nombre": "Chiapas",
+                        "cve": "07",
+                        "capacidad": 300
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-94.0, 17.8], [-94.0, 14.5], [-90.5, 14.5],
+                            [-90.5, 17.8], [-94.0, 17.8]
+                        ]]
+                    }
+                }
+            ]
+        };
+
+        // Función para estilo de estados
+        function getEstadoStyle(feature) {
+            const capacidad = feature.properties.capacidad || 0;
+            const color = capacidad > 300 ? '#dc3545' :
+                capacidad > 200 ? '#fd7e14' :
+                    capacidad > 100 ? '#ffc107' : '#28a745';
+
+            return {
+                fillColor: color,
+                weight: 2,
+                opacity: 1,
+                color: '#ffffff',
+                fillOpacity: 0.4
+            };
+        }
+
+        // Función para highlight de estados
+        function highlightEstado(e) {
+            const layer = e.target;
+            layer.setStyle({
+                weight: 4,
+                fillOpacity: 0.7
+            });
+            layer.bringToFront();
+        }
+
+        function resetHighlight(e) {
+            estadosLayer.resetStyle(e.target);
+        }
+
+        // Crear capa de estados
+        estadosLayer = L.geoJSON(estadosGeoJSON, {
+            style: getEstadoStyle,
+            onEachFeature: function (feature, layer) {
+                layer.on({
+                    mouseover: highlightEstado,
+                    mouseout: resetHighlight
+                });
+
+                layer.bindPopup(`
+                    <div class="popup-content">
+                        <div class="popup-title">${feature.properties.nombre}</div>
+                        <div class="popup-row">
+                            <span class="popup-label">Clave:</span>
+                            <span class="popup-value">${feature.properties.cve}</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">Capacidad Total:</span>
+                            <span class="popup-value">${feature.properties.capacidad} MW</span>
+                        </div>
+                    </div>
+                `);
+            }
+        }).addTo(map);
+
+        // Añadir a overlays
+        overlayLayers['Estados (Local)'] = estadosLayer;
+
+        // Función para toggle de capa de estados
+        function toggleEstados() {
+            if (estadosVisible) {
+                map.removeLayer(estadosLayer);
+                estadosVisible = false;
+                console.log('❌ Capa de estados oculta');
+            } else {
+                estadosLayer.addTo(map);
+                estadosVisible = true;
+                console.log('✅ Capa de estados visible');
+            }
+        }
+
+        // ========== CARGAR GEOJSON DE GERENCIAS DE CONTROL ==========
+        let gerenciasLayer = null;
+        let gerenciasVisible = true;
+
+        fetch('https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson')
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 GeoJSON de Gerencias cargado:', data);
+
+                gerenciasLayer = L.geoJSON(data, {
+                    style: function (feature) {
+                        // Estilo personalizado por gerencia
+                        return {
+                            fillColor: getColorByGerencia(feature.properties.NOMBRE || feature.properties.nombre),
+                            weight: 2,
+                            opacity: 1,
+                            color: '#ffffff',
+                            fillOpacity: 0.5
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.on({
+                            mouseover: function (e) {
+                                const layer = e.target;
+                                layer.setStyle({
+                                    weight: 4,
+                                    fillOpacity: 0.8
+                                });
+                                layer.bringToFront();
+                            },
+                            mouseout: function (e) {
+                                gerenciasLayer.resetStyle(e.target);
+                            }
+                        });
+
+                        // Popup con información de la gerencia
+                        const props = feature.properties;
+                        const nombre = props.NOMBRE || props.nombre || 'Sin nombre';
+                        const gcr = props.GCR || props.gcr || 'N/A';
+
+                        layer.bindPopup(`
+                            <div class="popup-content">
+                                <div class="popup-title">🏢 ${nombre}</div>
+                                <div class="popup-row">
+                                    <span class="popup-label">GCR:</span>
+                                    <span class="popup-value">${gcr}</span>
+                                </div>
+                            </div>
+                        `);
+                    }
+                }).addTo(map);
+
+                console.log('✅ Capa de Gerencias añadida al mapa');
+
+                // Añadir a overlays
+                overlayLayers['Gerencias de Control'] = gerenciasLayer;
+
+                // Crear el control de capas después de cargar gerencias
+                createLayerControl();
+
+                // Actualizar contador
+                const numGerencias = data.features ? data.features.length : 0;
+                console.log(`📊 Total de gerencias: ${numGerencias}`);
+            })
+            .catch(error => {
+                console.error('❌ Error cargando GeoJSON de Gerencias:', error);
+                alert('Error al cargar el GeoJSON de Gerencias. Verifica la URL.');
+            });
+
+        // Función para asignar colores por gerencia
+        function getColorByGerencia(nombre) {
+            const colores = {
+                'Baja California': '#e74c3c',
+                'Noroeste': '#e67e22',
+                'Norte': '#f39c12',
+                'Noreste': '#1abc9c',
+                'Occidental': '#3498db',
+                'Central': '#9b59b6',
+                'Oriental': '#34495e',
+                'Bajío': '#16a085',
+                'Centro Occidente': '#27ae60',
+                'Centro Oriente': '#2980b9',
+                'Centro Sur': '#8e44ad',
+                'Jalisco': '#c0392b',
+                'Sureste': '#d35400',
+                'Peninsular': '#2c3e50'
+            };
+
+            // Buscar coincidencia parcial
+            for (let key in colores) {
+                if (nombre && nombre.includes(key)) {
+                    return colores[key];
+                }
+            }
+
+            // Color por defecto
+            return '#95a5a6';
+        }
+
+        // Función para toggle de gerencias
+        function toggleGerencias() {
+            if (!gerenciasLayer) {
+                alert('⏳ Las gerencias aún se están cargando. Espera un momento.');
+                return;
+            }
+
+            if (gerenciasVisible) {
+                map.removeLayer(gerenciasLayer);
+                gerenciasVisible = false;
+                console.log('❌ Capa de gerencias oculta');
+            } else {
+                gerenciasLayer.addTo(map);
+                gerenciasVisible = true;
+                console.log('✅ Capa de gerencias visible');
+            }
+        }
+
+        // ========== DATOS DE EJEMPLO ==========
+        const permisosData = [
+            { id: 'G/001/GEN/2020', nombre: 'Central Solar Norte', estado: 'Sonora', lat: 29.0729, lng: -110.9559, capacidad: 150, tecnologia: 'Solar', gcr: 'GCR Noroeste' },
+            { id: 'G/002/GEN/2020', nombre: 'Parque Eólico Pacífico', estado: 'Oaxaca', lat: 16.2531, lng: -95.1933, capacidad: 200, tecnologia: 'Eólica', gcr: 'GCR Sur' },
+            { id: 'G/003/GEN/2021', nombre: 'Planta Solar Bajío', estado: 'Guanajuato', lat: 20.9170, lng: -101.2774, capacidad: 100, tecnologia: 'Solar', gcr: 'GCR Centro' },
+            { id: 'G/004/GEN/2021', nombre: 'Central Hidroeléctrica', estado: 'Chiapas', lat: 16.7569, lng: -93.1292, capacidad: 300, tecnologia: 'Hidráulica', gcr: 'GCR Sur' },
+            { id: 'G/005/GEN/2019', nombre: 'Ciclo Combinado Norte', estado: 'Nuevo León', lat: 25.6866, lng: -100.3161, capacidad: 500, tecnologia: 'Gas Natural', gcr: 'GCR Noreste' },
+            { id: 'G/006/GEN/2022', nombre: 'Solar Península', estado: 'Yucatán', lat: 20.9099, lng: -89.6177, capacidad: 80, tecnologia: 'Solar', gcr: 'GCR Peninsular' },
+            { id: 'G/007/GEN/2020', nombre: 'Eólica Tamaulipas', estado: 'Tamaulipas', lat: 23.7369, lng: -99.1411, capacidad: 180, tecnologia: 'Eólica', gcr: 'GCR Noreste' },
+            { id: 'G/008/GEN/2021', nombre: 'Solar Sinaloa', estado: 'Sinaloa', lat: 25.7908, lng: -108.9859, capacidad: 120, tecnologia: 'Solar', gcr: 'GCR Noroeste' },
+        ];
+
+        // Colores por tecnología
+        const techColors = {
+            'Solar': '#FFA500',
+            'Eólica': '#4169E1',
+            'Hidráulica': '#00CED1',
+            'Gas Natural': '#DC143C',
+            'Nuclear': '#9370DB'
+        };
+
+        // ========== AÑADIR MARCADORES CON CLUSTERS ==========
+        const markers = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+
+        let totalCapacity = 0;
+
+        permisosData.forEach(permiso => {
+            totalCapacity += permiso.capacidad;
+
+            const color = techColors[permiso.tecnologia] || '#666';
+
+            const marker = L.circleMarker([permiso.lat, permiso.lng], {
+                radius: 8,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+
+            marker.bindPopup(`
+                <div class="popup-content">
+                    <div class="popup-title">${permiso.nombre}</div>
+                    <div class="popup-row">
+                        <span class="popup-label">Permiso:</span>
+                        <span class="popup-value">${permiso.id}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Estado:</span>
+                        <span class="popup-value">${permiso.estado}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Capacidad:</span>
+                        <span class="popup-value">${permiso.capacidad} MW</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Tecnología:</span>
+                        <span class="popup-value">${permiso.tecnologia}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">GCR:</span>
+                        <span class="popup-value">${permiso.gcr}</span>
+                    </div>
+                </div>
+            `);
+
+            markers.addLayer(marker);
+        });
+
+        map.addLayer(markers);
+
+        // Añadir marcadores a overlays
+        overlayLayers['Permisos (Marcadores)'] = markers;
+
+        // Actualizar estadísticas
+        document.getElementById('total-capacity').textContent = `${totalCapacity.toLocaleString()} MW`;
+        document.getElementById('total-permits').textContent = `${permisosData.length} permisos`;
+
+        // ========== CONTROL DE CAPAS ==========
+        function createLayerControl() {
+            // Crear control de capas
+            const layersControl = L.control.layers(baseLayersForControl, overlayLayers, {
+                position: 'topright',
+                collapsed: false
+            }).addTo(map);
+
+            console.log('✅ Control de capas añadido');
+        }
+
+        // ========== AÑADIR CAPA DE ESTADOS (simulada) ==========
+        // Ya no es necesario, usamos el GeoJSON de arriba
+
+        console.log('✅ Mapa inicializado correctamente');
+        console.log(`📊 Total: ${permisosData.length} permisos, ${totalCapacity} MW`);
+        console.log(`🗺️ Capa de estados cargada: ${estadosGeoJSON.features.length} estados`);
+
+        // ========== FUNCIONES DE EXPORTACIÓN ==========
+
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+
+        function downloadImage(dataUrl, filename) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function waitForTiles() {
+            return new Promise((resolve) => {
+                let tilesLoading = 0;
+                let tilesLoaded = 0;
+
+                map.eachLayer(layer => {
+                    if (layer instanceof L.TileLayer) {
+                        layer.on('tileloadstart', () => tilesLoading++);
+                        layer.on('tileload', () => {
+                            tilesLoaded++;
+                            if (tilesLoaded >= tilesLoading && tilesLoading > 0) {
+                                setTimeout(resolve, 500);
+                            }
+                        });
+                        layer.on('tileerror', () => {
+                            tilesLoaded++;
+                            if (tilesLoaded >= tilesLoading && tilesLoading > 0) {
+                                setTimeout(resolve, 500);
+                            }
+                        });
+                    }
+                });
+
+                setTimeout(() => resolve(), 3000);
+            });
+        }
+
+        // MÉTODO PRINCIPAL: dom-to-image (RECOMENDADO)
+        async function exportMapDomToImage() {
+            showLoading();
+            try {
+                console.log('🔄 dom-to-image: Esperando carga de tiles...');
+                await waitForTiles();
+
+                const mapElement = document.getElementById('map');
+                const quality = parseFloat(document.getElementById('export-quality').value);
+
+                console.log(`🔄 dom-to-image: Capturando con calidad ${quality}x`);
+
+                // Opciones mejoradas para capturar tiles externos
+                const dataUrl = await domtoimage.toPng(mapElement, {
+                    quality: 1.0,
+                    width: mapElement.offsetWidth * quality,
+                    height: mapElement.offsetHeight * quality,
+                    style: {
+                        transform: `scale(${quality})`,
+                        transformOrigin: 'top left'
+                    },
+                    cacheBust: true,
+                    // Configuración CORS mejorada
+                    filter: function (node) {
+                        // Incluir todos los nodos excepto controles de Leaflet que no queremos
+                        if (node.classList) {
+                            return !node.classList.contains('leaflet-control-zoom') &&
+                                !node.classList.contains('leaflet-control-attribution');
+                        }
+                        return true;
+                    },
+                    // Configuración para imágenes externas
+                    imagePlaceholder: undefined,
+                    // Permitir imágenes de otros dominios
+                    corsImg: true
+                });
+
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                downloadImage(dataUrl, `mapa_electricidad_${timestamp}.png`);
+
+                console.log('✅ dom-to-image: Exportación completada');
+                alert('✅ Exportación completada con dom-to-image\n\nRevisa la imagen descargada para verificar:\n- Tiles del mapa base\n- Capas de datos (Estados, Gerencias)\n- Marcadores y clusters');
+            } catch (error) {
+                console.error('❌ Error en dom-to-image:', error);
+                alert('❌ Error en dom-to-image: ' + error.message + '\n\nPrueba con html2canvas como respaldo.');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // MÉTODO ALTERNATIVO: html2canvas (RESPALDO - MEJOR PARA TILES EXTERNOS)
+        async function exportMapHtml2Canvas() {
+            showLoading();
+            try {
+                console.log('🔄 html2canvas: Esperando carga de tiles...');
+                await waitForTiles();
+
+                const mapElement = document.getElementById('map');
+                const quality = parseFloat(document.getElementById('export-quality').value);
+
+                console.log(`🔄 html2canvas: Capturando con calidad ${quality}x`);
+
+                // html2canvas es mejor para capturar tiles externos
+                const canvas = await html2canvas(mapElement, {
+                    useCORS: true,
+                    allowTaint: true, // Cambiado a true para permitir tiles externos
+                    backgroundColor: '#FFFFFF',
+                    scale: quality,
+                    logging: false,
+                    imageTimeout: 30000, // Aumentado a 30 segundos
+                    removeContainer: false,
+                    foreignObjectRendering: false, // Desactivado para mejor compatibilidad
+                    // Proxy para imágenes CORS si es necesario
+                    proxy: null,
+                    onclone: function (clonedDoc) {
+                        const clonedMap = clonedDoc.getElementById('map');
+                        if (clonedMap) {
+                            clonedMap.style.overflow = 'visible';
+
+                            // Asegurar que todos los tiles sean visibles
+                            const tiles = clonedMap.querySelectorAll('.leaflet-tile');
+                            tiles.forEach(tile => {
+                                tile.style.opacity = '1';
+                                // Forzar crossOrigin para tiles
+                                if (tile.tagName === 'IMG' && !tile.crossOrigin) {
+                                    tile.crossOrigin = 'anonymous';
+                                }
+                            });
+                        }
+                    }
+                });
+
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                downloadImage(dataUrl, `mapa_electricidad_html2canvas_${timestamp}.png`);
+
+                console.log('✅ html2canvas: Exportación completada');
+                alert('✅ Exportación completada con html2canvas\n\nRevisa la imagen descargada.');
+            } catch (error) {
+                console.error('❌ Error en html2canvas:', error);
+                alert('❌ Error en html2canvas: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        console.log('✅ Mapa inicializado correctamente');
+        console.log(`📊 Total: ${permisosData.length} permisos, ${totalCapacity} MW`);
+        console.log(`🗺️ Capa de estados cargada: ${estadosGeoJSON.features.length} estados`);
+        console.log('🚀 Sistema de exportación listo - dom-to-image es el método principal');
+        console.log('✅ Mapas base optimizados para exportación (CartoDB, OSM, Stamen, ESRI)');
+        console.log('🎨 8 estilos de mapas base disponibles + opción sin fondo');
+    </script>
+</body>
+
+</html>

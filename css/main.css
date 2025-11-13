@@ -765,7 +765,7 @@ al styles */
 .modal {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 9998;
     display: none;
     align-items: center;
     justify-content: center;
@@ -1166,7 +1166,7 @@ Notification system */
     inset: 0;
     background: rgba(16, 56, 42, 0.3);
     backdrop-filter: blur(12px);
-    z-index: 1200;
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;

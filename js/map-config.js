@@ -159,36 +159,45 @@ document.addEventListener('DOMContentLoaded', function () {
     const layerConfigs = {
         'sener-azul': {
             label: 'SENER Azul',
-            creator: () => createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul')
+            creator: () => createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul'),
+            isMapTiler: true
         },
         'sener-light': {
             label: 'SENER Light',
-            creator: () => createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light')
+            creator: () => createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light'),
+            isMapTiler: true
         },
         'sener-oscuro': {
             label: 'SENER Oscuro',
-            creator: () => createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro')
+            creator: () => createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro'),
+            isMapTiler: true
         },
-        'google-satelite': {
-            label: 'Google Satélite',
-            creator: () => L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                attribution: '&copy; Google',
-                maxZoom: 20
-            })
-        },
-        'carto-light': {
-            label: 'CartoDB Light',
-            creator: () => L.tileLayer(fallbackLight, {
+        'carto-positron': {
+            label: 'Positron (Claro)',
+            creator: () => L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: fallbackAttribution,
-                maxZoom: 18
-            })
+                maxZoom: 19,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
         },
-        'carto-dark': {
-            label: 'CartoDB Dark',
-            creator: () => L.tileLayer(fallbackDark, {
+        'carto-voyager': {
+            label: 'Voyager (Colores)',
+            creator: () => L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: fallbackAttribution,
-                maxZoom: 18
-            })
+                maxZoom: 19,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'esri-worldimagery': {
+            label: 'Satélite (ESRI)',
+            creator: () => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
         }
     };
 
@@ -214,8 +223,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const defaultBaseKey = baseLayers['sener-light'] ? 'sener-light' : baseKeys[0];
+    const defaultBaseKey = baseLayers['esri-worldimagery'] ? 'esri-worldimagery' : baseKeys[0];
     const activeBaseLayer = baseLayers[defaultBaseKey];
+    console.log('✅ Mapa base por defecto: Satélite (ESRI)');
 
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
@@ -231,21 +241,111 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     map.isBasemapActive = true; // Initialize the flag
 
+    // Exponer mapa globalmente para exportación
+    window.map = map;
+
     // Añadir controles
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-    L.control.scale({
+    
+    // Control de escala personalizado con saltos de 50km hasta 800km
+    L.Control.CustomScale = L.Control.extend({
+        options: {
+            position: 'bottomleft',
+            maxWidth: 180,
+            metric: true,
+            imperial: false,
+            updateWhenIdle: true
+        },
+
+        onAdd: function (map) {
+            const className = 'leaflet-control-scale';
+            const container = L.DomUtil.create('div', className);
+            this._mScale = L.DomUtil.create('div', className + '-line', container);
+            
+            map.on(this.options.updateWhenIdle ? 'moveend' : 'move', this._update, this);
+            map.whenReady(this._update, this);
+            
+            return container;
+        },
+
+        onRemove: function (map) {
+            map.off(this.options.updateWhenIdle ? 'moveend' : 'move', this._update, this);
+        },
+
+        _update: function () {
+            const map = this._map;
+            const y = map.getSize().y / 2;
+            const maxMeters = map.distance(
+                map.containerPointToLatLng([0, y]),
+                map.containerPointToLatLng([this.options.maxWidth, y])
+            );
+
+            this._updateMetric(maxMeters);
+        },
+
+        _updateMetric: function (maxMeters) {
+            const meters = this._getRoundNum(maxMeters);
+            const label = meters < 1000 ? meters + ' m' : (meters / 1000) + ' km';
+
+            this._updateScale(this._mScale, label, meters / maxMeters);
+        },
+
+        _updateScale: function (scale, text, ratio) {
+            scale.style.width = Math.round(this.options.maxWidth * ratio) + 'px';
+            scale.innerHTML = text;
+        },
+
+        _getRoundNum: function (num) {
+            const pow10 = Math.pow(10, (Math.floor(num) + '').length - 1);
+            let d = num / pow10;
+
+            // Saltos personalizados de 50 en 50 hasta 800km
+            if (num >= 1000) { // Si es >= 1km
+                const km = num / 1000;
+                
+                // Definir saltos de 50km
+                const steps = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800];
+                
+                // Encontrar el salto más cercano
+                for (let i = 0; i < steps.length; i++) {
+                    if (km <= steps[i] * 1.5) {
+                        return steps[i] * 1000; // Convertir a metros
+                    }
+                }
+                
+                return 800000; // Máximo 800km
+            }
+
+            // Para distancias menores a 1km, usar la lógica estándar
+            d = d >= 10 ? 10 :
+                d >= 5 ? 5 :
+                d >= 3 ? 3 :
+                d >= 2 ? 2 : 1;
+
+            return pow10 * d;
+        }
+    });
+
+    L.control.customScale = function (options) {
+        return new L.Control.CustomScale(options);
+    };
+
+    L.control.customScale({
         position: 'bottomleft',
-        imperial: false,
         maxWidth: 180,
         updateWhenIdle: true
     }).addTo(map);
 
-    let currentBaseLayerName = 'SENER Light';
+    let currentBaseLayerName = 'Satélite (ESRI)';
+    window.currentBaseLayerName = currentBaseLayerName;
 
     // Handle background for "None" basemap
     map.on('baselayerchange', function (e) {
         currentBaseLayerName = e.name;
         map.isBasemapActive = e.name !== 'Ninguno';
+        
+        // Exponer globalmente para exportación
+        window.currentBaseLayerName = e.name;
 
         if (e.name === 'Ninguno') {
             map.getContainer().style.backgroundColor = 'white';
@@ -470,15 +570,41 @@ document.addEventListener('DOMContentLoaded', function () {
     graticuleLabels.addTo(map);
     marinasLayer.addTo(map);
 
+    // Crear capa dummy para controlar logos
+    const logosLayer = L.layerGroup();
+    logosLayer.addTo(map);
+
+    // Listener para mostrar/ocultar logos
+    map.on('overlayadd', function(e) {
+        if (e.name === 'Logos Institucionales') {
+            const logosWrapper = document.querySelector('.logos-control-wrapper');
+            if (logosWrapper) {
+                logosWrapper.style.display = '';
+            }
+        }
+    });
+
+    map.on('overlayremove', function(e) {
+        if (e.name === 'Logos Institucionales') {
+            const logosWrapper = document.querySelector('.logos-control-wrapper');
+            if (logosWrapper) {
+                logosWrapper.style.display = 'none';
+            }
+        }
+    });
+
     // Crear overlays para el control de capas
     const overlays = {
         'Retícula (Lat/Lon)': graticuleLayer,
-        'Regiones Marinas': marinasLayer
+        'Regiones Marinas': marinasLayer,
+        'Logos Institucionales': logosLayer
     };
 
     if (Object.keys(baseLayersForControl).length) {
         L.control.layers(baseLayersForControl, overlays, { position: 'topright', collapsed: true }).addTo(map);
     }
+
+    console.log('✅ Control de capas con logos integrado');
 
     // Configurar vista inicial del mapa
     let currentBaseLayer = activeBaseLayer || null;
@@ -870,10 +996,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!mapTitleDisplay) {
             return;
         }
-        mapTitleDisplay.textContent = title && title.trim() ? title : DEFAULT_MAP_TITLE;
+        const displayTitle = title && title.trim() ? title : DEFAULT_MAP_TITLE;
+        mapTitleDisplay.textContent = displayTitle;
+        
+        // Exponer globalmente para exportación
+        window.currentMapTitle = displayTitle;
     }
     updateMapTitleDisplay(DEFAULT_MAP_TITLE);
     let currentMapTitle = DEFAULT_MAP_TITLE;
+    window.currentMapTitle = currentMapTitle;
     let municipalitiesData = null;
     let electrificationData = null;
     let focusedRegion = null; // Track currently focused region for electrification map
@@ -5590,47 +5721,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }, REFRESH_MS);
     }
 
-    // Inicializar sistema de exportación de mapas
-    let mapExporter;
-    let exportUI = new ExportUI(); // Initialize exportUI here
-    console.log('ExportUI inicializado correctamente');
-    window.exportUI = exportUI; // Make available globally
-
-    try {
-        mapExporter = new MapExporter(map);
-        console.log('MapExporter inicializado correctamente');
-
-        // Hacer disponible globalmente para pruebas
-        window.mapExporter = mapExporter;
-
-        // Probar la funcionalidad de captura después de que el mapa esté completamente cargado
-        setTimeout(async () => {
-            try {
-                const testResult = await mapExporter.testCapture();
-                console.log('Prueba de captura:', testResult);
-            } catch (error) {
-                console.warn('Error en prueba de captura:', error);
-            }
-        }, 2000);
-
-    } catch (error) {
-        console.error('Error inicializando sistema de exportación:', error);
-    }
-
-    // Make map available globally for access from other modules
-    window.map = map;
-
-    // --- Export Button Event Listeners ---
-    const exportPdfBtn = document.getElementById('export-pdf');
-    const exportPngBtn = document.getElementById('export-png');
-
-    if (exportPdfBtn) {
-        exportPdfBtn.addEventListener('click', () => exportUI.openModal('pdf'));
-    }
-
-    if (exportPngBtn) {
-        exportPngBtn.addEventListener('click', () => exportUI.openModal('png'));
-    }
+    // Sistema de exportación simplificado manejado por simple-export.js
+    console.log('✅ Mapa disponible globalmente para exportación');
 
     // Update currentMapTitle when a new map is selected
     const mapDescriptionEl = document.getElementById('map-description');
@@ -6242,16 +6334,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function hideSuggestions() {
-        if (searchSuggestionsEl) {
-            searchSuggestionsEl.style.display = 'none';
-            searchSuggestionsEl.innerHTML = '';
+        const suggestionsEl = document.getElementById('search-suggestions');
+        if (suggestionsEl) {
+            suggestionsEl.style.display = 'none';
+            suggestionsEl.innerHTML = '';
         }
-        selectedSuggestionIndex = -1;
+        if (typeof selectedSuggestionIndex !== 'undefined') {
+            selectedSuggestionIndex = -1;
+        }
     }
     
     function clearSearchBox() {
-        if (permitSearchInput) {
-            permitSearchInput.value = '';
+        const searchInput = document.getElementById('permit-search');
+        if (searchInput) {
+            searchInput.value = '';
         }
         hideSuggestions();
     }
