@@ -198,6 +198,60 @@ document.addEventListener('DOMContentLoaded', function () {
                 crossOrigin: 'anonymous'
             }),
             exportable: true
+        },
+        'stadia-alidade': {
+            label: 'Alidade Smooth (Colorido)',
+            creator: () => L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+                maxZoom: 20,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'stamen-terrain-background': {
+            label: 'Terrain Background (Sutil)',
+            creator: () => L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://stamen.com">Stamen Design</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+                maxZoom: 18,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'osm-standard': {
+            label: 'OpenStreetMap (Estándar)',
+            creator: () => L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'stamen-toner-lite': {
+            label: 'Toner Lite (Minimalista)',
+            creator: () => L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://stamen.com">Stamen Design</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+                maxZoom: 20,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'stamen-watercolor': {
+            label: 'Watercolor (Artístico)',
+            creator: () => L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', {
+                attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://stamen.com">Stamen Design</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+                maxZoom: 16,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
+        },
+        'esri-worldstreetmap': {
+            label: 'ESRI Street Map (Formal)',
+            creator: () => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19,
+                crossOrigin: 'anonymous'
+            }),
+            exportable: true
         }
     };
 
@@ -212,8 +266,50 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add a "None" layer for a white background
+    // Variable global para la capa de estados
+    let statesBackgroundLayer = null;
+
+    // Función para cargar la capa de estados
+    async function loadStatesBackground() {
+        if (statesBackgroundLayer) {
+            return statesBackgroundLayer;
+        }
+        
+        try {
+            const response = await fetch('https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson');
+            const data = await response.json();
+            
+            statesBackgroundLayer = L.geoJSON(data, {
+                style: function() {
+                    return {
+                        fillColor: 'transparent',
+                        fill: false,
+                        weight: 0.8,
+                        opacity: 0.5,
+                        color: '#B8C9C4',
+                        interactive: false
+                    };
+                }
+            });
+            
+            console.log('✅ Capa de estados de fondo cargada');
+            return statesBackgroundLayer;
+        } catch (error) {
+            console.warn('No se pudo cargar la capa de estados:', error);
+            return null;
+        }
+    }
+
+    // Add a "None" layer with states background
     const noBaseLayer = L.layerGroup();
+    
+    // Cargar estados y agregarlos al layer "Ninguno"
+    loadStatesBackground().then(statesLayer => {
+        if (statesLayer) {
+            noBaseLayer.addLayer(statesLayer);
+        }
+    });
+    
     baseLayersForControl['Ninguno'] = noBaseLayer;
 
 
@@ -397,10 +493,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#601623',
-                weight: 1.5,
-                opacity: 0.5,
-                dashArray: '3, 6'
+                color: '#C8C8C8',
+                weight: 0.8,
+                opacity: 0.35,
+                dashArray: '2, 4'
             }).addTo(graticuleLayer);
         });
 
@@ -412,10 +508,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#601623',
-                weight: 1.5,
-                opacity: 0.5,
-                dashArray: '3, 6'
+                color: '#C8C8C8',
+                weight: 0.8,
+                opacity: 0.35,
+                dashArray: '2, 4'
             }).addTo(graticuleLayer);
         });
 
@@ -1316,6 +1412,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     let legendControl;
+    let provinciaLegendControl; // Leyenda personalizada de provincias petroleras
 
     function addLegend(colors) {
         if (legendControl) {
@@ -1401,6 +1498,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (legendControl) {
             map.removeControl(legendControl);
             legendControl = null;
+        }
+        // Remover también la leyenda de provincias petroleras si existe
+        if (provinciaLegendControl) {
+            map.removeControl(provinciaLegendControl);
+            provinciaLegendControl = null;
+        }
+        // Remover etiquetas de provincias petroleras si existen
+        if (window.ProvinciasPetroleras && window.ProvinciasPetroleras.removeProvinciaLabels) {
+            window.ProvinciasPetroleras.removeProvinciaLabels(map);
         }
     }
 
@@ -2001,6 +2107,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Add gerencias legend and capacity legend
                 addLegend(regionColors);
                 addCapacityLegend(capacityTotals);
+            } else if (type === 'provincias-petroleras') {
+                // Usar el módulo de Provincias Petroleras si está disponible
+                if (window.ProvinciasPetroleras) {
+                    styleFunction = window.ProvinciasPetroleras.styleProvincias;
+                    onEachFeatureFunction = window.ProvinciasPetroleras.onEachProvinciaFeature;
+                    
+                    // La leyenda se creará después de cargar el GeoJSON con los IDs correctos
+                } else {
+                    console.warn('Módulo de Provincias Petroleras no cargado');
+                    // Fallback a estilo básico
+                    styleFunction = function(feature) {
+                        return {
+                            fillColor: '#95A5A6',
+                            fill: true,
+                            weight: 2,
+                            opacity: 1,
+                            color: '#2C3E50',
+                            fillOpacity: 0.7
+                        };
+                    };
+                }
             } else { // regions
                 const regionColors = {
                     "Baja California": "#939594",
@@ -2057,6 +2184,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
             instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
+
+            // Agregar etiquetas y actualizar leyenda si es mapa de provincias petroleras
+            if (type === 'provincias-petroleras' && window.ProvinciasPetroleras) {
+                // Agregar etiquetas
+                window.ProvinciasPetroleras.addProvinciaLabels(geoJsonLayer, map);
+                
+                // Actualizar leyenda con IDs del GeoJSON
+                if (provinciaLegendControl) {
+                    map.removeControl(provinciaLegendControl);
+                }
+                provinciaLegendControl = window.ProvinciasPetroleras.createProvinciaLegend(geoJsonLayer);
+                provinciaLegendControl.addTo(map);
+            }
 
             if (insetControllers.length) {
                 insetControllers.forEach(controller => {

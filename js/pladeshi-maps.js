@@ -15,12 +15,12 @@ const PLADESHI_MAPS = [
     },
     {
         name: 'Provincias Petroleras',
-        geojsonUrl: 'URL_TO_BE_DEFINED',
-        geojsonUrlType: 'regions',
-        googleSheetUrl: 'URL_TO_BE_DEFINED',
-        googleSheetEditUrl: 'URL_TO_BE_DEFINED',
-        descriptionTitle: 'Provincias Petroleras',
-        description: 'Descripción pendiente.'
+        geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Hidrocarburos/provincias.geojson',
+        geojsonUrlType: 'provincias-petroleras',
+        googleSheetUrl: null,
+        googleSheetEditUrl: null,
+        descriptionTitle: 'Provincias Petroleras de México',
+        description: 'Mapa de las provincias petroleras de México con recursos prospectivos de petróleo crudo equivalente en plays convencionales y no convencionales.'
     },
     {
         name: 'Producción de Hidrocarburos Líquidos',
