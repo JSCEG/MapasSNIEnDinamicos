@@ -266,50 +266,89 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Variable global para la capa de estados
-    let statesBackgroundLayer = null;
 
-    // Función para cargar la capa de estados
-    async function loadStatesBackground() {
-        if (statesBackgroundLayer) {
-            return statesBackgroundLayer;
+    // Variable global para la capa de México
+    let mexicoOutlineLayer = null;
+
+    // Función para cargar el contorno de México
+    async function loadMexicoOutline() {
+        if (mexicoOutlineLayer) {
+            return mexicoOutlineLayer;
         }
-        
+
         try {
-            const response = await fetch('https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson');
+            const response = await fetch('https://cdn.sassoapps.com/Mapas/mexico.geojson');
             const data = await response.json();
-            
-            statesBackgroundLayer = L.geoJSON(data, {
-                style: function() {
+
+            // Definir la proyección de México (Lambert Conformal Conic)
+            const mexicoProj = '+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +ellps=GRS80 +units=m +no_defs';
+            const wgs84 = 'EPSG:4326';
+
+            // Reproyectar las coordenadas
+            const reprojectCoordinates = (coords) => {
+                if (typeof coords[0] === 'number') {
+                    // Es un punto [x, y] en metros
+                    const [lng, lat] = proj4(mexicoProj, wgs84, coords);
+                    return [lng, lat]; // Mantener como [lng, lat] para GeoJSON
+                } else {
+                    // Es un array de coordenadas, recursivo
+                    return coords.map(coord => reprojectCoordinates(coord));
+                }
+            };
+
+            // Reproyectar todas las geometrías
+            data.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    feature.geometry.coordinates = reprojectCoordinates(feature.geometry.coordinates);
+                }
+            });
+
+            console.log('📍 Primeras coordenadas reproyectadas:', data.features[0]?.geometry?.coordinates[0]?.[0]?.[0]?.[0]);
+
+            mexicoOutlineLayer = L.geoJSON(data, {
+                pane: 'mexicoOverlayPane',
+                style: function () {
                     return {
-                        fillColor: 'transparent',
-                        fill: false,
-                        weight: 0.8,
-                        opacity: 0.5,
-                        color: '#B8C9C4',
+                        fillColor: '#FFF8E7', // Color crema claro
+                        fill: true,
+                        fillOpacity: 0.7, // Alfa de 0.9
+                        weight: 2,
+                        opacity: 1,
+                        color: '#888888', // Borde gris
                         interactive: false
                     };
                 }
             });
-            
-            console.log('✅ Capa de estados de fondo cargada');
-            return statesBackgroundLayer;
+
+            console.log('✅ Capa de México cargada y reproyectada - Features:', data.features.length);
+            return mexicoOutlineLayer;
         } catch (error) {
-            console.warn('No se pudo cargar la capa de estados:', error);
+            console.error('Error al cargar la capa de México:', error);
             return null;
         }
     }
 
-    // Add a "None" layer with states background
+    // Crear pane personalizado para el mapa base "Ninguno" con filtro crema
+    const NINGUNO_BASE_TILE_PANE = 'ningunoBaseTilePane';
+
+    // Add a "None" layer con satélite ESRI filtrado + capa de México
     const noBaseLayer = L.layerGroup();
-    
-    // Cargar estados y agregarlos al layer "Ninguno"
-    loadStatesBackground().then(statesLayer => {
-        if (statesLayer) {
-            noBaseLayer.addLayer(statesLayer);
+
+    // Cargar la capa de México y agregarla al layer "Ninguno"
+    loadMexicoOutline().then(mexicoLayer => {
+        if (mexicoLayer) {
+            noBaseLayer.addLayer(mexicoLayer);
+            // Si el mapa ya existe y tiene el noBaseLayer activo, agregar directamente
+            if (window.map && window.map.hasLayer(noBaseLayer)) {
+                mexicoLayer.addTo(window.map);
+                console.log('✅ Capa de México agregada directamente al mapa');
+            } else {
+                console.log('✅ Capa de México agregada a noBaseLayer');
+            }
         }
+    }).catch(err => {
+        console.error('Error al cargar capa de México:', err);
     });
-    
     baseLayersForControl['Ninguno'] = noBaseLayer;
 
 
@@ -319,9 +358,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const defaultBaseKey = baseLayers['esri-worldimagery'] ? 'esri-worldimagery' : baseKeys[0];
-    const activeBaseLayer = baseLayers[defaultBaseKey];
-    console.log('✅ Mapa base por defecto: Satélite (ESRI)');
+    const defaultBaseKey = 'Ninguno';
+    const activeBaseLayer = noBaseLayer;
+    console.log('✅ Listo. Mapa base por defecto: Ninguno');
 
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
@@ -335,14 +374,43 @@ document.addEventListener('DOMContentLoaded', function () {
         zoomControl: false,
         preferCanvas: false // Disable canvas rendering to fall back to SVG for better event handling
     });
-    map.isBasemapActive = true; // Initialize the flag
+    map.isBasemapActive = false; // Initialize the flag (false porque inicia con Ninguno)
+
+    // Crear pane para el mapa satélite de "Ninguno" con filtro crema claro
+    map.createPane(NINGUNO_BASE_TILE_PANE);
+    const ningunoTilePane = map.getPane(NINGUNO_BASE_TILE_PANE);
+    if (ningunoTilePane) {
+        ningunoTilePane.style.zIndex = 150;
+        ningunoTilePane.style.filter = 'sepia(0.65) saturate(0.2) brightness(1.3) contrast(0.85)';
+        ningunoTilePane.style.opacity = '0.4';
+    }
+
+    // Crear pane para la capa de México (encima del satélite, debajo de otras capas)
+    const MEXICO_OVERLAY_PANE = 'mexicoOverlayPane';
+    map.createPane(MEXICO_OVERLAY_PANE);
+    const mexicoPane = map.getPane(MEXICO_OVERLAY_PANE);
+    if (mexicoPane) {
+        mexicoPane.style.zIndex = 199; // Entre satélite (150) y otras capas (200+)
+    }
+
+    // Agregar capa satélite ESRI con filtro crema al layer "Ninguno"
+    const esriSatelliteFiltered = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 19,
+        crossOrigin: 'anonymous',
+        pane: NINGUNO_BASE_TILE_PANE,
+        className: 'esri-satellite-filtered'
+    });
+
+    // Agregar el satélite filtrado al layer "Ninguno"
+    noBaseLayer.addLayer(esriSatelliteFiltered);
 
     // Exponer mapa globalmente para exportación
     window.map = map;
 
     // Añadir controles
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-    
+
     // Control de escala personalizado con saltos de 50km hasta 800km
     L.Control.CustomScale = L.Control.extend({
         options: {
@@ -357,10 +425,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const className = 'leaflet-control-scale';
             const container = L.DomUtil.create('div', className);
             this._mScale = L.DomUtil.create('div', className + '-line', container);
-            
+
             map.on(this.options.updateWhenIdle ? 'moveend' : 'move', this._update, this);
             map.whenReady(this._update, this);
-            
+
             return container;
         },
 
@@ -398,25 +466,25 @@ document.addEventListener('DOMContentLoaded', function () {
             // Saltos personalizados de 50 en 50 hasta 800km
             if (num >= 1000) { // Si es >= 1km
                 const km = num / 1000;
-                
+
                 // Definir saltos de 50km
                 const steps = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800];
-                
+
                 // Encontrar el salto más cercano
                 for (let i = 0; i < steps.length; i++) {
                     if (km <= steps[i] * 1.5) {
                         return steps[i] * 1000; // Convertir a metros
                     }
                 }
-                
+
                 return 800000; // Máximo 800km
             }
 
             // Para distancias menores a 1km, usar la lógica estándar
             d = d >= 10 ? 10 :
                 d >= 5 ? 5 :
-                d >= 3 ? 3 :
-                d >= 2 ? 2 : 1;
+                    d >= 3 ? 3 :
+                        d >= 2 ? 2 : 1;
 
             return pow10 * d;
         }
@@ -432,14 +500,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateWhenIdle: true
     }).addTo(map);
 
-    let currentBaseLayerName = 'Satélite (ESRI)';
+    let currentBaseLayerName = 'Ninguno';
     window.currentBaseLayerName = currentBaseLayerName;
 
     // Handle background for "None" basemap
     map.on('baselayerchange', function (e) {
         currentBaseLayerName = e.name;
         map.isBasemapActive = e.name !== 'Ninguno';
-        
+
         // Exponer globalmente para exportación
         window.currentBaseLayerName = e.name;
 
@@ -493,10 +561,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#C8C8C8',
-                weight: 0.8,
-                opacity: 0.35,
-                dashArray: '2, 4'
+                color: '#999999',
+                weight: 1.2,
+                opacity: 0.6,
+                dashArray: '3, 6'
             }).addTo(graticuleLayer);
         });
 
@@ -508,10 +576,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             L.polyline(latlngs, {
-                color: '#C8C8C8',
-                weight: 0.8,
-                opacity: 0.35,
-                dashArray: '2, 4'
+                color: '#999999',
+                weight: 1.2,
+                opacity: 0.6,
+                dashArray: '3, 6'
             }).addTo(graticuleLayer);
         });
 
@@ -671,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
     logosLayer.addTo(map);
 
     // Listener para mostrar/ocultar logos
-    map.on('overlayadd', function(e) {
+    map.on('overlayadd', function (e) {
         if (e.name === 'Logos Institucionales') {
             const logosWrapper = document.querySelector('.logos-control-wrapper');
             if (logosWrapper) {
@@ -680,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    map.on('overlayremove', function(e) {
+    map.on('overlayremove', function (e) {
         if (e.name === 'Logos Institucionales') {
             const logosWrapper = document.querySelector('.logos-control-wrapper');
             if (logosWrapper) {
@@ -716,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let statesGeometries = null; // Store States geometries from GeoJSON
     let gcrLayerGroup = null; // Layer for GCR highlighting
     let statesLayerGroup = null; // Layer for States highlighting
-    
+
     // State ID to Name mapping
     const stateIdToName = {
         '01': 'Aguascalientes',
@@ -752,25 +820,25 @@ document.addEventListener('DOMContentLoaded', function () {
         '31': 'Yucatán',
         '32': 'Zacatecas'
     };
-    
+
     // Petrolíferos data
     let petroliferosPermitsData = []; // Store petroliferos permits data
     let petroliferosStats = {}; // Store petroliferos statistics
     let currentPetroliferosFilter = null; // Current filter for petroliferos
     let currentPetroliferosFilteredData = []; // Filtered data for petroliferos
-    
+
     // Gas LP data
     let gasLPPermitsData = []; // Store Gas LP permits data
     let gasLPStats = {}; // Store Gas LP statistics
     let currentGasLPFilter = null; // Current filter for Gas LP
     let currentGasLPFilteredData = []; // Filtered data for Gas LP
-    
+
     // Gas Natural data
     let gasNaturalPermitsData = []; // Store Gas Natural permits data
     let gasNaturalStats = {}; // Store Gas Natural statistics
     let currentGasNaturalFilter = null; // Current filter for Gas Natural
     let currentGasNaturalFilteredData = []; // Filtered data for Gas Natural
-    
+
     // Chart.js instances
     let electricityTechChart = null;
     let electricityStatesChart = null;
@@ -780,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let gasLPStatesChart = null;
     let gasNaturalTypeChart = null;
     let gasNaturalStatesChart = null;
-    
+
     let electricityStats = {
         byState: {}, // By EfId (Estado/Entidad Federativa)
         byGCR: {}, // By GCR geometry (calculated with Turf.js)
@@ -979,62 +1047,62 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearData() {
         markersLayer.clearLayers();
         clearInsetMarkers();
-        
+
         // Clear cluster group if exists
         if (markersClusterGroup) {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup = null;
         }
-        
+
         // Clear electricity permits data
         electricityPermitsData = [];
         currentFilteredData = [];
         currentFilter = null;
-        
+
         // Clear petroliferos permits data
         petroliferosPermitsData = [];
         currentPetroliferosFilteredData = [];
         currentPetroliferosFilter = null;
-        
+
         // Clear Gas LP permits data
         gasLPPermitsData = [];
         currentGasLPFilteredData = [];
         currentGasLPFilter = null;
-        
+
         // Clear Gas Natural permits data
         gasNaturalPermitsData = [];
         currentGasNaturalFilteredData = [];
         currentGasNaturalFilter = null;
-        
+
         // Don't clear gcrGeometries and statesGeometries - we can reuse them
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Hide geometry layers
         hideGeometryLayers();
-        
+
         // Hide filters panels
         const electricityFiltersPanel = document.getElementById('electricity-filters-panel');
         if (electricityFiltersPanel) {
             electricityFiltersPanel.style.display = 'none';
         }
-        
+
         const petroliferosFiltersPanel = document.getElementById('petroliferos-filters-panel');
         if (petroliferosFiltersPanel) {
             petroliferosFiltersPanel.style.display = 'none';
         }
-        
+
         const gasLPFiltersPanel = document.getElementById('gaslp-filters-panel');
         if (gasLPFiltersPanel) {
             gasLPFiltersPanel.style.display = 'none';
         }
-        
+
         const gasNaturalFiltersPanel = document.getElementById('gasnatural-filters-panel');
         if (gasNaturalFiltersPanel) {
             gasNaturalFiltersPanel.style.display = 'none';
         }
-        
+
         if (lastUpdatedEl) {
             lastUpdatedEl.textContent = '--';
         }
@@ -1045,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const instrumentSelect = document.getElementById('instrument-select');
     const mapSelect = document.getElementById('map-select');
     const sheetInfoEl = document.getElementById('sheet-info');
-    
+
     map.createPane('gerenciasPane');
     map.getPane('gerenciasPane').style.zIndex = 400; // Set explicit z-index for gerencias
     map.createPane('statesPane');
@@ -1062,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', function () {
         nodesPane.style.zIndex = 620;
         nodesPane.style.pointerEvents = 'auto';
     }
-    
+
     // Create pane for electricity permits markers (above gerencias)
     map.createPane('electricityMarkersPane');
     const electricityMarkersPane = map.getPane('electricityMarkersPane');
@@ -1070,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', function () {
         electricityMarkersPane.style.zIndex = 650; // Increased to be well above everything
         electricityMarkersPane.style.pointerEvents = 'auto';
     }
-    
+
     const connectionsPane = map.getPane('connectionsPane');
     if (connectionsPane) {
         connectionsPane.style.zIndex = 610;
@@ -1094,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const displayTitle = title && title.trim() ? title : DEFAULT_MAP_TITLE;
         mapTitleDisplay.textContent = displayTitle;
-        
+
         // Exponer globalmente para exportación
         window.currentMapTitle = displayTitle;
     }
@@ -1616,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', function () {
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend');
             div.innerHTML = '<strong>Adiciones de Capacidad (MW)</strong><br>';
-            
+
             // Add dynamic legend items with institutional colors
             if (totals && totals.columnNames) {
                 const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
@@ -1627,12 +1695,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
             }
-            
+
             // Add totals if available
             if (totals && totals.columns) {
                 div.innerHTML += '<br><div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">';
                 div.innerHTML += '<strong style="font-size: 11px;">TOTALES</strong><br>';
-                
+
                 const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
                 totals.columnNames.forEach((col, index) => {
                     if (totals.columns[col] > 0) {
@@ -1640,16 +1708,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         div.innerHTML += `<div style="font-size: 11px; color: ${color}; margin-top: 2px;">${col}: ${totals.columns[col].toLocaleString('es-MX')} MW</div>`;
                     }
                 });
-                
+
                 // Add storage info for specific map
                 if (mapName === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
                     div.innerHTML += `<div style="font-size: 11px; color: #555; margin-top: 6px; font-style: italic;">Almacenamiento: 2,480 MW</div>`;
                 }
-                
+
                 div.innerHTML += `<div style="font-size: 12px; font-weight: bold; margin-top: 6px; color: #1a1a1a;">TOTAL: ${totals.total.toLocaleString('es-MX')} MW</div>`;
                 div.innerHTML += '</div>';
             }
-            
+
             return div;
         };
 
@@ -2070,7 +2138,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     "Peninsular": "#A16F4A"
                 };
 
-                styleFunction = function(feature) {
+                styleFunction = function (feature) {
                     const color = regionColors[feature.properties.name] || '#808080';
                     return {
                         fillColor: color,
@@ -2112,12 +2180,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (window.ProvinciasPetroleras) {
                     styleFunction = window.ProvinciasPetroleras.styleProvincias;
                     onEachFeatureFunction = window.ProvinciasPetroleras.onEachProvinciaFeature;
-                    
+
                     // La leyenda se creará después de cargar el GeoJSON con los IDs correctos
                 } else {
                     console.warn('Módulo de Provincias Petroleras no cargado');
                     // Fallback a estilo básico
-                    styleFunction = function(feature) {
+                    styleFunction = function (feature) {
                         return {
                             fillColor: '#95A5A6',
                             fill: true,
@@ -2189,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (type === 'provincias-petroleras' && window.ProvinciasPetroleras) {
                 // Agregar etiquetas
                 window.ProvinciasPetroleras.addProvinciaLabels(geoJsonLayer, map);
-                
+
                 // Actualizar leyenda con IDs del GeoJSON
                 if (provinciaLegendControl) {
                     map.removeControl(provinciaLegendControl);
@@ -2483,52 +2551,52 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Electricity filters and statistics functions
-    
+
     // Function to load and display GCR layer with highlighting
     function showGCRLayer(highlightGCR = null) {
         console.log('showGCRLayer called with:', highlightGCR);
-        
+
         // FORCE remove States layer completely
         if (statesLayerGroup) {
             console.log('FORCE Removing States layer');
             try {
                 map.removeLayer(statesLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing states layer:', e);
             }
             statesLayerGroup = null;
         }
-        
+
         // FORCE remove existing GCR layer completely
         if (gcrLayerGroup) {
             console.log('FORCE Removing existing GCR layer');
             try {
                 map.removeLayer(gcrLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing GCR layer:', e);
             }
             gcrLayerGroup = null;
         }
-        
+
         // Double check - remove all layers from gerenciasPane
-        map.eachLayer(function(layer) {
+        map.eachLayer(function (layer) {
             if (layer.options && layer.options.pane === 'gerenciasPane') {
                 console.log('Found stray layer in gerenciasPane, removing');
                 map.removeLayer(layer);
             }
         });
-        
+
         if (!gcrGeometries) {
             console.warn('GCR geometries not loaded');
             return;
         }
-        
+
         console.log('Creating NEW GCR layer with highlighting:', highlightGCR);
-        
+
         gcrLayerGroup = L.geoJSON(gcrGeometries, {
-            style: function(feature) {
+            style: function (feature) {
                 const isHighlighted = highlightGCR && feature.properties.name === highlightGCR;
-                
+
                 return {
                     fillColor: isHighlighted ? '#1f7a62' : '#ffffff',
                     fillOpacity: isHighlighted ? 0.8 : 0.05,
@@ -2538,21 +2606,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     dashArray: isHighlighted ? '' : '3, 3'
                 };
             },
-            onEachFeature: function(feature, layer) {
+            onEachFeature: function (feature, layer) {
                 const gcrName = feature.properties.name;
-                
+
                 // Tooltip
                 layer.bindTooltip(gcrName, {
                     permanent: false,
                     direction: 'center',
                     className: 'gcr-tooltip'
                 });
-                
+
                 // Click to filter
-                layer.on('click', function(e) {
+                layer.on('click', function (e) {
                     L.DomEvent.stopPropagation(e);
                     filterElectricityPermits('gcr', gcrName);
-                    
+
                     document.querySelectorAll('#gcr-cards .filter-card').forEach(card => {
                         if (card.dataset.filterValue === gcrName) {
                             card.classList.add('active');
@@ -2565,48 +2633,48 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             pane: 'gerenciasPane'
         }).addTo(map);
-        
+
         console.log('GCR layer added to map - bringing to back');
-        
+
         if (gcrLayerGroup) {
             gcrLayerGroup.bringToBack();
         }
     }
-    
+
     // Function to load and display States layer with highlighting
     function showStatesLayer(highlightState = null) {
         console.log('showStatesLayer called with:', highlightState);
-        
+
         // FORCE remove GCR layer completely
         if (gcrLayerGroup) {
             console.log('FORCE Removing GCR layer');
             try {
                 map.removeLayer(gcrLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing GCR layer:', e);
             }
             gcrLayerGroup = null;
         }
-        
+
         // FORCE remove existing States layer completely
         if (statesLayerGroup) {
             console.log('FORCE Removing existing States layer');
             try {
                 map.removeLayer(statesLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing states layer:', e);
             }
             statesLayerGroup = null;
         }
-        
+
         // Double check - remove all layers from gerenciasPane
-        map.eachLayer(function(layer) {
+        map.eachLayer(function (layer) {
             if (layer.options && layer.options.pane === 'gerenciasPane') {
                 console.log('Found stray layer in gerenciasPane, removing');
                 map.removeLayer(layer);
             }
         });
-        
+
         // Load states GeoJSON if not loaded
         if (!statesGeometries) {
             console.log('Loading states GeoJSON...');
@@ -2628,24 +2696,24 @@ document.addEventListener('DOMContentLoaded', function () {
             displayStatesLayer(highlightState);
         }
     }
-    
+
     function displayStatesLayer(highlightState) {
         console.log('displayStatesLayer called with:', highlightState);
-        
+
         if (!statesGeometries) {
             console.error('States geometries not loaded!');
             return;
         }
-        
+
         console.log('Creating NEW states layer with', statesGeometries.features?.length, 'features');
-        
+
         // Helper function to normalize state names for comparison
         function normalizeStateName(name) {
             if (!name) return '';
             // Remove leading numbers and spaces (e.g., "09 CDMX" -> "CDMX")
             return name.replace(/^\d+\s*/, '').trim().toUpperCase();
         }
-        
+
         // Helper function to get the main state name (without "de Zaragoza", etc.)
         function getMainStateName(name) {
             const normalized = normalizeStateName(name);
@@ -2656,16 +2724,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 .replace(/\s+DE\s+IGNACIO\s+DE\s+LA\s+LLAVE$/i, '')
                 .trim();
         }
-        
+
         const normalizedHighlight = normalizeStateName(highlightState);
         const mainHighlight = getMainStateName(highlightState);
-        
+
         statesLayerGroup = L.geoJSON(statesGeometries, {
-            style: function(feature) {
+            style: function (feature) {
                 const stateName = feature.properties.name || feature.properties.NOMGEO || feature.properties.NOM_ENT || feature.properties.estado;
                 const normalizedStateName = normalizeStateName(stateName);
                 const mainStateName = getMainStateName(stateName);
-                
+
                 // Check if highlighted using flexible matching
                 let isHighlighted = false;
                 if (highlightState) {
@@ -2678,14 +2746,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         isHighlighted = true;
                     }
                     // Try partial match in both directions
-                    else if (normalizedStateName.includes(mainHighlight) || 
-                             mainHighlight.includes(normalizedStateName)) {
+                    else if (normalizedStateName.includes(mainHighlight) ||
+                        mainHighlight.includes(normalizedStateName)) {
                         isHighlighted = true;
                     }
                 }
-                
+
                 console.log('State:', stateName, '| Normalized:', normalizedStateName, '| Main:', mainStateName, '| Highlight?', isHighlighted);
-                
+
                 return {
                     fillColor: isHighlighted ? '#601623' : '#ffffff',
                     fillOpacity: isHighlighted ? 0.85 : 0.08,
@@ -2695,27 +2763,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     dashArray: isHighlighted ? '' : '3, 3'
                 };
             },
-            onEachFeature: function(feature, layer) {
+            onEachFeature: function (feature, layer) {
                 const stateName = feature.properties.name || feature.properties.NOMGEO || feature.properties.NOM_ENT || feature.properties.estado;
-                
+
                 if (stateName) {
                     layer.bindTooltip(stateName, {
                         permanent: false,
                         direction: 'center',
                         className: 'state-tooltip'
                     });
-                    
-                    layer.on('click', function(e) {
+
+                    layer.on('click', function (e) {
                         L.DomEvent.stopPropagation(e);
-                        
+
                         console.log('State clicked:', stateName);
-                        
+
                         // Helper function to normalize state names
                         function normalizeStateName(name) {
                             if (!name) return '';
                             return name.replace(/^\d+\s*/, '').trim().toUpperCase();
                         }
-                        
+
                         // Helper function to get the main state name (without "de Zaragoza", etc.)
                         function getMainStateName(name) {
                             const normalized = normalizeStateName(name);
@@ -2726,35 +2794,35 @@ document.addEventListener('DOMContentLoaded', function () {
                                 .replace(/\s+DE\s+IGNACIO\s+DE\s+LA\s+LLAVE$/i, '')
                                 .trim();
                         }
-                        
+
                         const normalizedClickedState = normalizeStateName(stateName);
                         const mainClickedState = getMainStateName(stateName);
-                        
+
                         console.log('Normalized:', normalizedClickedState, '| Main:', mainClickedState);
-                        
+
                         // Find matching state in data
                         const matchingState = Object.keys(electricityStats.byState).find(state => {
                             const normalizedDataState = normalizeStateName(state);
                             const mainDataState = getMainStateName(state);
-                            
+
                             // Try exact match first
                             if (normalizedDataState === normalizedClickedState) return true;
-                            
+
                             // Try main name match (Coahuila matches Coahuila de Zaragoza)
                             if (mainDataState === mainClickedState) return true;
-                            
+
                             // Try partial match in both directions
-                            if (normalizedDataState.includes(mainClickedState) || 
+                            if (normalizedDataState.includes(mainClickedState) ||
                                 mainClickedState.includes(normalizedDataState)) return true;
-                            
+
                             return false;
                         });
-                        
+
                         console.log('Matching state in data:', matchingState);
-                        
+
                         if (matchingState) {
                             filterElectricityPermits('state', matchingState);
-                            
+
                             document.querySelectorAll('#state-cards .filter-card').forEach(card => {
                                 if (card.dataset.filterValue === matchingState) {
                                     card.classList.add('active');
@@ -2769,79 +2837,79 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             pane: 'gerenciasPane'
         }).addTo(map);
-        
+
         console.log('States layer added to map - bringing to back');
-        
+
         if (statesLayerGroup) {
             statesLayerGroup.bringToBack();
         }
     }
-    
+
     // Function to hide both layers
     function hideGeometryLayers() {
         console.log('hideGeometryLayers called - FORCE removing all');
-        
+
         // FORCE remove GCR
         if (gcrLayerGroup) {
             console.log('FORCE Removing GCR layer');
             try {
                 map.removeLayer(gcrLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing GCR layer:', e);
             }
             gcrLayerGroup = null;
         }
-        
+
         // FORCE remove States
         if (statesLayerGroup) {
             console.log('FORCE Removing States layer');
             try {
                 map.removeLayer(statesLayerGroup);
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error removing states layer:', e);
             }
             statesLayerGroup = null;
         }
-        
+
         // Clean up any stray layers in gerenciasPane
         let removed = 0;
-        map.eachLayer(function(layer) {
+        map.eachLayer(function (layer) {
             if (layer.options && layer.options.pane === 'gerenciasPane') {
                 console.log('Found stray layer in gerenciasPane, removing');
                 map.removeLayer(layer);
                 removed++;
             }
         });
-        
+
         console.log('All geometry layers hidden. Removed', removed, 'stray layers');
     }
-    
+
     // Function to assign permits to GCRs using Turf.js spatial analysis
     function assignPermitsToGCR(data, gcrGeoJSON) {
         const assignments = {};
-        
+
         if (!gcrGeoJSON || !gcrGeoJSON.features) {
             console.warn('GCR GeoJSON not loaded');
             return assignments;
         }
-        
+
         data.forEach(row => {
             const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
             const lngRaw = row.lng || row.Lng || row.lon || row.Lon || row.longitude || row.Longitud || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
-            
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            
+
             // Create point using Turf
             const point = turf.point([lng, lat]);
-            
+
             // Check which GCR polygon contains this point
             for (const feature of gcrGeoJSON.features) {
                 const gcrName = feature.properties.name;
-                
+
                 try {
                     if (turf.booleanPointInPolygon(point, feature)) {
                         if (!assignments[gcrName]) {
@@ -2855,10 +2923,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
-        
+
         return assignments;
     }
-    
+
     function calculateElectricityStats(data) {
         const stats = {
             byState: {}, // By Estado (EfId)
@@ -2871,19 +2939,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 count: 0
             }
         };
-        
+
         // Calculate by State and Technology
         data.forEach(row => {
             const capacity = parseFloat(row.CapacidadAutorizadaMW) || 0;
             const generation = parseFloat(row.Generación_estimada_anual) || 0;
             const state = (row.EfId || 'Sin Estado').trim();
             const tech = (row.Tecnología || 'Sin Tecnología').trim();
-            
+
             // Totals
             stats.totals.capacity += capacity;
             stats.totals.generation += generation;
             stats.totals.count++;
-            
+
             // By State (EfId)
             if (!stats.byState[state]) {
                 stats.byState[state] = { capacity: 0, generation: 0, count: 0 };
@@ -2891,7 +2959,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byState[state].capacity += capacity;
             stats.byState[state].generation += generation;
             stats.byState[state].count++;
-            
+
             // By Technology
             if (!stats.byTech[tech]) {
                 stats.byTech[tech] = { capacity: 0, generation: 0, count: 0 };
@@ -2900,11 +2968,11 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byTech[tech].generation += generation;
             stats.byTech[tech].count++;
         });
-        
+
         // Calculate by GCR using spatial analysis with Turf.js
         if (gcrGeometries) {
             const gcrAssignments = assignPermitsToGCR(data, gcrGeometries);
-            
+
             Object.keys(gcrAssignments).forEach(gcrName => {
                 const permits = gcrAssignments[gcrName];
                 stats.byGCR[gcrName] = {
@@ -2913,15 +2981,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     count: permits.length,
                     technologies: {}
                 };
-                
+
                 permits.forEach(row => {
                     const capacity = parseFloat(row.CapacidadAutorizadaMW) || 0;
                     const generation = parseFloat(row.Generación_estimada_anual) || 0;
                     const tech = (row.Tecnología || 'Sin Tecnología').trim();
-                    
+
                     stats.byGCR[gcrName].capacity += capacity;
                     stats.byGCR[gcrName].generation += generation;
-                    
+
                     // Track by technology within this GCR
                     if (!stats.byGCR[gcrName].technologies[tech]) {
                         stats.byGCR[gcrName].technologies[tech] = {
@@ -2935,19 +3003,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     stats.byGCR[gcrName].technologies[tech].count++;
                 });
             });
-            
+
             // Create matrix (for easy access)
             stats.matrix = stats.byGCR;
         }
-        
+
         return stats;
     }
-    
+
     function updateElectricityTotals(stats) {
         const capacityEl = document.getElementById('total-capacity');
         const generationEl = document.getElementById('total-generation');
         const permitsEl = document.getElementById('total-permits');
-        
+
         if (capacityEl) {
             capacityEl.textContent = stats.totals.capacity.toLocaleString('es-MX', { maximumFractionDigits: 2 }) + ' MW';
         }
@@ -2958,10 +3026,10 @@ document.addEventListener('DOMContentLoaded', function () {
             permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
         }
     }
-    
+
     function createFilterCards(stats, type) {
         let container, data;
-        
+
         if (type === 'state') {
             container = document.getElementById('state-cards');
             data = stats.byState;
@@ -2972,20 +3040,20 @@ document.addEventListener('DOMContentLoaded', function () {
             container = document.getElementById('tech-cards');
             data = stats.byTech;
         }
-        
+
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         const sortedKeys = Object.keys(data).sort((a, b) => data[b].capacity - data[a].capacity);
-        
+
         sortedKeys.forEach(key => {
             const item = data[key];
             const card = document.createElement('div');
             card.className = 'filter-card';
             card.dataset.filterType = type;
             card.dataset.filterValue = key;
-            
+
             card.innerHTML = `
                 <div class="filter-card-header">
                     <div class="filter-card-title">${key}</div>
@@ -3002,41 +3070,41 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-            
-            card.addEventListener('click', function() {
+
+            card.addEventListener('click', function () {
                 filterElectricityPermits(type, key);
-                
+
                 // Update active state
                 container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
             });
-            
+
             container.appendChild(card);
         });
     }
-    
+
     function createMatrixView(stats) {
         const container = document.getElementById('matrix-view');
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         if (!stats.byGCR || Object.keys(stats.byGCR).length === 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--color-muted); padding: 40px;">No hay datos de GCR disponibles. Asegúrate de que el GeoJSON esté cargado.</p>';
             return;
         }
-        
+
         // Sort GCRs by capacity
-        const sortedGCRs = Object.keys(stats.byGCR).sort((a, b) => 
+        const sortedGCRs = Object.keys(stats.byGCR).sort((a, b) =>
             stats.byGCR[b].capacity - stats.byGCR[a].capacity
         );
-        
+
         sortedGCRs.forEach(gcrName => {
             const gcr = stats.byGCR[gcrName];
-            
+
             const section = document.createElement('div');
             section.className = 'matrix-gcr-section';
-            
+
             // Header
             const header = document.createElement('div');
             header.className = 'matrix-gcr-header';
@@ -3057,27 +3125,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-            
+
             // Click on header to filter by this GCR
-            header.addEventListener('click', function() {
+            header.addEventListener('click', function () {
                 filterElectricityPermitsByGCRGeometry(gcrName);
             });
-            
+
             section.appendChild(header);
-            
+
             // Technology grid
             if (gcr.technologies && Object.keys(gcr.technologies).length > 0) {
                 const techGrid = document.createElement('div');
                 techGrid.className = 'matrix-tech-grid';
-                
+
                 // Sort technologies by capacity
-                const sortedTechs = Object.keys(gcr.technologies).sort((a, b) => 
+                const sortedTechs = Object.keys(gcr.technologies).sort((a, b) =>
                     gcr.technologies[b].capacity - gcr.technologies[a].capacity
                 );
-                
+
                 sortedTechs.forEach(techName => {
                     const tech = gcr.technologies[techName];
-                    
+
                     const techCard = document.createElement('div');
                     techCard.className = 'matrix-tech-card';
                     techCard.innerHTML = `
@@ -3097,35 +3165,35 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         </div>
                     `;
-                    
+
                     // Click on tech card to filter by GCR + Tech
-                    techCard.addEventListener('click', function(e) {
+                    techCard.addEventListener('click', function (e) {
                         e.stopPropagation(); // Don't trigger GCR header click
                         filterElectricityPermitsByGCRAndTech(gcrName, techName);
                     });
-                    
+
                     techGrid.appendChild(techCard);
                 });
-                
+
                 section.appendChild(techGrid);
             }
-            
+
             container.appendChild(section);
         });
     }
-    
+
     function filterElectricityPermits(type, value) {
         if (!markersClusterGroup || !electricityPermitsData.length) return;
-        
+
         currentFilter = { type, value };
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Clear existing cluster
         map.removeLayer(markersClusterGroup);
         markersClusterGroup.clearLayers();
-        
+
         // Show/hide geometry layers based on filter type
         if (type === 'state') {
             showStatesLayer(value);
@@ -3135,15 +3203,15 @@ document.addEventListener('DOMContentLoaded', function () {
             // For technology filter, hide geometry layers
             hideGeometryLayers();
         }
-        
+
         // Filter data
         let filteredData;
         if (type === 'state') {
-            filteredData = electricityPermitsData.filter(row => 
+            filteredData = electricityPermitsData.filter(row =>
                 (row.EfId || 'Sin Estado').trim() === value
             );
         } else if (type === 'tech') {
-            filteredData = electricityPermitsData.filter(row => 
+            filteredData = electricityPermitsData.filter(row =>
                 (row.Tecnología || 'Sin Tecnología').trim() === value
             );
         } else if (type === 'gcr') {
@@ -3155,31 +3223,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 filteredData = [];
             }
         }
-        
+
         // Store filtered data for search
         currentFilteredData = filteredData;
         console.log('Filter applied:', type, value, '- Showing', filteredData.length, 'permits');
-        
+
         // Recalculate stats for filtered data
         const filteredStats = calculateElectricityStats(filteredData);
         updateElectricityTotals(filteredStats);
-        
+
         // Update charts with filtered data
         updateElectricityCharts(filteredStats);
-        
+
         // Redraw markers with filtered data
         drawElectricityMarkersOnly(filteredData);
     }
-    
+
     function filterElectricityPermitsByGCRGeometry(gcrName) {
         // Clear search box
         clearSearchBox();
-        
+
         filterElectricityPermits('gcr', gcrName);
-        
+
         // Show GCR layer with highlight
         showGCRLayer(gcrName);
-        
+
         // Update active state in matrix view
         document.querySelectorAll('.matrix-gcr-section').forEach(section => {
             if (section.querySelector('.matrix-gcr-title').textContent === gcrName) {
@@ -3191,68 +3259,68 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function filterElectricityPermitsByGCRAndTech(gcrName, techName) {
         if (!gcrGeometries || !electricityPermitsData.length) return;
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Get permits in this GCR
         const gcrAssignments = assignPermitsToGCR(electricityPermitsData, gcrGeometries);
         const gcrPermits = gcrAssignments[gcrName] || [];
-        
+
         // Filter by technology
-        const filteredData = gcrPermits.filter(row => 
+        const filteredData = gcrPermits.filter(row =>
             (row.Tecnología || 'Sin Tecnología').trim() === techName
         );
-        
+
         currentFilter = { type: 'gcr-tech', gcr: gcrName, tech: techName };
-        
+
         // Store filtered data for search
         currentFilteredData = filteredData;
         console.log('GCR+Tech filter applied:', gcrName, '+', techName, '- Showing', filteredData.length, 'permits');
-        
+
         // Show GCR layer with highlight
         showGCRLayer(gcrName);
-        
+
         // Clear existing cluster
         if (markersClusterGroup) {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup.clearLayers();
         }
-        
+
         // Recalculate stats
         const filteredStats = calculateElectricityStats(filteredData);
         updateElectricityTotals(filteredStats);
-        
+
         // Redraw markers
         drawElectricityMarkersOnly(filteredData);
     }
-    
+
     function resetElectricityFilters() {
         currentFilter = null;
         currentFilteredData = []; // Clear filtered data - search will use all data
-        
+
         console.log('Filters reset - searching in all', electricityPermitsData.length, 'permits');
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Remove active class from all cards
         document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
-        
+
         // Reset matrix view highlighting
         document.querySelectorAll('.matrix-gcr-section').forEach(section => {
             section.style.borderColor = '#eef3f6';
             section.style.background = 'white';
         });
-        
+
         // Show layer based on active tab
         const activeTab = document.querySelector('.filter-tab.active');
         if (activeTab) {
             const tabType = activeTab.dataset.tab;
-            
+
             if (tabType === 'state') {
                 // Tab "Por Estado" - Mostrar Estados sin highlighting
                 showStatesLayer(null);
@@ -3270,19 +3338,19 @@ document.addEventListener('DOMContentLoaded', function () {
             // Default: show states layer
             showStatesLayer(null);
         }
-        
+
         // Recalculate stats for all data
         updateElectricityTotals(electricityStats);
-        
+
         // Update charts with all data
         updateElectricityCharts(electricityStats);
-        
+
         // Redraw all markers
         if (electricityPermitsData.length) {
             drawElectricityMarkersOnly(electricityPermitsData);
         }
     }
-    
+
     function drawElectricityMarkersOnly(rows) {
         if (!markersClusterGroup) {
             markersClusterGroup = L.markerClusterGroup({
@@ -3290,7 +3358,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                iconCreateFunction: function(cluster) {
+                iconCreateFunction: function (cluster) {
                     const count = cluster.getChildCount();
                     let c = ' marker-cluster-';
                     if (count < 10) {
@@ -3300,23 +3368,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         c += 'large';
                     }
-                    return new L.DivIcon({ 
-                        html: '<div><span>' + count + '</span></div>', 
-                        className: 'marker-cluster' + c, 
-                        iconSize: new L.Point(40, 40) 
+                    return new L.DivIcon({
+                        html: '<div><span>' + count + '</span></div>',
+                        className: 'marker-cluster' + c,
+                        iconSize: new L.Point(40, 40)
                     });
                 }
             });
         } else {
             markersClusterGroup.clearLayers();
         }
-        
+
         rows.forEach(function (row) {
             const latRaw = row.lat || row.Lat || row.latitude || row.Latitude || row.latitud || '';
             const lngRaw = row.lng || row.Lng || row.lon || row.Lon || row.longitude || row.Longitud || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
-            
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
@@ -3343,19 +3411,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconAnchor: [16, 16],
                 popupAnchor: [0, -16]
             });
-            
+
             const marker = L.marker([lat, lng], {
                 icon: plantIcon,
                 zIndexOffset: 1000
             });
-            
+
             marker.bindPopup(popup);
             marker.permitData = row;
             markersClusterGroup.addLayer(marker);
         });
-        
+
         map.addLayer(markersClusterGroup);
-        
+
         if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
             const markerPane = map.getPane('markerPane');
             markerPane.style.zIndex = 650;
@@ -3365,7 +3433,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function drawElectricityPermits(rows) {
         drawElectricityPermitsWithStats(rows);
     }
-    
+
     function drawElectricityPermitsWithStats(rows) {
         // Clear existing markers
         markersLayer.clearLayers();
@@ -3373,10 +3441,10 @@ document.addEventListener('DOMContentLoaded', function () {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup = null;
         }
-        
+
         // Store data for search
         electricityPermitsData = rows;
-        
+
         // Load GCR geometries if not loaded
         if (!gcrGeometries) {
             fetch('https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson')
@@ -3384,7 +3452,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     gcrGeometries = data;
                     console.log('GCR geometries loaded:', gcrGeometries.features.map(f => f.properties.name));
-                    
+
                     // Now calculate stats with GCR data
                     electricityStats = calculateElectricityStats(rows);
                     updateElectricityTotals(electricityStats);
@@ -3392,7 +3460,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     createFilterCards(electricityStats, 'gcr');
                     createFilterCards(electricityStats, 'tech');
                     createMatrixView(electricityStats);
-                    
+
                     // Show States layer by default (since "Por Estado" tab is active)
                     showStatesLayer(null);
                 })
@@ -3403,7 +3471,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     updateElectricityTotals(electricityStats);
                     createFilterCards(electricityStats, 'state');
                     createFilterCards(electricityStats, 'tech');
-                    
+
                     // Show States layer by default
                     showStatesLayer(null);
                 });
@@ -3415,20 +3483,20 @@ document.addEventListener('DOMContentLoaded', function () {
             createFilterCards(electricityStats, 'gcr');
             createFilterCards(electricityStats, 'tech');
             createMatrixView(electricityStats);
-            
+
             // Create charts
             createElectricityCharts(electricityStats);
-            
+
             // Show States layer by default (since "Por Estado" tab is active)
             showStatesLayer(null);
         }
-        
+
         // Show filters panel
         const filtersPanel = document.getElementById('electricity-filters-panel');
         if (filtersPanel) {
             filtersPanel.style.display = 'block';
         }
-        
+
         // Draw markers
         drawElectricityMarkersOnly(rows);
     }
@@ -3436,32 +3504,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // ELECTRICITY CHARTS FUNCTIONS
     // ==========================================
-    
+
     function createElectricityCharts(stats) {
         createElectricityTechChart(stats);
         createElectricityStatesChart(stats);
     }
-    
+
     function createElectricityTechChart(stats) {
         const ctx = document.getElementById('electricity-tech-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (electricityTechChart) {
             electricityTechChart.destroy();
         }
-        
+
         // Prepare data
-        const technologies = Object.keys(stats.byTech).sort((a, b) => 
+        const technologies = Object.keys(stats.byTech).sort((a, b) =>
             stats.byTech[b].capacity - stats.byTech[a].capacity
         );
-        
+
         const data = technologies.map(tech => stats.byTech[tech].capacity);
         const colors = [
             '#1f7a62', '#601623', '#24a47a', '#8B1E3F', '#0D5C4A',
             '#C41E3A', '#165845', '#7a2432', '#2d9575', '#4a0e16'
         ];
-        
+
         electricityTechChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -3501,7 +3569,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const label = context.label || '';
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -3514,23 +3582,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function createElectricityStatesChart(stats) {
         const ctx = document.getElementById('electricity-states-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (electricityStatesChart) {
             electricityStatesChart.destroy();
         }
-        
+
         // Get top 10 states by capacity
-        const states = Object.keys(stats.byState).sort((a, b) => 
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].capacity - stats.byState[a].capacity
         ).slice(0, 10);
-        
+
         const data = states.map(state => stats.byState[state].capacity);
-        
+
         electricityStatesChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -3563,7 +3631,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const value = context.parsed.x || 0;
                                 return `${value.toLocaleString('es-MX')} MW`;
                             }
@@ -3574,7 +3642,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value.toLocaleString('es-MX');
                             }
                         }
@@ -3583,39 +3651,39 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function updateElectricityCharts(stats) {
         updateElectricityTechChart(stats);
         updateElectricityStatesChart(stats);
     }
-    
+
     function updateElectricityTechChart(stats) {
         if (!electricityTechChart) {
             createElectricityTechChart(stats);
             return;
         }
-        
-        const technologies = Object.keys(stats.byTech).sort((a, b) => 
+
+        const technologies = Object.keys(stats.byTech).sort((a, b) =>
             stats.byTech[b].capacity - stats.byTech[a].capacity
         );
         const data = technologies.map(tech => stats.byTech[tech].capacity);
-        
+
         electricityTechChart.data.labels = technologies;
         electricityTechChart.data.datasets[0].data = data;
         electricityTechChart.update();
     }
-    
+
     function updateElectricityStatesChart(stats) {
         if (!electricityStatesChart) {
             createElectricityStatesChart(stats);
             return;
         }
-        
-        const states = Object.keys(stats.byState).sort((a, b) => 
+
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].capacity - stats.byState[a].capacity
         ).slice(0, 10);
         const data = states.map(state => stats.byState[state].capacity);
-        
+
         electricityStatesChart.data.labels = states;
         electricityStatesChart.data.datasets[0].data = data;
         electricityStatesChart.update();
@@ -3624,7 +3692,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // PETROLIFEROS FUNCTIONS
     // ==========================================
-    
+
     // Helper function to get state name from ID
     function getStateName(stateId) {
         if (!stateId) return 'Sin Estado';
@@ -3632,7 +3700,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = stateId.toString().trim().padStart(2, '0');
         return stateIdToName[id] || stateId;
     }
-    
+
     function calculatePetroliferosStats(data) {
         const stats = {
             byState: {}, // By Estado (EfId)
@@ -3644,7 +3712,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 count: 0
             }
         };
-        
+
         data.forEach(row => {
             const stateId = (row.EfId || 'Sin Estado').trim();
             const stateName = getStateName(stateId);
@@ -3652,7 +3720,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const brand = (row.Marca || 'Sin Marca').trim();
             const capacity = parseFloat(row.CapacidadAutorizadaBarriles) || 0;
             const investment = parseFloat(row.InversionEstimada) || 0;
-            
+
             // By State (using state name instead of ID)
             if (!stats.byState[stateName]) {
                 stats.byState[stateName] = { capacity: 0, investment: 0, count: 0, stateId: stateId };
@@ -3660,7 +3728,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byState[stateName].capacity += capacity;
             stats.byState[stateName].investment += investment;
             stats.byState[stateName].count++;
-            
+
             // By Type
             if (!stats.byType[type]) {
                 stats.byType[type] = { capacity: 0, investment: 0, count: 0 };
@@ -3668,7 +3736,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byType[type].capacity += capacity;
             stats.byType[type].investment += investment;
             stats.byType[type].count++;
-            
+
             // By Brand
             if (!stats.byBrand[brand]) {
                 stats.byBrand[brand] = { capacity: 0, investment: 0, count: 0 };
@@ -3676,45 +3744,45 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byBrand[brand].capacity += capacity;
             stats.byBrand[brand].investment += investment;
             stats.byBrand[brand].count++;
-            
+
             // Totals
             stats.totals.capacity += capacity;
             stats.totals.investment += investment;
             stats.totals.count++;
         });
-        
+
         return stats;
     }
-    
+
     function drawPetroliferosPermits(rows) {
         console.log('drawPetroliferosPermits called with', rows.length, 'rows');
-        
+
         // Clear existing markers
         markersLayer.clearLayers();
         if (markersClusterGroup) {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup = null;
         }
-        
+
         // Store data
         petroliferosPermitsData = rows;
         console.log('Stored petroliferosPermitsData:', petroliferosPermitsData.length);
-        
+
         // Calculate statistics
         petroliferosStats = calculatePetroliferosStats(rows);
         console.log('Calculated stats:', petroliferosStats);
-        
+
         updatePetroliferosTotals(petroliferosStats);
         createPetroliferosFilterCards(petroliferosStats, 'state');
         createPetroliferosFilterCards(petroliferosStats, 'type');
         createPetroliferosFilterCards(petroliferosStats, 'brand');
-        
+
         // Create charts
         createPetroliferosCharts(petroliferosStats);
-        
+
         // Show States layer by default
         showStatesLayer(null);
-        
+
         // Show filters panel
         const filtersPanel = document.getElementById('petroliferos-filters-panel');
         if (filtersPanel) {
@@ -3723,15 +3791,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             console.error('Petroliferos filters panel not found!');
         }
-        
+
         // Draw markers
         drawPetroliferosMarkersOnly(rows);
         console.log('Markers drawn');
     }
-    
+
     function drawPetroliferosMarkersOnly(rows) {
         console.log('drawPetroliferosMarkersOnly called with', rows.length, 'rows');
-        
+
         if (!markersClusterGroup) {
             console.log('Creating new cluster group');
             markersClusterGroup = L.markerClusterGroup({
@@ -3739,7 +3807,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                iconCreateFunction: function(cluster) {
+                iconCreateFunction: function (cluster) {
                     const count = cluster.getChildCount();
                     let className = 'marker-cluster-small';
                     if (count >= 100) {
@@ -3758,21 +3826,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Clearing existing cluster group');
             markersClusterGroup.clearLayers();
         }
-        
+
         let markersAdded = 0;
-        
+
         rows.forEach(row => {
             const latRaw = row.lat || '';
             const lngRaw = row.lon || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
-            
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            
+
             markersAdded++;
-            
+
             const popup = [
                 '<div class="permit-popup">',
                 '<div class="permit-header">',
@@ -3799,33 +3867,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconAnchor: [16, 16],
                 popupAnchor: [0, -16]
             });
-            
+
             const marker = L.marker([lat, lng], {
                 icon: gasIcon,
                 zIndexOffset: 1000
             });
-            
+
             marker.bindPopup(popup);
             marker.permitData = row;
             markersClusterGroup.addLayer(marker);
         });
-        
+
         console.log('Markers added to cluster:', markersAdded);
-        
+
         map.addLayer(markersClusterGroup);
         console.log('Cluster group added to map');
-        
+
         if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
             const markerPane = map.getPane('markerPane');
             markerPane.style.zIndex = 650;
         }
     }
-    
+
     function updatePetroliferosTotals(stats) {
         const capacityEl = document.getElementById('total-petroliferos-capacity');
         const investmentEl = document.getElementById('total-petroliferos-investment');
         const permitsEl = document.getElementById('total-petroliferos-permits');
-        
+
         if (capacityEl) {
             capacityEl.textContent = stats.totals.capacity.toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' Barriles';
         }
@@ -3836,10 +3904,10 @@ document.addEventListener('DOMContentLoaded', function () {
             permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
         }
     }
-    
+
     function createPetroliferosFilterCards(stats, type) {
         let container, data;
-        
+
         if (type === 'state') {
             container = document.getElementById('petroliferos-state-cards');
             data = stats.byState;
@@ -3850,20 +3918,20 @@ document.addEventListener('DOMContentLoaded', function () {
             container = document.getElementById('petroliferos-brand-cards');
             data = stats.byBrand;
         }
-        
+
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         const sortedKeys = Object.keys(data).sort((a, b) => data[b].capacity - data[a].capacity);
-        
+
         sortedKeys.forEach(key => {
             const item = data[key];
             const card = document.createElement('div');
             card.className = 'filter-card';
             card.dataset.filterType = type;
             card.dataset.filterValue = key;
-            
+
             card.innerHTML = `
                 <div class="filter-card-header">
                     <div class="filter-card-title">${key}</div>
@@ -3880,31 +3948,31 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-            
-            card.addEventListener('click', function() {
+
+            card.addEventListener('click', function () {
                 filterPetroliferosPermits(type, key);
-                
+
                 // Update active state
                 container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
             });
-            
+
             container.appendChild(card);
         });
     }
-    
+
     function filterPetroliferosPermits(type, value) {
         if (!markersClusterGroup || !petroliferosPermitsData.length) return;
-        
+
         currentPetroliferosFilter = { type, value };
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Clear existing cluster
         map.removeLayer(markersClusterGroup);
         markersClusterGroup.clearLayers();
-        
+
         // Show/hide geometry layers based on filter type
         if (type === 'state') {
             showStatesLayer(value);
@@ -3912,20 +3980,20 @@ document.addEventListener('DOMContentLoaded', function () {
             // For other filters, show states without highlighting
             showStatesLayer(null);
         }
-        
+
         // Filter data
         let filteredData;
         if (type === 'state') {
             // When filtering by state name, we need to match by state ID
             // Find the state ID for this state name from the stats
             const stateId = petroliferosStats.byState[value] ? petroliferosStats.byState[value].stateId : null;
-            
+
             console.log('Filtering by state:', value, 'State ID:', stateId);
-            
+
             if (stateId) {
                 // Normalize both IDs for comparison (pad with zeros)
                 const normalizedFilterId = stateId.toString().trim().padStart(2, '0');
-                
+
                 filteredData = petroliferosPermitsData.filter(row => {
                     const rowId = (row.EfId || '').toString().trim().padStart(2, '0');
                     return rowId === normalizedFilterId;
@@ -3938,47 +4006,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         } else if (type === 'type') {
-            filteredData = petroliferosPermitsData.filter(row => 
+            filteredData = petroliferosPermitsData.filter(row =>
                 (row.TipoPermiso || 'Sin Tipo').trim() === value
             );
         } else if (type === 'brand') {
-            filteredData = petroliferosPermitsData.filter(row => 
+            filteredData = petroliferosPermitsData.filter(row =>
                 (row.Marca || 'Sin Marca').trim() === value
             );
         }
-        
+
         // Store filtered data for search
         currentPetroliferosFilteredData = filteredData;
         console.log('Petroliferos filter applied:', type, value, '- Showing', filteredData.length, 'permits');
-        
+
         // Recalculate stats for filtered data
         const filteredStats = calculatePetroliferosStats(filteredData);
         updatePetroliferosTotals(filteredStats);
-        
+
         // Update charts with filtered data
         updatePetroliferosCharts(filteredStats);
-        
+
         // Redraw markers with filtered data
         drawPetroliferosMarkersOnly(filteredData);
     }
-    
+
     function resetPetroliferosFilters() {
         currentPetroliferosFilter = null;
         currentPetroliferosFilteredData = [];
-        
+
         console.log('Petroliferos filters reset - searching in all', petroliferosPermitsData.length, 'permits');
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Remove active class from all cards
         document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
-        
+
         // Show layer based on active tab
         const activeTab = document.querySelector('.filter-tab-petroliferos.active');
         if (activeTab) {
             const tabType = activeTab.dataset.tab;
-            
+
             if (tabType === 'state') {
                 showStatesLayer(null);
             } else {
@@ -3987,48 +4055,48 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             showStatesLayer(null);
         }
-        
+
         // Recalculate stats for all data
         updatePetroliferosTotals(petroliferosStats);
-        
+
         // Update charts with all data
         updatePetroliferosCharts(petroliferosStats);
-        
+
         // Redraw all markers
         if (petroliferosPermitsData.length) {
             drawPetroliferosMarkersOnly(petroliferosPermitsData);
         }
     }
-    
+
     // ==========================================
     // PETROLIFEROS CHARTS FUNCTIONS
     // ==========================================
-    
+
     function createPetroliferosCharts(stats) {
         createPetroliferosBrandChart(stats);
         createPetroliferosStatesChart(stats);
     }
-    
+
     function createPetroliferosBrandChart(stats) {
         const ctx = document.getElementById('petroliferos-brand-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (petroliferosBrandChart) {
             petroliferosBrandChart.destroy();
         }
-        
+
         // Prepare data
-        const brands = Object.keys(stats.byBrand).sort((a, b) => 
+        const brands = Object.keys(stats.byBrand).sort((a, b) =>
             stats.byBrand[b].count - stats.byBrand[a].count
         );
-        
+
         const data = brands.map(brand => stats.byBrand[brand].count);
         const colors = [
             '#601623', '#1f7a62', '#8B1E3F', '#24a47a', '#C41E3A',
             '#0D5C4A', '#7a2432', '#165845', '#4a0e16', '#2d9575'
         ];
-        
+
         petroliferosBrandChart = new Chart(ctx, {
             type: 'pie',
             data: {
@@ -4068,7 +4136,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const label = context.label || '';
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -4081,23 +4149,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function createPetroliferosStatesChart(stats) {
         const ctx = document.getElementById('petroliferos-states-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (petroliferosStatesChart) {
             petroliferosStatesChart.destroy();
         }
-        
+
         // Get top 10 states by permit count
-        const states = Object.keys(stats.byState).sort((a, b) => 
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].count - stats.byState[a].count
         ).slice(0, 10);
-        
+
         const data = states.map(state => stats.byState[state].count);
-        
+
         petroliferosStatesChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -4130,7 +4198,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const value = context.parsed.x || 0;
                                 return `${value.toLocaleString('es-MX')} permisos`;
                             }
@@ -4141,7 +4209,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value.toLocaleString('es-MX');
                             }
                         }
@@ -4150,39 +4218,39 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function updatePetroliferosCharts(stats) {
         updatePetroliferosBrandChart(stats);
         updatePetroliferosStatesChart(stats);
     }
-    
+
     function updatePetroliferosBrandChart(stats) {
         if (!petroliferosBrandChart) {
             createPetroliferosBrandChart(stats);
             return;
         }
-        
-        const brands = Object.keys(stats.byBrand).sort((a, b) => 
+
+        const brands = Object.keys(stats.byBrand).sort((a, b) =>
             stats.byBrand[b].count - stats.byBrand[a].count
         );
         const data = brands.map(brand => stats.byBrand[brand].count);
-        
+
         petroliferosBrandChart.data.labels = brands;
         petroliferosBrandChart.data.datasets[0].data = data;
         petroliferosBrandChart.update();
     }
-    
+
     function updatePetroliferosStatesChart(stats) {
         if (!petroliferosStatesChart) {
             createPetroliferosStatesChart(stats);
             return;
         }
-        
-        const states = Object.keys(stats.byState).sort((a, b) => 
+
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].count - stats.byState[a].count
         ).slice(0, 10);
         const data = states.map(state => stats.byState[state].count);
-        
+
         petroliferosStatesChart.data.labels = states;
         petroliferosStatesChart.data.datasets[0].data = data;
         petroliferosStatesChart.update();
@@ -4191,9 +4259,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // GAS LP FUNCTIONS
     // ==========================================
-    
+
     // Helper function already exists: getStateName()
-    
+
     function calculateGasLPStats(data) {
         const stats = {
             byState: {}, // By Estado (EfId)
@@ -4204,14 +4272,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 count: 0
             }
         };
-        
+
         data.forEach(row => {
             const stateId = (row.EfId || 'Sin Estado').trim();
             const stateName = getStateName(stateId);
             const type = (row.TipoPermiso || 'Sin Tipo').trim();
             const capacityInstall = parseFloat(row.CapacidadInstalacion) || 0;
             const capacityLiters = parseFloat(row.CapacidadLitros) || 0;
-            
+
             // By State
             if (!stats.byState[stateName]) {
                 stats.byState[stateName] = { capacity: 0, capacityLiters: 0, count: 0, stateId: stateId };
@@ -4219,7 +4287,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byState[stateName].capacity += capacityInstall;
             stats.byState[stateName].capacityLiters += capacityLiters;
             stats.byState[stateName].count++;
-            
+
             // By Type
             if (!stats.byType[type]) {
                 stats.byType[type] = { capacity: 0, capacityLiters: 0, count: 0 };
@@ -4227,44 +4295,44 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byType[type].capacity += capacityInstall;
             stats.byType[type].capacityLiters += capacityLiters;
             stats.byType[type].count++;
-            
+
             // Totals
             stats.totals.capacity += capacityInstall;
             stats.totals.capacityLiters += capacityLiters;
             stats.totals.count++;
         });
-        
+
         return stats;
     }
-    
+
     function drawGasLPPermits(rows) {
         console.log('drawGasLPPermits called with', rows.length, 'rows');
-        
+
         // Clear existing markers
         markersLayer.clearLayers();
         if (markersClusterGroup) {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup = null;
         }
-        
+
         // Store data
         gasLPPermitsData = rows;
         console.log('Stored gasLPPermitsData:', gasLPPermitsData.length);
-        
+
         // Calculate statistics
         gasLPStats = calculateGasLPStats(rows);
         console.log('Calculated stats:', gasLPStats);
-        
+
         updateGasLPTotals(gasLPStats);
         createGasLPFilterCards(gasLPStats, 'state');
         createGasLPFilterCards(gasLPStats, 'type');
-        
+
         // Create charts
         createGasLPCharts(gasLPStats);
-        
+
         // Show States layer by default
         showStatesLayer(null);
-        
+
         // Show filters panel
         const filtersPanel = document.getElementById('gaslp-filters-panel');
         if (filtersPanel) {
@@ -4273,15 +4341,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             console.error('Gas LP filters panel not found!');
         }
-        
+
         // Draw markers
         drawGasLPMarkersOnly(rows);
         console.log('Markers drawn');
     }
-    
+
     function drawGasLPMarkersOnly(rows) {
         console.log('drawGasLPMarkersOnly called with', rows.length, 'rows');
-        
+
         if (!markersClusterGroup) {
             console.log('Creating new cluster group');
             markersClusterGroup = L.markerClusterGroup({
@@ -4289,7 +4357,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                iconCreateFunction: function(cluster) {
+                iconCreateFunction: function (cluster) {
                     const count = cluster.getChildCount();
                     let className = 'marker-cluster-small';
                     if (count >= 100) {
@@ -4308,21 +4376,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Clearing existing cluster group');
             markersClusterGroup.clearLayers();
         }
-        
+
         let markersAdded = 0;
-        
+
         rows.forEach(row => {
             const latRaw = row.lat || row.Lat || '';
             const lngRaw = row.lon || row.lng || row.Lon || row.Lng || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
-            
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            
+
             markersAdded++;
-            
+
             const popup = [
                 '<div class="permit-popup">',
                 '<div class="permit-header">',
@@ -4349,33 +4417,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconAnchor: [16, 16],
                 popupAnchor: [0, -16]
             });
-            
+
             const marker = L.marker([lat, lng], {
                 icon: gasLPIcon,
                 zIndexOffset: 1000
             });
-            
+
             marker.bindPopup(popup);
             marker.permitData = row;
             markersClusterGroup.addLayer(marker);
         });
-        
+
         console.log('Markers added to cluster:', markersAdded);
-        
+
         map.addLayer(markersClusterGroup);
         console.log('Cluster group added to map');
-        
+
         if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
             const markerPane = map.getPane('markerPane');
             markerPane.style.zIndex = 650;
         }
     }
-    
+
     function updateGasLPTotals(stats) {
         const capacityEl = document.getElementById('total-gaslp-capacity');
         const investmentEl = document.getElementById('total-gaslp-investment');
         const permitsEl = document.getElementById('total-gaslp-permits');
-        
+
         if (capacityEl) {
             const totalCapacity = stats.totals.capacity + stats.totals.capacityLiters;
             capacityEl.textContent = totalCapacity.toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' Litros';
@@ -4388,10 +4456,10 @@ document.addEventListener('DOMContentLoaded', function () {
             permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
         }
     }
-    
+
     function createGasLPFilterCards(stats, type) {
         let container, data;
-        
+
         if (type === 'state') {
             container = document.getElementById('gaslp-state-cards');
             data = stats.byState;
@@ -4399,20 +4467,20 @@ document.addEventListener('DOMContentLoaded', function () {
             container = document.getElementById('gaslp-type-cards');
             data = stats.byType;
         }
-        
+
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         const sortedKeys = Object.keys(data).sort((a, b) => data[b].capacity - data[a].capacity);
-        
+
         sortedKeys.forEach(key => {
             const item = data[key];
             const card = document.createElement('div');
             card.className = 'filter-card';
             card.dataset.filterType = type;
             card.dataset.filterValue = key;
-            
+
             card.innerHTML = `
                 <div class="filter-card-header">
                     <div class="filter-card-title">${key}</div>
@@ -4429,48 +4497,48 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-            
-            card.addEventListener('click', function() {
+
+            card.addEventListener('click', function () {
                 filterGasLPPermits(type, key);
-                
+
                 // Update active state
                 container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
             });
-            
+
             container.appendChild(card);
         });
     }
-    
+
     function filterGasLPPermits(type, value) {
         if (!markersClusterGroup || !gasLPPermitsData.length) return;
-        
+
         currentGasLPFilter = { type, value };
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Clear existing cluster
         map.removeLayer(markersClusterGroup);
         markersClusterGroup.clearLayers();
-        
+
         // Show/hide geometry layers based on filter type
         if (type === 'state') {
             showStatesLayer(value);
         } else {
             showStatesLayer(null);
         }
-        
+
         // Filter data
         let filteredData;
         if (type === 'state') {
             const stateId = gasLPStats.byState[value] ? gasLPStats.byState[value].stateId : null;
-            
+
             console.log('Filtering by state:', value, 'State ID:', stateId);
-            
+
             if (stateId) {
                 const normalizedFilterId = stateId.toString().trim().padStart(2, '0');
-                
+
                 filteredData = gasLPPermitsData.filter(row => {
                     const rowId = (row.EfId || '').toString().trim().padStart(2, '0');
                     return rowId === normalizedFilterId;
@@ -4482,43 +4550,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         } else if (type === 'type') {
-            filteredData = gasLPPermitsData.filter(row => 
+            filteredData = gasLPPermitsData.filter(row =>
                 (row.TipoPermiso || 'Sin Tipo').trim() === value
             );
         }
-        
+
         // Store filtered data for search
         currentGasLPFilteredData = filteredData;
         console.log('Gas LP filter applied:', type, value, '- Showing', filteredData.length, 'permits');
-        
+
         // Recalculate stats for filtered data
         const filteredStats = calculateGasLPStats(filteredData);
         updateGasLPTotals(filteredStats);
-        
+
         // Update charts with filtered data
         updateGasLPCharts(filteredStats);
-        
+
         // Redraw markers with filtered data
         drawGasLPMarkersOnly(filteredData);
     }
-    
+
     function resetGasLPFilters() {
         currentGasLPFilter = null;
         currentGasLPFilteredData = [];
-        
+
         console.log('Gas LP filters reset - searching in all', gasLPPermitsData.length, 'permits');
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Remove active class from all cards
         document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
-        
+
         // Show layer based on active tab
         const activeTab = document.querySelector('.filter-tab-gaslp.active');
         if (activeTab) {
             const tabType = activeTab.dataset.tab;
-            
+
             if (tabType === 'state') {
                 showStatesLayer(null);
             } else {
@@ -4527,48 +4595,48 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             showStatesLayer(null);
         }
-        
+
         // Recalculate stats for all data
         updateGasLPTotals(gasLPStats);
-        
+
         // Update charts with all data
         updateGasLPCharts(gasLPStats);
-        
+
         // Redraw all markers
         if (gasLPPermitsData.length) {
             drawGasLPMarkersOnly(gasLPPermitsData);
         }
     }
-    
+
     // ==========================================
     // GAS LP CHARTS FUNCTIONS
     // ==========================================
-    
+
     function createGasLPCharts(stats) {
         createGasLPTypeChart(stats);
         createGasLPStatesChart(stats);
     }
-    
+
     function createGasLPTypeChart(stats) {
         const ctx = document.getElementById('gaslp-type-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (gasLPTypeChart) {
             gasLPTypeChart.destroy();
         }
-        
+
         // Prepare data
-        const types = Object.keys(stats.byType).sort((a, b) => 
+        const types = Object.keys(stats.byType).sort((a, b) =>
             stats.byType[b].count - stats.byType[a].count
         );
-        
+
         const data = types.map(type => stats.byType[type].count);
         const colors = [
             '#1f7a62', '#601623', '#24a47a', '#8B1E3F', '#0D5C4A',
             '#C41E3A', '#165845', '#7a2432', '#2d9575', '#4a0e16'
         ];
-        
+
         gasLPTypeChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -4608,7 +4676,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const label = context.label || '';
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -4621,23 +4689,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function createGasLPStatesChart(stats) {
         const ctx = document.getElementById('gaslp-states-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (gasLPStatesChart) {
             gasLPStatesChart.destroy();
         }
-        
+
         // Get top 10 states by permit count
-        const states = Object.keys(stats.byState).sort((a, b) => 
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].count - stats.byState[a].count
         ).slice(0, 10);
-        
+
         const data = states.map(state => stats.byState[state].count);
-        
+
         gasLPStatesChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -4670,7 +4738,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const value = context.parsed.x || 0;
                                 return `${value.toLocaleString('es-MX')} permisos`;
                             }
@@ -4681,7 +4749,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value.toLocaleString('es-MX');
                             }
                         }
@@ -4690,39 +4758,39 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function updateGasLPCharts(stats) {
         updateGasLPTypeChart(stats);
         updateGasLPStatesChart(stats);
     }
-    
+
     function updateGasLPTypeChart(stats) {
         if (!gasLPTypeChart) {
             createGasLPTypeChart(stats);
             return;
         }
-        
-        const types = Object.keys(stats.byType).sort((a, b) => 
+
+        const types = Object.keys(stats.byType).sort((a, b) =>
             stats.byType[b].count - stats.byType[a].count
         );
         const data = types.map(type => stats.byType[type].count);
-        
+
         gasLPTypeChart.data.labels = types;
         gasLPTypeChart.data.datasets[0].data = data;
         gasLPTypeChart.update();
     }
-    
+
     function updateGasLPStatesChart(stats) {
         if (!gasLPStatesChart) {
             createGasLPStatesChart(stats);
             return;
         }
-        
-        const states = Object.keys(stats.byState).sort((a, b) => 
+
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].count - stats.byState[a].count
         ).slice(0, 10);
         const data = states.map(state => stats.byState[state].count);
-        
+
         gasLPStatesChart.data.labels = states;
         gasLPStatesChart.data.datasets[0].data = data;
         gasLPStatesChart.update();
@@ -4731,7 +4799,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // GAS NATURAL FUNCTIONS
     // ==========================================
-    
+
     function calculateGasNaturalStats(data) {
         const stats = {
             byState: {}, // By Estado (EfId)
@@ -4744,13 +4812,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 count: 0
             }
         };
-        
+
         data.forEach(row => {
             // Parse EfId to extract state ID and name
             const efIdRaw = (row.EfId || '').trim();
             let stateId = '';
             let stateName = '';
-            
+
             if (efIdRaw.includes('-')) {
                 const parts = efIdRaw.split('-');
                 stateId = parts[0].trim();
@@ -4759,22 +4827,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 stateId = efIdRaw;
                 stateName = getStateName(stateId);
             }
-            
+
             const type = (row.TipoPermiso || 'Sin Tipo').trim();
             const investment = parseFloat(row.InversionEstimada) || 0;
             const compressors = parseInt(row.Compresores) || 0;
             const dispatchers = parseInt(row.NumeroDespachadores) || 0;
             const cylinders = parseInt(row.Cilindros) || 0;
-            
+
             // By State
             if (!stats.byState[stateName]) {
-                stats.byState[stateName] = { 
-                    investment: 0, 
-                    compressors: 0, 
+                stats.byState[stateName] = {
+                    investment: 0,
+                    compressors: 0,
                     dispatchers: 0,
                     cylinders: 0,
-                    count: 0, 
-                    stateId: stateId 
+                    count: 0,
+                    stateId: stateId
                 };
             }
             stats.byState[stateName].investment += investment;
@@ -4782,15 +4850,15 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byState[stateName].dispatchers += dispatchers;
             stats.byState[stateName].cylinders += cylinders;
             stats.byState[stateName].count++;
-            
+
             // By Type
             if (!stats.byType[type]) {
-                stats.byType[type] = { 
-                    investment: 0, 
-                    compressors: 0, 
+                stats.byType[type] = {
+                    investment: 0,
+                    compressors: 0,
                     dispatchers: 0,
                     cylinders: 0,
-                    count: 0 
+                    count: 0
                 };
             }
             stats.byType[type].investment += investment;
@@ -4798,7 +4866,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.byType[type].dispatchers += dispatchers;
             stats.byType[type].cylinders += cylinders;
             stats.byType[type].count++;
-            
+
             // Totals
             stats.totals.investment += investment;
             stats.totals.compressors += compressors;
@@ -4806,38 +4874,38 @@ document.addEventListener('DOMContentLoaded', function () {
             stats.totals.cylinders += cylinders;
             stats.totals.count++;
         });
-        
+
         return stats;
     }
-    
+
     function drawGasNaturalPermits(rows) {
         console.log('drawGasNaturalPermits called with', rows.length, 'rows');
-        
+
         // Clear existing markers
         markersLayer.clearLayers();
         if (markersClusterGroup) {
             map.removeLayer(markersClusterGroup);
             markersClusterGroup = null;
         }
-        
+
         // Store data
         gasNaturalPermitsData = rows;
         console.log('Stored gasNaturalPermitsData:', gasNaturalPermitsData.length);
-        
+
         // Calculate statistics
         gasNaturalStats = calculateGasNaturalStats(rows);
         console.log('Calculated stats:', gasNaturalStats);
-        
+
         updateGasNaturalTotals(gasNaturalStats);
         createGasNaturalFilterCards(gasNaturalStats, 'state');
         createGasNaturalFilterCards(gasNaturalStats, 'type');
-        
+
         // Create charts
         createGasNaturalCharts(gasNaturalStats);
-        
+
         // Show States layer by default
         showStatesLayer(null);
-        
+
         // Show filters panel
         const filtersPanel = document.getElementById('gasnatural-filters-panel');
         if (filtersPanel) {
@@ -4846,15 +4914,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             console.error('Gas Natural filters panel not found!');
         }
-        
+
         // Draw markers
         drawGasNaturalMarkersOnly(rows);
         console.log('Markers drawn');
     }
-    
+
     function drawGasNaturalMarkersOnly(rows) {
         console.log('drawGasNaturalMarkersOnly called with', rows.length, 'rows');
-        
+
         if (!markersClusterGroup) {
             console.log('Creating new cluster group');
             markersClusterGroup = L.markerClusterGroup({
@@ -4862,7 +4930,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: false,
                 zoomToBoundsOnClick: true,
-                iconCreateFunction: function(cluster) {
+                iconCreateFunction: function (cluster) {
                     const count = cluster.getChildCount();
                     let className = 'marker-cluster-small';
                     if (count >= 100) {
@@ -4881,21 +4949,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Clearing existing cluster group');
             markersClusterGroup.clearLayers();
         }
-        
+
         let markersAdded = 0;
-        
+
         rows.forEach(row => {
             const latRaw = row.lat || row.Lat || '';
             const lngRaw = row.lon || row.lng || row.Lon || row.Lng || '';
             const lat = parseFloat(latRaw.toString().replace(',', '.'));
             const lng = parseFloat(lngRaw.toString().replace(',', '.'));
-            
+
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 return;
             }
-            
+
             markersAdded++;
-            
+
             const popup = [
                 '<div class="permit-popup">',
                 '<div class="permit-header">',
@@ -4923,33 +4991,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 iconAnchor: [16, 16],
                 popupAnchor: [0, -16]
             });
-            
+
             const marker = L.marker([lat, lng], {
                 icon: gasNaturalIcon,
                 zIndexOffset: 1000
             });
-            
+
             marker.bindPopup(popup);
             marker.permitData = row;
             markersClusterGroup.addLayer(marker);
         });
-        
+
         console.log('Markers added to cluster:', markersAdded);
-        
+
         map.addLayer(markersClusterGroup);
         console.log('Cluster group added to map');
-        
+
         if (markersClusterGroup._featureGroup && map.getPane('markerPane')) {
             const markerPane = map.getPane('markerPane');
             markerPane.style.zIndex = 650;
         }
     }
-    
+
     function updateGasNaturalTotals(stats) {
         const investmentEl = document.getElementById('total-gasnatural-investment');
         const compressorsEl = document.getElementById('total-gasnatural-compressors');
         const permitsEl = document.getElementById('total-gasnatural-permits');
-        
+
         if (investmentEl) {
             investmentEl.textContent = '$' + stats.totals.investment.toLocaleString('es-MX', { maximumFractionDigits: 2 });
         }
@@ -4960,10 +5028,10 @@ document.addEventListener('DOMContentLoaded', function () {
             permitsEl.textContent = stats.totals.count.toLocaleString('es-MX');
         }
     }
-    
+
     function createGasNaturalFilterCards(stats, type) {
         let container, data;
-        
+
         if (type === 'state') {
             container = document.getElementById('gasnatural-state-cards');
             data = stats.byState;
@@ -4971,20 +5039,20 @@ document.addEventListener('DOMContentLoaded', function () {
             container = document.getElementById('gasnatural-type-cards');
             data = stats.byType;
         }
-        
+
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         const sortedKeys = Object.keys(data).sort((a, b) => data[b].investment - data[a].investment);
-        
+
         sortedKeys.forEach(key => {
             const item = data[key];
             const card = document.createElement('div');
             card.className = 'filter-card';
             card.dataset.filterType = type;
             card.dataset.filterValue = key;
-            
+
             card.innerHTML = `
                 <div class="filter-card-header">
                     <div class="filter-card-title">${key}</div>
@@ -5001,48 +5069,48 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-            
-            card.addEventListener('click', function() {
+
+            card.addEventListener('click', function () {
                 filterGasNaturalPermits(type, key);
-                
+
                 // Update active state
                 container.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
             });
-            
+
             container.appendChild(card);
         });
     }
-    
+
     function filterGasNaturalPermits(type, value) {
         if (!markersClusterGroup || !gasNaturalPermitsData.length) return;
-        
+
         currentGasNaturalFilter = { type, value };
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Clear existing cluster
         map.removeLayer(markersClusterGroup);
         markersClusterGroup.clearLayers();
-        
+
         // Show/hide geometry layers based on filter type
         if (type === 'state') {
             showStatesLayer(value);
         } else {
             showStatesLayer(null);
         }
-        
+
         // Filter data
         let filteredData;
         if (type === 'state') {
             const stateId = gasNaturalStats.byState[value] ? gasNaturalStats.byState[value].stateId : null;
-            
+
             console.log('Filtering by state:', value, 'State ID:', stateId);
-            
+
             if (stateId) {
                 const normalizedFilterId = stateId.toString().trim();
-                
+
                 filteredData = gasNaturalPermitsData.filter(row => {
                     const rowEfId = (row.EfId || '').toString().trim();
                     const rowId = rowEfId.split('-')[0].trim();
@@ -5055,43 +5123,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         } else if (type === 'type') {
-            filteredData = gasNaturalPermitsData.filter(row => 
+            filteredData = gasNaturalPermitsData.filter(row =>
                 (row.TipoPermiso || 'Sin Tipo').trim() === value
             );
         }
-        
+
         // Store filtered data for search
         currentGasNaturalFilteredData = filteredData;
         console.log('Gas Natural filter applied:', type, value, '- Showing', filteredData.length, 'permits');
-        
+
         // Recalculate stats for filtered data
         const filteredStats = calculateGasNaturalStats(filteredData);
         updateGasNaturalTotals(filteredStats);
-        
+
         // Update charts with filtered data
         updateGasNaturalCharts(filteredStats);
-        
+
         // Redraw markers with filtered data
         drawGasNaturalMarkersOnly(filteredData);
     }
-    
+
     function resetGasNaturalFilters() {
         currentGasNaturalFilter = null;
         currentGasNaturalFilteredData = [];
-        
+
         console.log('Gas Natural filters reset - searching in all', gasNaturalPermitsData.length, 'permits');
-        
+
         // Clear search box
         clearSearchBox();
-        
+
         // Remove active class from all cards
         document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
-        
+
         // Show layer based on active tab
         const activeTab = document.querySelector('.filter-tab-gasnatural.active');
         if (activeTab) {
             const tabType = activeTab.dataset.tab;
-            
+
             if (tabType === 'state') {
                 showStatesLayer(null);
             } else {
@@ -5100,48 +5168,48 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             showStatesLayer(null);
         }
-        
+
         // Recalculate stats for all data
         updateGasNaturalTotals(gasNaturalStats);
-        
+
         // Update charts with all data
         updateGasNaturalCharts(gasNaturalStats);
-        
+
         // Redraw all markers
         if (gasNaturalPermitsData.length) {
             drawGasNaturalMarkersOnly(gasNaturalPermitsData);
         }
     }
-    
+
     // ==========================================
     // GAS NATURAL CHARTS FUNCTIONS
     // ==========================================
-    
+
     function createGasNaturalCharts(stats) {
         createGasNaturalTypeChart(stats);
         createGasNaturalStatesChart(stats);
     }
-    
+
     function createGasNaturalTypeChart(stats) {
         const ctx = document.getElementById('gasnatural-type-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (gasNaturalTypeChart) {
             gasNaturalTypeChart.destroy();
         }
-        
+
         // Prepare data
-        const types = Object.keys(stats.byType).sort((a, b) => 
+        const types = Object.keys(stats.byType).sort((a, b) =>
             stats.byType[b].count - stats.byType[a].count
         );
-        
+
         const data = types.map(type => stats.byType[type].count);
         const colors = [
             '#601623', '#1f7a62', '#8B1E3F', '#24a47a', '#C41E3A',
             '#0D5C4A', '#7a2432', '#165845', '#4a0e16', '#2d9575'
         ];
-        
+
         gasNaturalTypeChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -5181,7 +5249,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const label = context.label || '';
                                 const value = context.parsed || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -5194,23 +5262,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function createGasNaturalStatesChart(stats) {
         const ctx = document.getElementById('gasnatural-states-chart');
         if (!ctx) return;
-        
+
         // Destroy existing chart
         if (gasNaturalStatesChart) {
             gasNaturalStatesChart.destroy();
         }
-        
+
         // Get top 10 states by investment
-        const states = Object.keys(stats.byState).sort((a, b) => 
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].investment - stats.byState[a].investment
         ).slice(0, 10);
-        
+
         const data = states.map(state => stats.byState[state].investment);
-        
+
         gasNaturalStatesChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -5243,7 +5311,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const value = context.parsed.x || 0;
                                 return `$${value.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`;
                             }
@@ -5254,7 +5322,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     x: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return '$' + value.toLocaleString('es-MX');
                             }
                         }
@@ -5263,39 +5331,39 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function updateGasNaturalCharts(stats) {
         updateGasNaturalTypeChart(stats);
         updateGasNaturalStatesChart(stats);
     }
-    
+
     function updateGasNaturalTypeChart(stats) {
         if (!gasNaturalTypeChart) {
             createGasNaturalTypeChart(stats);
             return;
         }
-        
-        const types = Object.keys(stats.byType).sort((a, b) => 
+
+        const types = Object.keys(stats.byType).sort((a, b) =>
             stats.byType[b].count - stats.byType[a].count
         );
         const data = types.map(type => stats.byType[type].count);
-        
+
         gasNaturalTypeChart.data.labels = types;
         gasNaturalTypeChart.data.datasets[0].data = data;
         gasNaturalTypeChart.update();
     }
-    
+
     function updateGasNaturalStatesChart(stats) {
         if (!gasNaturalStatesChart) {
             createGasNaturalStatesChart(stats);
             return;
         }
-        
-        const states = Object.keys(stats.byState).sort((a, b) => 
+
+        const states = Object.keys(stats.byState).sort((a, b) =>
             stats.byState[b].investment - stats.byState[a].investment
         ).slice(0, 10);
         const data = states.map(state => stats.byState[state].investment);
-        
+
         gasNaturalStatesChart.data.labels = states;
         gasNaturalStatesChart.data.datasets[0].data = data;
         gasNaturalStatesChart.update();
@@ -5321,7 +5389,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (expectedUrl === (currentSheetUrl || '').trim()) {
                 const selectedInstrument = instrumentSelect.value;
                 const mapConfig = selectedInstrument && mapConfigurations[selectedInstrument] ? mapConfigurations[selectedInstrument].find(m => m.name === currentMapTitle) : null;
-                
+
                 // Use cluster function for electricity, petroliferos, gas LP and gas natural permits
                 if (mapConfig && mapConfig.useClusters) {
                     if (mapConfig.mapType === 'petroliferos') {
@@ -5336,7 +5404,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     drawRows(parsed.data, mapConfig);
                 }
-                
+
                 updateTimestamp();
             }
         } catch (error) {
@@ -5548,7 +5616,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Get dynamic column names (excluding Id, GCR, and UNIDADES)
             const allColumns = capacityData.length > 0 ? Object.keys(capacityData[0]) : [];
-            const capacityColumns = allColumns.filter(col => 
+            const capacityColumns = allColumns.filter(col =>
                 col !== 'Id' && col !== 'GCR' && col !== 'UNIDADES' && col.trim() !== ''
             );
 
@@ -5556,7 +5624,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Create a map for quick lookup
             const capacityDataMap = new Map();
-            
+
             // Calculate totals by column and row
             const columnTotals = {};
             capacityColumns.forEach(col => columnTotals[col] = 0);
@@ -5566,14 +5634,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const gcrName = row.GCR;
                 let rowTotal = 0;
                 const rowData = { GCR: gcrName };
-                
+
                 capacityColumns.forEach(col => {
                     const value = parseFloat(row[col] || 0);
                     rowData[col] = value;
                     rowTotal += value;
                     columnTotals[col] += value;
                 });
-                
+
                 rowData.TOTAL = rowTotal;
                 grandTotal += rowTotal;
                 capacityDataMap.set(gcrName, rowData);
@@ -5621,7 +5689,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Build label HTML dynamically
                             let labelHTML = `<div class="pib-label-content">
                                 <div class="pib-label-id">${gcrName}</div>`;
-                            
+
                             // Add each capacity type with institutional colors
                             const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
                             capacityColumns.forEach((col, index) => {
@@ -5633,7 +5701,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </div>`;
                                 }
                             });
-                            
+
                             labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
                                 <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
                             </div></div>`;
@@ -5665,7 +5733,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Build label HTML dynamically
                         let labelHTML = `<div class="pib-label-content">
                             <div class="pib-label-id">${gcrName}</div>`;
-                        
+
                         // Add each capacity type with institutional colors
                         const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
                         capacityColumns.forEach((col, index) => {
@@ -5677,7 +5745,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </div>`;
                             }
                         });
-                        
+
                         labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
                             <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
                         </div></div>`;
@@ -5888,13 +5956,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateSheetInfo(null, SELECT_MAP_MESSAGE);
                 currentMapTitle = DEFAULT_MAP_TITLE;
                 updateMapTitleDisplay(DEFAULT_MAP_TITLE);
-                
+
                 // Hide search field
                 const searchGroup = document.getElementById('search-group');
                 if (searchGroup) {
                     searchGroup.style.display = 'none';
                 }
-                
+
                 if (mapDescriptionEl) {
                     mapDescriptionEl.innerHTML = '';
                     mapDescriptionEl.style.display = 'none';
@@ -5912,12 +5980,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (mapConfig.underConstruction) {
                         currentMapTitle = mapConfig.name;
                         updateMapTitleDisplay(currentMapTitle);
-                        
+
                         // Show construction message
                         if (mapDescriptionEl) {
                             const titleEl = document.getElementById('map-description-title');
                             const contentEl = document.getElementById('map-description-content');
-                            
+
                             if (titleEl) {
                                 titleEl.innerHTML = '<i class="bi bi-cone-striped"></i> En Construcción';
                                 titleEl.style.color = '#f0ad4e';
@@ -5927,7 +5995,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                             mapDescriptionEl.style.display = 'block';
                         }
-                        
+
                         // Show construction overlay on map
                         const constructionOverlay = document.createElement('div');
                         constructionOverlay.id = 'construction-overlay';
@@ -5951,23 +6019,23 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <p style="color: #555; font-size: 18px; margin: 0;">Este mapa estará disponible próximamente</p>
                             </div>
                         `;
-                        
+
                         // Remove existing construction overlay if any
                         const existing = document.getElementById('construction-overlay');
                         if (existing) existing.remove();
-                        
+
                         // Add to map container
                         document.getElementById('map').appendChild(constructionOverlay);
-                        
+
                         currentSheetUrl = null;
                         updateSheetInfo(null, 'Mapa en construcción');
                         return;
                     }
-                    
+
                     // Remove construction overlay if switching from construction map
                     const existing = document.getElementById('construction-overlay');
                     if (existing) existing.remove();
-                    
+
                     currentMapTitle = mapConfig.name; // Update the current map title
                     updateMapTitleDisplay(currentMapTitle);
 
@@ -6088,22 +6156,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchSuggestionsEl = document.getElementById('search-suggestions');
     const searchHelpBtn = document.getElementById('search-help-btn');
     let selectedSuggestionIndex = -1;
-    
+
     // Search help button
     if (searchHelpBtn) {
-        searchHelpBtn.addEventListener('click', function(e) {
+        searchHelpBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             openSearchHelpModal();
         });
     }
-    
+
     // Search help modal functions
     function openSearchHelpModal() {
         const modal = document.getElementById('search-help-modal');
         const statusEl = document.getElementById('search-help-status');
-        
+
         if (!modal) return;
-        
+
         // Update status text dynamically
         const hasFilter = currentFilteredData.length > 0;
         if (statusEl) {
@@ -6121,32 +6189,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 statusEl.style.borderLeftColor = 'var(--color-verde-profundo)';
             }
         }
-        
+
         // Show modal
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
-        
+
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
     }
-    
+
     function closeSearchHelpModal() {
         const modal = document.getElementById('search-help-modal');
         if (!modal) return;
-        
+
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-        
+
         // Restore body scroll
         document.body.style.overflow = '';
     }
-    
+
     // Event listeners for closing the modal
     const searchHelpModalCloseButtons = document.querySelectorAll('.search-help-modal-close');
     searchHelpModalCloseButtons.forEach(btn => {
         btn.addEventListener('click', closeSearchHelpModal);
     });
-    
+
     // Close on overlay click
     const searchHelpModal = document.getElementById('search-help-modal');
     if (searchHelpModal) {
@@ -6154,42 +6222,42 @@ document.addEventListener('DOMContentLoaded', function () {
         if (overlay) {
             overlay.addEventListener('click', closeSearchHelpModal);
         }
-        
+
         // Close on Escape key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && searchHelpModal.style.display === 'flex') {
                 closeSearchHelpModal();
             }
         });
     }
-    
+
     if (permitSearchInput) {
         // Input event for live suggestions
-        permitSearchInput.addEventListener('input', function() {
+        permitSearchInput.addEventListener('input', function () {
             const searchTerm = this.value.trim();
-            
+
             if (!searchTerm || searchTerm.length < 2) {
                 hideSuggestions();
                 return;
             }
-            
+
             // Check if we have data (electricity, petroliferos, Gas LP or Gas Natural)
             const hasData = electricityPermitsData.length > 0 || petroliferosPermitsData.length > 0 || gasLPPermitsData.length > 0 || gasNaturalPermitsData.length > 0;
             if (!hasData) {
                 console.warn('No search data available');
                 return;
             }
-            
+
             // Search and show suggestions
             showSearchSuggestions(searchTerm);
         });
-        
+
         // Keydown for navigation
-        permitSearchInput.addEventListener('keydown', function(e) {
+        permitSearchInput.addEventListener('keydown', function (e) {
             const suggestions = document.querySelectorAll('.search-suggestion-item');
-            
+
             if (!suggestions.length) return;
-            
+
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestions.length - 1);
@@ -6207,18 +6275,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 hideSuggestions();
             }
         });
-        
+
         // Click outside to close
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (!permitSearchInput.contains(e.target) && !searchSuggestionsEl.contains(e.target)) {
                 hideSuggestions();
             }
         });
     }
-    
+
     function showSearchSuggestions(searchTerm) {
         const upperSearch = searchTerm.toUpperCase();
-        
+
         // Determine which dataset to search based on active map
         let dataToSearch;
         let isPetroliferos = petroliferosPermitsData.length > 0 && document.getElementById('petroliferos-filters-panel').style.display === 'block';
@@ -6226,64 +6294,64 @@ document.addEventListener('DOMContentLoaded', function () {
         let isGasNatural = gasNaturalPermitsData.length > 0 && document.getElementById('gasnatural-filters-panel').style.display === 'block';
         let hasActiveFilter = false;
         let filterInfo = '';
-        
+
         if (isPetroliferos) {
             hasActiveFilter = currentPetroliferosFilteredData.length > 0;
             dataToSearch = hasActiveFilter ? currentPetroliferosFilteredData : petroliferosPermitsData;
-            
+
             if (hasActiveFilter && currentPetroliferosFilter) {
-                const filterType = currentPetroliferosFilter.type === 'state' ? 'Estado' : 
-                                   currentPetroliferosFilter.type === 'type' ? 'Tipo' : 'Marca';
+                const filterType = currentPetroliferosFilter.type === 'state' ? 'Estado' :
+                    currentPetroliferosFilter.type === 'type' ? 'Tipo' : 'Marca';
                 filterInfo = ` (Filtro: ${filterType} - ${currentPetroliferosFilter.value})`;
             }
-            
-            console.log('Searching in petroliferos:', hasActiveFilter ? 
-                'filtered data (' + currentPetroliferosFilteredData.length + ' permits)' + filterInfo : 
+
+            console.log('Searching in petroliferos:', hasActiveFilter ?
+                'filtered data (' + currentPetroliferosFilteredData.length + ' permits)' + filterInfo :
                 'all data (' + petroliferosPermitsData.length + ' permits)');
         } else if (isGasLP) {
             hasActiveFilter = currentGasLPFilteredData.length > 0;
             dataToSearch = hasActiveFilter ? currentGasLPFilteredData : gasLPPermitsData;
-            
+
             if (hasActiveFilter && currentGasLPFilter) {
                 const filterType = currentGasLPFilter.type === 'state' ? 'Estado' : 'Tipo';
                 filterInfo = ` (Filtro: ${filterType} - ${currentGasLPFilter.value})`;
             }
-            
-            console.log('Searching in Gas LP:', hasActiveFilter ? 
-                'filtered data (' + currentGasLPFilteredData.length + ' permits)' + filterInfo : 
+
+            console.log('Searching in Gas LP:', hasActiveFilter ?
+                'filtered data (' + currentGasLPFilteredData.length + ' permits)' + filterInfo :
                 'all data (' + gasLPPermitsData.length + ' permits)');
         } else if (isGasNatural) {
             hasActiveFilter = currentGasNaturalFilteredData.length > 0;
             dataToSearch = hasActiveFilter ? currentGasNaturalFilteredData : gasNaturalPermitsData;
-            
+
             if (hasActiveFilter && currentGasNaturalFilter) {
                 const filterType = currentGasNaturalFilter.type === 'state' ? 'Estado' : 'Tipo';
                 filterInfo = ` (Filtro: ${filterType} - ${currentGasNaturalFilter.value})`;
             }
-            
-            console.log('Searching in Gas Natural:', hasActiveFilter ? 
-                'filtered data (' + currentGasNaturalFilteredData.length + ' permits)' + filterInfo : 
+
+            console.log('Searching in Gas Natural:', hasActiveFilter ?
+                'filtered data (' + currentGasNaturalFilteredData.length + ' permits)' + filterInfo :
                 'all data (' + gasNaturalPermitsData.length + ' permits)');
         } else {
             hasActiveFilter = currentFilteredData.length > 0;
             dataToSearch = hasActiveFilter ? currentFilteredData : electricityPermitsData;
-            
+
             if (hasActiveFilter && currentFilter) {
-                const filterType = currentFilter.type === 'state' ? 'Estado' : 
-                                   currentFilter.type === 'gcr' ? 'GCR' : 'Tecnología';
+                const filterType = currentFilter.type === 'state' ? 'Estado' :
+                    currentFilter.type === 'gcr' ? 'GCR' : 'Tecnología';
                 filterInfo = ` (Filtro: ${filterType} - ${currentFilter.value})`;
             }
-            
-            console.log('Searching in electricity:', hasActiveFilter ? 
-                'filtered data (' + currentFilteredData.length + ' permits)' + filterInfo : 
+
+            console.log('Searching in electricity:', hasActiveFilter ?
+                'filtered data (' + currentFilteredData.length + ' permits)' + filterInfo :
                 'all data (' + electricityPermitsData.length + ' permits)');
         }
-        
+
         // Find matches - more intelligent search
         const matches = dataToSearch.filter(row => {
             const permitNumber = (row.NumeroPermiso || '').toUpperCase();
             const razonSocial = (row.RazonSocial || '').toUpperCase();
-            
+
             // Prioritize exact start matches
             return permitNumber.includes(upperSearch) || razonSocial.includes(upperSearch);
         }).sort((a, b) => {
@@ -6292,34 +6360,34 @@ document.addEventListener('DOMContentLoaded', function () {
             const bPermit = (b.NumeroPermiso || '').toUpperCase();
             const aCompany = (a.RazonSocial || '').toUpperCase();
             const bCompany = (b.RazonSocial || '').toUpperCase();
-            
+
             const aExact = aPermit === upperSearch || aCompany === upperSearch;
             const bExact = bPermit === upperSearch || bCompany === upperSearch;
             if (aExact && !bExact) return -1;
             if (!aExact && bExact) return 1;
-            
+
             const aStarts = aPermit.startsWith(upperSearch) || aCompany.startsWith(upperSearch);
             const bStarts = bPermit.startsWith(upperSearch) || bCompany.startsWith(upperSearch);
             if (aStarts && !bStarts) return -1;
             if (!aStarts && bStarts) return 1;
-            
+
             return 0;
         }).slice(0, 8); // Limit to 8 results
-        
+
         if (!searchSuggestionsEl) return;
-        
+
         if (matches.length === 0) {
-            const noResultsMsg = hasActiveFilter 
-                ? `No se encontraron resultados${filterInfo}` 
+            const noResultsMsg = hasActiveFilter
+                ? `No se encontraron resultados${filterInfo}`
                 : 'No se encontraron resultados';
             searchSuggestionsEl.innerHTML = '<div class="search-no-results">' + noResultsMsg + '</div>';
             searchSuggestionsEl.style.display = 'block';
             return;
         }
-        
+
         // Create suggestion items
         searchSuggestionsEl.innerHTML = '';
-        
+
         // Add header if there's an active filter
         if (hasActiveFilter) {
             const header = document.createElement('div');
@@ -6327,12 +6395,12 @@ document.addEventListener('DOMContentLoaded', function () {
             header.innerHTML = `<small>🔍 Buscando en: <strong>${filterInfo.replace(/^\s*\(Filtro:\s*/, '').replace(/\)$/, '')}</strong></small>`;
             searchSuggestionsEl.appendChild(header);
         }
-        
+
         matches.forEach((row, index) => {
             const item = document.createElement('div');
             item.className = 'search-suggestion-item';
             item.dataset.index = index;
-            
+
             // Different format for petroliferos, gas LP, gas natural vs electricity
             if (isPetroliferos) {
                 item.innerHTML = `
@@ -6360,18 +6428,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="suggestion-details">${row.EfId || ''} • ${row.CapacidadAutorizadaMW || '0'} MW • ${row.Tecnología || ''}</div>
                 `;
             }
-            
-            item.addEventListener('click', function() {
+
+            item.addEventListener('click', function () {
                 selectPermit(row);
             });
-            
+
             searchSuggestionsEl.appendChild(item);
         });
-        
+
         searchSuggestionsEl.style.display = 'block';
         selectedSuggestionIndex = -1;
     }
-    
+
     function updateSuggestionSelection(suggestions) {
         suggestions.forEach((item, index) => {
             if (index === selectedSuggestionIndex) {
@@ -6382,48 +6450,48 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
+
     function selectPermit(row) {
         if (!markersClusterGroup) return;
-        
+
         console.log('Searching for permit:', row.NumeroPermiso);
-        
+
         // Find marker with this permit
         let found = false;
         let targetMarker = null;
-        
-        markersClusterGroup.eachLayer(function(layer) {
+
+        markersClusterGroup.eachLayer(function (layer) {
             if (layer.permitData && layer.permitData.NumeroPermiso === row.NumeroPermiso) {
                 targetMarker = layer;
                 found = true;
                 return false; // Stop iteration
             }
         });
-        
+
         if (found && targetMarker) {
             const latLng = targetMarker.getLatLng();
-            
+
             // Zoom to the marker location
             map.setView(latLng, 16, {
                 animate: true,
                 duration: 0.8
             });
-            
+
             // Wait for zoom animation and cluster spiderfy
-            setTimeout(function() {
+            setTimeout(function () {
                 // If marker is in a cluster, spiderfy it
                 if (markersClusterGroup.getVisibleParent(targetMarker)) {
-                    markersClusterGroup.zoomToShowLayer(targetMarker, function() {
+                    markersClusterGroup.zoomToShowLayer(targetMarker, function () {
                         // Open popup after layer is visible
                         targetMarker.openPopup();
-                        
+
                         // Add temporary highlight effect
                         if (targetMarker._icon) {
                             targetMarker._icon.style.transform = 'scale(1.4)';
                             targetMarker._icon.style.transition = 'transform 0.3s ease';
                             targetMarker._icon.style.filter = 'drop-shadow(0 0 10px rgba(96, 22, 35, 0.8))';
-                            
-                            setTimeout(function() {
+
+                            setTimeout(function () {
                                 if (targetMarker._icon) {
                                     targetMarker._icon.style.transform = 'scale(1)';
                                     targetMarker._icon.style.filter = 'drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3))';
@@ -6434,14 +6502,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     // Marker is already visible, just open popup
                     targetMarker.openPopup();
-                    
+
                     // Add temporary highlight effect
                     if (targetMarker._icon) {
                         targetMarker._icon.style.transform = 'scale(1.4)';
                         targetMarker._icon.style.transition = 'transform 0.3s ease';
                         targetMarker._icon.style.filter = 'drop-shadow(0 0 10px rgba(96, 22, 35, 0.8))';
-                        
-                        setTimeout(function() {
+
+                        setTimeout(function () {
                             if (targetMarker._icon) {
                                 targetMarker._icon.style.transform = 'scale(1)';
                                 targetMarker._icon.style.filter = 'drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3))';
@@ -6450,29 +6518,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             }, 900);
-            
+
             console.log('Permit found and centered:', row.NumeroPermiso);
-            
+
             // Update search input
             permitSearchInput.value = row.NumeroPermiso || '';
             hideSuggestions();
         } else {
             console.warn('Permit marker not found:', row.NumeroPermiso);
-            
+
             // Show a message to the user
             if (permitSearchInput) {
                 const originalPlaceholder = permitSearchInput.placeholder;
                 permitSearchInput.placeholder = '⚠️ Permiso no encontrado en el mapa actual';
                 permitSearchInput.style.borderColor = '#e74c3c';
-                
-                setTimeout(function() {
+
+                setTimeout(function () {
                     permitSearchInput.placeholder = originalPlaceholder;
                     permitSearchInput.style.borderColor = '';
                 }, 3000);
             }
         }
     }
-    
+
     function hideSuggestions() {
         const suggestionsEl = document.getElementById('search-suggestions');
         if (suggestionsEl) {
@@ -6483,7 +6551,7 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedSuggestionIndex = -1;
         }
     }
-    
+
     function clearSearchBox() {
         const searchInput = document.getElementById('permit-search');
         if (searchInput) {
@@ -6495,47 +6563,47 @@ document.addEventListener('DOMContentLoaded', function () {
     // Event listeners for electricity filters
     const filterTabs = document.querySelectorAll('.filter-tab');
     filterTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const targetTab = this.dataset.tab;
-            
+
             console.log('Tab clicked:', targetTab);
-            
+
             // Reset filters when changing tabs
             if (currentFilter) {
                 console.log('Resetting filters on tab change');
                 currentFilter = null;
                 currentFilteredData = [];
-                
+
                 // Restore all markers
                 if (electricityPermitsData.length) {
                     drawElectricityMarkersOnly(electricityPermitsData);
                 }
-                
+
                 // Update totals to show all data
                 updateElectricityTotals(electricityStats);
             }
-            
+
             // Remove active class from all filter cards
             document.querySelectorAll('.filter-card').forEach(card => {
                 card.classList.remove('active');
             });
-            
+
             // Reset matrix view highlighting
             document.querySelectorAll('.matrix-gcr-section').forEach(section => {
                 section.style.borderColor = '#eef3f6';
                 section.style.background = 'white';
             });
-            
+
             // Update tabs
             filterTabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            
+
             // Update content
             document.querySelectorAll('.filter-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById(targetTab + '-filters').classList.add('active');
-            
+
             // Show/hide layers based on tab
             if (targetTab === 'state') {
                 // Tab "Por Estado" - Mostrar Estados, ocultar GCR
@@ -6556,21 +6624,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
     if (resetFiltersBtn) {
-        resetFiltersBtn.addEventListener('click', function() {
+        resetFiltersBtn.addEventListener('click', function () {
             resetElectricityFilters();
         });
     }
-    
+
     // Click on map (outside polygons) to reset filter
-    map.on('click', function(e) {
+    map.on('click', function (e) {
         // Only reset if we're on electricity map and have a filter active
         if (!electricityPermitsData.length || !currentFilter) {
             return;
         }
-        
+
         // Check if click was on a polygon (it would have been stopped)
         // If we get here, it means click was NOT on a polygon
         resetElectricityFilters();
@@ -6579,59 +6647,59 @@ document.addEventListener('DOMContentLoaded', function () {
     // Welcome screen handling
     const welcomeScreen = document.getElementById('welcome-screen');
     const welcomeStartBtn = document.getElementById('welcome-start-btn');
-    
+
     if (welcomeScreen && welcomeStartBtn) {
         // Show welcome screen on load
         welcomeScreen.style.display = 'flex';
-        
+
         // Hide welcome screen when start button is clicked
-        welcomeStartBtn.addEventListener('click', function() {
+        welcomeStartBtn.addEventListener('click', function () {
             welcomeScreen.style.display = 'none';
         });
     }
-    
+
     // ==========================================
     // PETROLIFEROS EVENT LISTENERS
     // ==========================================
-    
+
     // Event listeners for petroliferos filters tabs
     const petroliferosTabs = document.querySelectorAll('.filter-tab-petroliferos');
     petroliferosTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const targetTab = this.dataset.tab;
-            
+
             console.log('Petroliferos tab clicked:', targetTab);
-            
+
             // Reset filters when changing tabs
             if (currentPetroliferosFilter) {
                 console.log('Resetting petroliferos filters on tab change');
                 currentPetroliferosFilter = null;
                 currentPetroliferosFilteredData = [];
-                
+
                 // Restore all markers
                 if (petroliferosPermitsData.length) {
                     drawPetroliferosMarkersOnly(petroliferosPermitsData);
                 }
-                
+
                 // Update totals to show all data
                 updatePetroliferosTotals(petroliferosStats);
             }
-            
+
             // Remove active class from all filter cards
             document.querySelectorAll('.filter-card').forEach(card => {
                 card.classList.remove('active');
             });
-            
+
             // Update tabs
             petroliferosTabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            
+
             // Update content
             document.querySelectorAll('.filter-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById('petroliferos-' + targetTab + '-filters').classList.add('active');
-            
+
             // Show/hide layers based on tab
             if (targetTab === 'state') {
                 console.log('Showing States layer');
@@ -6643,57 +6711,57 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     // Reset button for petroliferos
     const resetPetroliferosBtn = document.getElementById('reset-petroliferos-filters-btn');
     if (resetPetroliferosBtn) {
-        resetPetroliferosBtn.addEventListener('click', function() {
+        resetPetroliferosBtn.addEventListener('click', function () {
             resetPetroliferosFilters();
         });
     }
-    
+
     // ==========================================
     // GAS LP EVENT LISTENERS
     // ==========================================
-    
+
     // Event listeners for Gas LP filters tabs
     const gasLPTabs = document.querySelectorAll('.filter-tab-gaslp');
     gasLPTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const targetTab = this.dataset.tab;
-            
+
             console.log('Gas LP tab clicked:', targetTab);
-            
+
             // Reset filters when changing tabs
             if (currentGasLPFilter) {
                 console.log('Resetting Gas LP filters on tab change');
                 currentGasLPFilter = null;
                 currentGasLPFilteredData = [];
-                
+
                 // Restore all markers
                 if (gasLPPermitsData.length) {
                     drawGasLPMarkersOnly(gasLPPermitsData);
                 }
-                
+
                 // Update totals to show all data
                 updateGasLPTotals(gasLPStats);
             }
-            
+
             // Remove active class from all filter cards
             document.querySelectorAll('.filter-card').forEach(card => {
                 card.classList.remove('active');
             });
-            
+
             // Update tabs
             gasLPTabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            
+
             // Update content
             document.querySelectorAll('.filter-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById('gaslp-' + targetTab + '-filters').classList.add('active');
-            
+
             // Show/hide layers based on tab
             if (targetTab === 'state') {
                 console.log('Showing States layer');
@@ -6704,57 +6772,57 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     // Reset button for Gas LP
     const resetGasLPBtn = document.getElementById('reset-gaslp-filters-btn');
     if (resetGasLPBtn) {
-        resetGasLPBtn.addEventListener('click', function() {
+        resetGasLPBtn.addEventListener('click', function () {
             resetGasLPFilters();
         });
     }
-    
+
     // ==========================================
     // GAS NATURAL EVENT LISTENERS
     // ==========================================
-    
+
     // Event listeners for Gas Natural filters tabs
     const gasNaturalTabs = document.querySelectorAll('.filter-tab-gasnatural');
     gasNaturalTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const targetTab = this.dataset.tab;
-            
+
             console.log('Gas Natural tab clicked:', targetTab);
-            
+
             // Reset filters when changing tabs
             if (currentGasNaturalFilter) {
                 console.log('Resetting Gas Natural filters on tab change');
                 currentGasNaturalFilter = null;
                 currentGasNaturalFilteredData = [];
-                
+
                 // Restore all markers
                 if (gasNaturalPermitsData.length) {
                     drawGasNaturalMarkersOnly(gasNaturalPermitsData);
                 }
-                
+
                 // Update totals to show all data
                 updateGasNaturalTotals(gasNaturalStats);
             }
-            
+
             // Remove active class from all filter cards
             document.querySelectorAll('.filter-card').forEach(card => {
                 card.classList.remove('active');
             });
-            
+
             // Update tabs
             gasNaturalTabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            
+
             // Update content
             document.querySelectorAll('.filter-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById('gasnatural-' + targetTab + '-filters').classList.add('active');
-            
+
             // Show/hide layers based on tab
             if (targetTab === 'state') {
                 console.log('Showing States layer');
@@ -6765,24 +6833,24 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     // Reset button for Gas Natural
     const resetGasNaturalBtn = document.getElementById('reset-gasnatural-filters-btn');
     if (resetGasNaturalBtn) {
-        resetGasNaturalBtn.addEventListener('click', function() {
+        resetGasNaturalBtn.addEventListener('click', function () {
             resetGasNaturalFilters();
         });
     }
-    
+
     // ==========================================
     // INSTRUMENT SELECT AUTO-LOAD (at the end to ensure all functions are defined)
     // ==========================================
-    
+
     if (instrumentSelect) {
-        instrumentSelect.addEventListener('change', async function() {
+        instrumentSelect.addEventListener('change', async function () {
             const selectedInstrument = this.value;
             console.log('Instrument changed to:', selectedInstrument);
-            
+
             if (!selectedInstrument || !mapConfigurations[selectedInstrument]) {
                 // Clear map select if no instrument selected
                 if (mapSelect) {
@@ -6791,10 +6859,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 return;
             }
-            
+
             const maps = mapConfigurations[selectedInstrument];
             console.log('Maps available:', maps.length, maps.map(m => m.name));
-            
+
             // Populate mapSelect
             if (mapSelect) {
                 mapSelect.innerHTML = '<option value="">Seleccione un mapa</option>';
@@ -6806,13 +6874,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 mapSelect.disabled = false;
                 console.log('Map select populated with', maps.length, 'options');
-                
+
                 // Auto-load if only one map available
                 if (maps.length === 1) {
                     console.log('Auto-loading single map for instrument:', selectedInstrument, maps[0].name);
                     mapSelect.value = maps[0].name;
                     console.log('Map select value set to:', mapSelect.value);
-                    
+
                     // Trigger the change event on mapSelect instead of duplicating logic
                     setTimeout(() => {
                         console.log('Triggering map select change event');

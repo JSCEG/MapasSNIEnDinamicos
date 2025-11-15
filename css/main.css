@@ -186,6 +186,15 @@ button {
     gap: 1.25rem;
 }
 
+.mexico-outline-shape {
+    filter: drop-shadow(0 0 8px rgba(111, 108, 108, 0.35));
+    transition: filter var(--transition-base);
+}
+
+.map-card:fullscreen .mexico-outline-shape {
+    filter: drop-shadow(0 0 6px rgba(111, 108, 108, 0.4));
+}
+
 .map-title-banner {
     background: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(26, 52, 68, 0.08);
@@ -1500,10 +1509,11 @@ Notification system */
 .legend {
     line-height: 18px;
     color: #555;
-    background-color: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    background-color: rgba(249, 247, 242, 0.96);
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(161, 150, 132, 0.25);
+    box-shadow: 0 12px 24px -18px rgba(60, 49, 39, 0.45);
 }
 
 .legend i {
@@ -2681,10 +2691,11 @@ Notification system */
    ============================================ */
 
 .provincias-legend {
-    background: white;
+    background: rgba(249, 247, 242, 0.96);
     padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    border: 1px solid rgba(161, 150, 132, 0.25);
+    box-shadow: 0 18px 32px -24px rgba(60, 49, 39, 0.4);
     max-height: 500px;
     overflow-y: auto;
     font-family: 'Montserrat', sans-serif;
@@ -2729,10 +2740,11 @@ Notification system */
    ============================================ */
 
 .provincias-legend {
-    background: white;
-    padding: 8px 10px;
-    border-radius: 6px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    background: rgba(249, 247, 242, 0.96);
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(161, 150, 132, 0.25);
+    box-shadow: 0 18px 32px -24px rgba(60, 49, 39, 0.4);
     max-height: 400px;
     max-width: 250px;
     overflow-y: auto;

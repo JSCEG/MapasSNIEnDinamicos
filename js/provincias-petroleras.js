@@ -40,81 +40,52 @@
         };
     }
 
-    // Función para crear popup con información de la provincia
-    function createProvinciaPopup(feature) {
-        const props = feature.properties;
-        
-        let html = `
-            <div style="font-family: 'Montserrat', sans-serif; max-width: 300px;">
-                <h3 style="margin: 0 0 6px 0; color: #2C3E50; font-size: 12px; border-bottom: 2px solid ${getProvinciaColor(props.nombre)}; padding-bottom: 3px;">
-                    ${props.nombre}
-                </h3>
-                
-                <div style="margin-bottom: 4px; font-size: 10px;">
-                    <strong style="color: #34495E;">Situación:</strong> 
-                    <span style="color: #7F8C8D;">${props.situacin || 'N/A'}</span>
-                </div>
-                
-                <div style="margin-bottom: 4px; font-size: 10px;">
-                    <strong style="color: #34495E;">Ubicación:</strong> 
-                    <span style="color: #7F8C8D;">${props.ubicacin || 'N/A'}</span>
-                </div>
-                
-                <div style="margin-bottom: 4px; font-size: 10px;">
-                    <strong style="color: #34495E;">Área:</strong> 
-                    <span style="color: #7F8C8D;">${parseFloat(props.rea_km2).toLocaleString('es-MX')} km²</span>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #BDC3C7; margin: 6px 0;">
-                
-                <h4 style="margin: 6px 0 3px 0; color: #2C3E50; font-size: 10px; font-weight: 600;">
-                    📊 Plays Convencionales
-                </h4>
-                
-                <div style="margin-bottom: 3px; font-size: 9px;">
-                    <strong>Petróleo Crudo Equiv.:</strong> 
-                    <span style="color: #E74C3C;">${props.recursos_p || 0} MMMBPCE</span>
-                </div>
-                
-                <div style="margin-bottom: 3px; font-size: 9px;">
-                    <strong>Petróleo:</strong> 
-                    <span style="color: #E67E22;">${props.recursos_2 || 0} MMMB</span>
-                </div>
-                
-                <div style="margin-bottom: 6px; font-size: 9px;">
-                    <strong>Gas Natural:</strong> 
-                    <span style="color: #3498DB;">${props.recursos_4 || 0} MMMPC</span>
-                </div>
-                
-                <h4 style="margin: 6px 0 3px 0; color: #2C3E50; font-size: 10px; font-weight: 600;">
-                    📊 Plays No Convencionales
-                </h4>
-                
-                <div style="margin-bottom: 3px; font-size: 9px;">
-                    <strong>Petróleo Crudo Equiv.:</strong> 
-                    <span style="color: #E74C3C;">${props.recursos_1 || 0} MMMBPCE</span>
-                </div>
-                
-                <div style="margin-bottom: 3px; font-size: 9px;">
-                    <strong>Petróleo:</strong> 
-                    <span style="color: #E67E22;">${props.recursos_3 || 0} MMMB</span>
-                </div>
-                
-                <div style="margin-bottom: 6px; font-size: 9px;">
-                    <strong>Gas Natural:</strong> 
-                    <span style="color: #3498DB;">${props.recursos_5 || 0} MMMPC</span>
-                </div>
-                
-                <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #BDC3C7; font-size: 9px; color: #95A5A6;">
-                    <strong>Versión:</strong> ${props.versin || 'N/A'}
-                </div>
-            </div>
-        `;
-        
-        return html;
-    }
-
-    // Función para crear la leyenda personalizada con datos del GeoJSON
+    // Funcion para crear popup con informacion de la provincia
+    function createProvinciaPopup(feature) {
+        const props = feature.properties || {};
+        const nombre = props.nombre || 'Provincia petrolera';
+        const situacion = props.situacin || 'Dato no disponible';
+        const ubicacion = props.ubicacin || 'Dato no disponible';
+        const version = props.versin || 'N/A';
+
+        let areaTexto = 'N/A';
+        const area = parseFloat(props.rea_km2);
+        if (!isNaN(area)) {
+            areaTexto = `${area.toLocaleString('es-MX')} km²`;
+        }
+
+        return `
+            <div style="font-family: 'Montserrat', sans-serif; max-width: 250px;">
+                <h3 style="margin: 0 0 6px 0; color: #2C3E50; font-size: 12px; border-bottom: 2px solid ${getProvinciaColor(nombre)}; padding-bottom: 3px;">
+                    ${nombre}
+                </h3>
+
+                <p style="margin: 0 0 8px 0; font-size: 9px; color: #7F8C8D;">
+                    Vista resumida mientras se depura la informacion duplicada.
+                </p>
+
+                <div style="font-size: 10px; color: #34495E; display: flex; flex-direction: column; gap: 4px;">
+                    <div>
+                        <strong>Situacion:</strong>
+                        <span style="color: #7F8C8D;">${situacion}</span>
+                    </div>
+                    <div>
+                        <strong>Ubicacion:</strong>
+                        <span style="color: #7F8C8D;">${ubicacion}</span>
+                    </div>
+                    <div>
+                        <strong>Area aproximada:</strong>
+                        <span style="color: #7F8C8D;">${areaTexto}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #BDC3C7; font-size: 9px; color: #95A5A6;">
+                    <strong>Version:</strong> ${version}
+                </div>
+            </div>
+        `;
+    }
+// Función para crear la leyenda personalizada con datos del GeoJSON
     function createProvinciaLegend(geoJsonLayer) {
         const legend = L.control({ position: 'bottomleft' });
 
