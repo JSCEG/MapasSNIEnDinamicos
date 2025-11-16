@@ -85,6 +85,71 @@
             });
         }
 
+        function prepareLayoutForExport() {
+            if (!mapContainer) {
+                return () => {};
+            }
+
+            const layoutState = {
+                map: {
+                    overflow: mapContainer.style.overflow,
+                    clipPath: mapContainer.style.clipPath
+                },
+                controls: [],
+                legends: []
+            };
+
+            mapContainer.style.overflow = 'visible';
+            mapContainer.style.clipPath = 'none';
+
+            const controlElements = document.querySelectorAll('.leaflet-control-container .leaflet-control');
+            controlElements.forEach(control => {
+                layoutState.controls.push({
+                    element: control,
+                    overflow: control.style.overflow,
+                    clipPath: control.style.clipPath
+                });
+
+                control.style.overflow = 'visible';
+                control.style.clipPath = 'none';
+            });
+
+            const legendElements = document.querySelectorAll('.info.legend');
+            legendElements.forEach(legend => {
+                layoutState.legends.push({
+                    element: legend,
+                    paddingBottom: legend.style.paddingBottom,
+                    marginBottom: legend.style.marginBottom,
+                    overflow: legend.style.overflow,
+                    clipPath: legend.style.clipPath
+                });
+
+                legend.style.overflow = 'visible';
+                legend.style.clipPath = 'none';
+                legend.style.paddingBottom = '24px';
+                legend.style.marginBottom = '8px';
+            });
+
+            return () => {
+                if (mapContainer) {
+                    mapContainer.style.overflow = layoutState.map.overflow;
+                    mapContainer.style.clipPath = layoutState.map.clipPath;
+                }
+
+                layoutState.controls.forEach(state => {
+                    state.element.style.overflow = state.overflow;
+                    state.element.style.clipPath = state.clipPath;
+                });
+
+                layoutState.legends.forEach(state => {
+                    state.element.style.overflow = state.overflow;
+                    state.element.style.clipPath = state.clipPath;
+                    state.element.style.paddingBottom = state.paddingBottom;
+                    state.element.style.marginBottom = state.marginBottom;
+                });
+            };
+        }
+
         // Exportar mapa optimizado para Word (tamaño carta, 300 DPI)
         async function exportMapForWord() {
             // Verificar si MapTiler está activo
@@ -127,6 +192,8 @@
             const fullscreenToolbarWasVisible = fullscreenToolbar && fullscreenToolbar.style.display !== 'none';
             if (fullscreenToolbar) fullscreenToolbar.style.display = 'none';
 
+            const restoreLayout = prepareLayoutForExport();
+
             try {
                 console.log('🔄 Esperando carga de tiles para exportación Word...');
                 await waitForTiles();
@@ -141,7 +208,7 @@
                 // Escala 6x para obtener ~300 DPI en documentos Word
                 const scale = 6;
                 const targetWidth = mapContainer.offsetWidth * scale;
-                const targetHeight = mapContainer.offsetHeight * scale;
+                const targetHeight = (mapContainer.offsetHeight + 40) * scale; // Añadir espacio extra para evitar que las leyendas se corten
 
                 const dataUrl = await domtoimage.toPng(mapContainer, {
                     quality: 1.0,
@@ -228,6 +295,8 @@
                 }
 
                 if (progressOverlay) progressOverlay.style.display = 'none';
+            } finally {
+                restoreLayout();
             }
         }
 
@@ -287,6 +356,8 @@
                 fullscreenToolbar.style.display = 'none';
             }
 
+            const restoreLayout = prepareLayoutForExport();
+
             try {
                 console.log('🔄 Esperando carga de tiles...');
                 await waitForTiles();
@@ -303,7 +374,7 @@
                 const dataUrl = await domtoimage.toPng(mapContainer, {
                     quality: 1.0,
                     width: mapContainer.offsetWidth * scale,
-                    height: mapContainer.offsetHeight * scale,
+                    height: (mapContainer.offsetHeight + 40) * scale, // Añadir espacio extra
                     style: {
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
@@ -425,6 +496,8 @@
                 }
 
                 if (progressOverlay) progressOverlay.style.display = 'none';
+            } finally {
+                restoreLayout();
             }
         }
 

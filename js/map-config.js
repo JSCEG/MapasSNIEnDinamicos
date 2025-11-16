@@ -157,21 +157,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Configuración de capas de mapa
     const layerConfigs = {
-        'sener-azul': {
+        /* 'sener-azul': {
             label: 'SENER Azul',
             creator: () => createMapTilerLayer('0198a42c-5e08-77a1-9773-763ee4e12b32', 'personal', fallbackLight, 'SENER Azul'),
             isMapTiler: true
-        },
+        }, */
         'sener-light': {
             label: 'SENER Light',
             creator: () => createMapTilerLayer('0198a9af-dc7c-79d3-8316-a80767ad1d0f', 'amigo', fallbackLight, 'SENER Light'),
             isMapTiler: true
         },
-        'sener-oscuro': {
+        /* 'sener-oscuro': {
             label: 'SENER Oscuro',
             creator: () => createMapTilerLayer('0198a9f0-f135-7991-aaec-bea71681556e', 'amigo', fallbackDark, 'SENER Oscuro'),
             isMapTiler: true
-        },
+        }, */
         'carto-positron': {
             label: 'Positron (Claro)',
             creator: () => L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 crossOrigin: 'anonymous'
             }),
             exportable: true
-        },
+        }/*,
         'osm-standard': {
             label: 'OpenStreetMap (Estándar)',
             creator: () => L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 crossOrigin: 'anonymous'
             }),
             exportable: true
-        }
+        } */
     };
 
     const baseLayers = {};
@@ -267,14 +267,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-    // Variable global para la capa de México
-    let mexicoOutlineLayer = null;
+    // Variable global para las capas de México con diferentes estilos
+    let mexicoOutlineLayerCrema = null;
+    let mexicoOutlineLayerGris = null;
+    let mexicoOutlineLayerNinguno = null;
 
-    // Función para cargar el contorno de México
-    async function loadMexicoOutline() {
-        if (mexicoOutlineLayer) {
-            return mexicoOutlineLayer;
-        }
+    // Función para cargar el contorno de México con estilo específico
+    async function loadMexicoOutline(colorStyle = 'crema') {
+        const styles = {
+            crema: {
+                fillColor: '#FFF9E6', // Crema aún más claro
+                fillOpacity: 0.7,
+                color: '#C8C8C8' // Borde muy claro
+            },
+            gris: {
+                fillColor: '#E0E0E0',
+                fillOpacity: 0.7,
+                color: '#808080'
+            },
+            ninguno: {
+                fillColor: '#FFFFFF', // Blanco
+                fillOpacity: 0,  // Transparente
+                color: '#666666', // Borde gris oscuro
+                weight: 2,
+                shadow: true  // Indicador para agregar sombra
+            }
+        };
 
         try {
             const response = await fetch('https://cdn.sassoapps.com/Mapas/mexico.geojson');
@@ -287,11 +305,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Reproyectar las coordenadas
             const reprojectCoordinates = (coords) => {
                 if (typeof coords[0] === 'number') {
-                    // Es un punto [x, y] en metros
                     const [lng, lat] = proj4(mexicoProj, wgs84, coords);
-                    return [lng, lat]; // Mantener como [lng, lat] para GeoJSON
+                    return [lng, lat];
                 } else {
-                    // Es un array de coordenadas, recursivo
                     return coords.map(coord => reprojectCoordinates(coord));
                 }
             };
@@ -303,53 +319,73 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            console.log('📍 Primeras coordenadas reproyectadas:', data.features[0]?.geometry?.coordinates[0]?.[0]?.[0]?.[0]);
+            const selectedStyle = styles[colorStyle] || styles.crema;
 
-            mexicoOutlineLayer = L.geoJSON(data, {
+            const mexicoLayer = L.geoJSON(data, {
                 pane: 'mexicoOverlayPane',
                 style: function () {
                     return {
-                        fillColor: '#FFF8E7', // Color crema claro
+                        fillColor: selectedStyle.fillColor,
                         fill: true,
-                        fillOpacity: 0.7, // Alfa de 0.9
-                        weight: 2,
+                        fillOpacity: selectedStyle.fillOpacity,
+                        weight: selectedStyle.weight || 2,
                         opacity: 1,
-                        color: '#888888', // Borde gris
-                        interactive: false
+                        color: selectedStyle.color,
+                        interactive: false,
+                        ...(selectedStyle.shadow && {
+                            shadowColor: '#000000',
+                            shadowBlur: 8,
+                            shadowOffsetX: 2,
+                            shadowOffsetY: 2,
+                            className: 'mexico-shadow'
+                        })
                     };
                 }
             });
 
-            console.log('✅ Capa de México cargada y reproyectada - Features:', data.features.length);
-            return mexicoOutlineLayer;
+            console.log(`✅ Capa de México ${colorStyle} cargada - Features:`, data.features.length);
+            return mexicoLayer;
         } catch (error) {
             console.error('Error al cargar la capa de México:', error);
             return null;
         }
     }
 
-    // Crear pane personalizado para el mapa base "Ninguno" con filtro crema
-    const NINGUNO_BASE_TILE_PANE = 'ningunoBaseTilePane';
+    // Crear panes personalizados para cada estilo
+    const CREMA_TILE_PANE = 'cremaTilePane';
+    const GRIS_TILE_PANE = 'grisTilePane';
 
-    // Add a "None" layer con satélite ESRI filtrado + capa de México
-    const noBaseLayer = L.layerGroup();
+    // Crear capas base con diferentes filtros
+    const cremaBaseLayer = L.layerGroup();
+    const grisBaseLayer = L.layerGroup();
+    const ningunoBaseLayer = L.layerGroup();
 
-    // Cargar la capa de México y agregarla al layer "Ninguno"
-    loadMexicoOutline().then(mexicoLayer => {
-        if (mexicoLayer) {
-            noBaseLayer.addLayer(mexicoLayer);
-            // Si el mapa ya existe y tiene el noBaseLayer activo, agregar directamente
-            if (window.map && window.map.hasLayer(noBaseLayer)) {
-                mexicoLayer.addTo(window.map);
-                console.log('✅ Capa de México agregada directamente al mapa');
-            } else {
-                console.log('✅ Capa de México agregada a noBaseLayer');
-            }
+    // Cargar capas de México para cada estilo
+    loadMexicoOutline('crema').then(layer => {
+        if (layer) {
+            mexicoOutlineLayerCrema = layer;
+            cremaBaseLayer.addLayer(layer);
         }
-    }).catch(err => {
-        console.error('Error al cargar capa de México:', err);
     });
-    baseLayersForControl['Ninguno'] = noBaseLayer;
+
+    loadMexicoOutline('gris').then(layer => {
+        if (layer) {
+            mexicoOutlineLayerGris = layer;
+            grisBaseLayer.addLayer(layer);
+        }
+    });
+
+    loadMexicoOutline('ninguno').then(layer => {
+        if (layer) {
+            mexicoOutlineLayerNinguno = layer;
+            ningunoBaseLayer.addLayer(layer);
+        }
+    });
+
+    baseLayersForControl['Crema'] = cremaBaseLayer;
+    baseLayersForControl['Gris'] = grisBaseLayer;
+    baseLayersForControl['Ninguno'] = ningunoBaseLayer;
+
 
 
     const baseKeys = Object.keys(baseLayers);
@@ -358,9 +394,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const defaultBaseKey = 'Ninguno';
-    const activeBaseLayer = noBaseLayer;
-    console.log('✅ Listo. Mapa base por defecto: Ninguno');
+    const defaultBaseKey = 'Crema';
+    const activeBaseLayer = cremaBaseLayer;
+    console.log('✅ Listo. Mapa base por defecto: Crema');
 
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
@@ -374,15 +410,26 @@ document.addEventListener('DOMContentLoaded', function () {
         zoomControl: false,
         preferCanvas: false // Disable canvas rendering to fall back to SVG for better event handling
     });
-    map.isBasemapActive = false; // Initialize the flag (false porque inicia con Ninguno)
+    map.isBasemapActive = false;
 
-    // Crear pane para el mapa satélite de "Ninguno" con filtro crema claro
-    map.createPane(NINGUNO_BASE_TILE_PANE);
-    const ningunoTilePane = map.getPane(NINGUNO_BASE_TILE_PANE);
-    if (ningunoTilePane) {
-        ningunoTilePane.style.zIndex = 150;
-        ningunoTilePane.style.filter = 'sepia(0.65) saturate(0.2) brightness(1.3) contrast(0.85)';
-        ningunoTilePane.style.opacity = '0.4';
+    // Crear panes para cada estilo con sus filtros
+
+    // Pane Crema
+    map.createPane(CREMA_TILE_PANE);
+    const cremaTilePane = map.getPane(CREMA_TILE_PANE);
+    if (cremaTilePane) {
+        cremaTilePane.style.zIndex = 150;
+        cremaTilePane.style.filter = 'sepia(0.4) saturate(0.2) brightness(1.2) contrast(0.85)';
+        cremaTilePane.style.opacity = '0.45';
+    }
+
+    // Pane Gris
+    map.createPane(GRIS_TILE_PANE);
+    const grisTilePane = map.getPane(GRIS_TILE_PANE);
+    if (grisTilePane) {
+        grisTilePane.style.zIndex = 150;
+        grisTilePane.style.filter = 'grayscale(1) brightness(1.1) contrast(0.9)';
+        grisTilePane.style.opacity = '0.5';
     }
 
     // Crear pane para la capa de México (encima del satélite, debajo de otras capas)
@@ -393,17 +440,25 @@ document.addEventListener('DOMContentLoaded', function () {
         mexicoPane.style.zIndex = 199; // Entre satélite (150) y otras capas (200+)
     }
 
-    // Agregar capa satélite ESRI con filtro crema al layer "Ninguno"
-    const esriSatelliteFiltered = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    // Crear capas satélite para cada estilo
+    const esriSatelliteCrema = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri',
         maxZoom: 19,
         crossOrigin: 'anonymous',
-        pane: NINGUNO_BASE_TILE_PANE,
-        className: 'esri-satellite-filtered'
+        pane: CREMA_TILE_PANE
     });
 
-    // Agregar el satélite filtrado al layer "Ninguno"
-    noBaseLayer.addLayer(esriSatelliteFiltered);
+    const esriSatelliteGris = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 19,
+        crossOrigin: 'anonymous',
+        pane: GRIS_TILE_PANE
+    });
+
+    // Agregar satélites a sus respectivas capas
+    cremaBaseLayer.addLayer(esriSatelliteCrema);
+    grisBaseLayer.addLayer(esriSatelliteGris);
+    // ningunoBaseLayer no tiene satélite, solo capa de México
 
     // Exponer mapa globalmente para exportación
     window.map = map;
@@ -500,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateWhenIdle: true
     }).addTo(map);
 
-    let currentBaseLayerName = 'Ninguno';
+    let currentBaseLayerName = 'Crema';
     window.currentBaseLayerName = currentBaseLayerName;
 
     // Handle background for "None" basemap

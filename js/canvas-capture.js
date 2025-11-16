@@ -325,38 +325,112 @@ class CanvasCapture {
                 let yOffset = destY + 10 * scaleY;
                 const xOffset = destX + 10 * scaleX;
 
-                // Draw title
-                const titleElement = legendControl.querySelector('strong');
-                if (titleElement) {
-                    const titleStyle = window.getComputedStyle(titleElement);
-                    const titleFontSize = parseFloat(titleStyle.fontSize) * fontScale;
-                    ctx.font = `bold ${titleFontSize}px ${titleStyle.fontFamily}`;
-                    ctx.fillStyle = titleStyle.color;
-                    ctx.fillText(titleElement.textContent, xOffset, yOffset);
-                    yOffset += titleFontSize * 1.5;
-                }
+                // Procesar todos los nodos hijos directamente para mantener el orden
+                const childNodes = Array.from(legendControl.childNodes);
 
-                // Draw items
-                const legendItems = legendControl.querySelectorAll('.legend-item');
-                legendItems.forEach(item => {
-                    const colorSwatch = item.querySelector('i');
-                    const label = item.textContent.trim();
-                    const itemStyle = window.getComputedStyle(colorSwatch);
-                    const itemColor = itemStyle.backgroundColor;
+                childNodes.forEach(node => {
+                    // Procesar nodos de texto directo
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent.trim();
+                        if (text) {
+                            const parentStyle = window.getComputedStyle(legendControl);
+                            const fontSize = parseFloat(parentStyle.fontSize) * fontScale;
+                            ctx.font = `${fontSize}px ${parentStyle.fontFamily}`;
+                            ctx.fillStyle = parentStyle.color;
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(text, xOffset, yOffset);
+                            yOffset += fontSize * 1.4;
+                        }
+                    }
+                    // Procesar elementos <strong> (títulos)
+                    else if (node.nodeName === 'STRONG') {
+                        const text = node.textContent.trim();
+                        if (text) {
+                            const strongStyle = window.getComputedStyle(node);
+                            const fontSize = parseFloat(strongStyle.fontSize) * fontScale;
+                            ctx.font = `bold ${fontSize}px ${strongStyle.fontFamily}`;
+                            ctx.fillStyle = strongStyle.color;
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(text, xOffset, yOffset);
+                            yOffset += fontSize * 1.6;
+                        }
+                    }
+                    // Procesar elementos <br>
+                    else if (node.nodeName === 'BR') {
+                        yOffset += 8 * scaleY;
+                    }
+                    // Procesar legend-items
+                    else if (node.classList && node.classList.contains('legend-item')) {
+                        const colorSwatch = node.querySelector('i');
+                        const label = node.textContent.trim();
 
-                    const itemSize = 18 * scaleY;
-                    ctx.fillStyle = itemColor;
-                    ctx.fillRect(xOffset, yOffset, itemSize, itemSize);
+                        if (colorSwatch) {
+                            const itemStyle = window.getComputedStyle(colorSwatch);
+                            const itemColor = itemStyle.backgroundColor;
+                            const itemSize = 18 * scaleY;
 
-                    const labelStyle = window.getComputedStyle(item);
-                    const labelFontSize = parseFloat(labelStyle.fontSize) * fontScale;
-                    ctx.font = `${labelFontSize}px ${labelStyle.fontFamily}`;
-                    ctx.fillStyle = labelStyle.color;
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(label, xOffset + itemSize + 5 * scaleX, yOffset);
+                            ctx.fillStyle = itemColor;
+                            ctx.fillRect(xOffset, yOffset, itemSize, itemSize);
 
-                    yOffset += itemSize * 1.5;
+                            const labelStyle = window.getComputedStyle(node);
+                            const labelFontSize = parseFloat(labelStyle.fontSize) * fontScale;
+                            ctx.font = `${labelFontSize}px ${labelStyle.fontFamily}`;
+                            ctx.fillStyle = labelStyle.color;
+                            ctx.textBaseline = 'top';
+                            ctx.fillText(label, xOffset + itemSize + 5 * scaleX, yOffset);
+
+                            yOffset += itemSize * 1.5;
+                        }
+                    }
+                    // Procesar divs con contenido (sección TOTALES)
+                    else if (node.nodeName === 'DIV' && !node.classList.contains('legend-item')) {
+                        // Procesar recursivamente el contenido del div
+                        const processDiv = (divElement, currentY, indentLevel = 0) => {
+                            const children = Array.from(divElement.childNodes);
+                            let localY = currentY;
+
+                            children.forEach(child => {
+                                if (child.nodeType === Node.TEXT_NODE) {
+                                    const text = child.textContent.trim();
+                                    if (text) {
+                                        const divStyle = window.getComputedStyle(divElement);
+                                        const fontSize = parseFloat(divStyle.fontSize) * fontScale;
+                                        const fontWeight = divStyle.fontWeight;
+                                        const isBold = fontWeight === 'bold' || parseInt(fontWeight) >= 700;
+
+                                        ctx.font = `${isBold ? 'bold ' : ''}${fontSize}px ${divStyle.fontFamily}`;
+                                        ctx.fillStyle = divStyle.color;
+                                        ctx.textBaseline = 'top';
+                                        ctx.fillText(text, xOffset + (indentLevel * 8 * scaleX), localY);
+                                        localY += fontSize * 1.4;
+                                    }
+                                } else if (child.nodeName === 'STRONG') {
+                                    const text = child.textContent.trim();
+                                    if (text) {
+                                        const strongStyle = window.getComputedStyle(child);
+                                        const fontSize = parseFloat(strongStyle.fontSize) * fontScale;
+                                        ctx.font = `bold ${fontSize}px ${strongStyle.fontFamily}`;
+                                        ctx.fillStyle = strongStyle.color;
+                                        ctx.textBaseline = 'top';
+                                        ctx.fillText(text, xOffset + (indentLevel * 8 * scaleX), localY);
+                                        localY += fontSize * 1.5;
+                                    }
+                                } else if (child.nodeName === 'BR') {
+                                    localY += 6 * scaleY;
+                                } else if (child.nodeName === 'DIV') {
+                                    localY = processDiv(child, localY, indentLevel);
+                                }
+                            });
+
+                            return localY;
+                        };
+
+                        yOffset = processDiv(node, yOffset, 0);
+                    }
                 });
+
+                // Agregar padding adicional al final
+                yOffset += 12 * scaleY;
 
                 ctx.restore();
             }

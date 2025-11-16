@@ -195,6 +195,11 @@ button {
     filter: drop-shadow(0 0 6px rgba(111, 108, 108, 0.4));
 }
 
+/* Sombra para la capa de México en modo "Ninguno" */
+.mexico-shadow path {
+    filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.4));
+}
+
 .map-title-banner {
     background: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(26, 52, 68, 0.08);
@@ -1875,7 +1880,8 @@ Notification system */
 .marker-cluster {
     background-clip: padding-box;
     border-radius: 50%;
-    z-index: 650 !important; /* Force high z-index */
+    z-index: 650 !important;
+    /* Force high z-index */
 }
 
 .marker-cluster div {
@@ -2455,21 +2461,21 @@ Notification system */
     .totals-section {
         grid-template-columns: 1fr;
     }
-    
+
     .filter-cards {
         grid-template-columns: 1fr;
     }
-    
+
     .filters-tabs {
         flex-direction: column;
         gap: 0;
     }
-    
+
     .filter-tab {
         border-bottom: 1px solid #eef3f6;
         border-left: 3px solid transparent;
     }
-    
+
     .filter-tab.active {
         border-bottom-color: #eef3f6;
         border-left-color: var(--color-verde-profundo);
@@ -2642,12 +2648,12 @@ Notification system */
         align-items: flex-start;
         gap: 10px;
     }
-    
+
     .matrix-gcr-totals {
         width: 100%;
         justify-content: space-between;
     }
-    
+
     .matrix-tech-grid {
         grid-template-columns: 1fr;
     }
@@ -2685,6 +2691,7 @@ Notification system */
 .leaflet-tooltip-top.state-tooltip::before {
     border-top-color: #601623 !important;
 }
+
 /* ==
 ==========================================
    Estilos para Leyenda de Provincias Petroleras
