@@ -2053,8 +2053,8 @@ document.addEventListener('DOMContentLoaded', function () {
             'TURBOGÁS': '#D2691E',                  // Café claro (gas)
             'CARBOELÉCTRICA': '#2F4F4F',            // Gris oscuro (carbón)
             'CARBOELECTRICA': '#2F4F4F',            // Gris oscuro (carbón)
-            'COGENERACIÓN': '#696969',              // Gris medio (cogeneración)
-            'COGENERACION': '#696969',              // Gris medio (cogeneración)
+            'COGENERACIÓN': '#FF8C00',              // Naranja oscuro (cogeneración)
+            'COGENERACION': '#FF8C00',              // Naranja oscuro (cogeneración)
             
             // Hidroeléctricas
             'HIDROELÉCTRICA': '#1E90FF',            // Azul (agua)
@@ -2064,13 +2064,19 @@ document.addEventListener('DOMContentLoaded', function () {
             'REBOMBEO': '#4682B4',                  // Azul acero (rebombeo)
             
             // Energías renovables
-            'EÓLICA': '#87CEEB',                    // Azul cielo (viento)
-            'EOLICA': '#87CEEB',                    // Azul cielo (viento)
-            'FOTOVOLTAICA': '#FFD700',              // Dorado (sol)
-            'SOLAR': '#FFD700',                     // Dorado (sol)
+            'EÓLICA': '#00CED1',                    // Turquesa oscuro (viento)
+            'EOLICA': '#00CED1',                    // Turquesa oscuro (viento)
+            'FOTOVOLTAICA': '#FFA500',              // Naranja brillante (sol) - mejorado contraste
+            'SOLAR': '#FFA500',                     // Naranja brillante (sol) - mejorado contraste
+            'CSP': '#FF4500',                       // Rojo naranja (concentración solar)
             'GEOTÉRMICA': '#DC143C',                // Rojo carmesí (calor)
             'GEOTERMICA': '#DC143C',                // Rojo carmesí (calor)
             'BIOMASA': '#228B22',                   // Verde bosque (biomasa)
+            
+            // Hidrógeno
+            'HIDRÓGENO': '#00BFFF',                 // Azul cielo profundo (hidrógeno)
+            'HIDROGENO': '#00BFFF',                 // Azul cielo profundo (hidrógeno)
+            'H2': '#00BFFF',                        // Azul cielo profundo (hidrógeno)
             
             // Almacenamiento
             'ALMACENAMIENTO': '#9370DB',            // Púrpura medio (almacenamiento)
@@ -2081,8 +2087,8 @@ document.addEventListener('DOMContentLoaded', function () {
             'NUCLEAR': '#FF6347',                   // Tomate (nuclear)
             
             // Otras
-            'COMBUSTIÓN INTERNA': '#CD853F',        // Marrón (diesel)
-            'COMBUSTION INTERNA': '#CD853F'         // Marrón (diesel)
+            'COMBUSTIÓN INTERNA': '#A0522D',        // Sienna (diesel)
+            'COMBUSTION INTERNA': '#A0522D'         // Sienna (diesel)
         };
         
         // Normalize technology name
@@ -2093,8 +2099,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return techColors[normalizedTech];
         }
         
-        // Default color for unknown technologies (gray)
-        return '#808080';
+        // Default color for unknown technologies (dark gray)
+        return '#696969';
     }
 
     // Function to get technology acronym
@@ -2116,9 +2122,13 @@ document.addEventListener('DOMContentLoaded', function () {
             'EOLICA': 'EOL',
             'FOTOVOLTAICA': 'FV',
             'SOLAR': 'SOL',
+            'CSP': 'CSP',
             'GEOTÉRMICA': 'GEO',
             'GEOTERMICA': 'GEO',
             'BIOMASA': 'BIO',
+            'HIDRÓGENO': 'H2',
+            'HIDROGENO': 'H2',
+            'H2': 'H2',
             'ALMACENAMIENTO': 'ALM',
             'BATERÍAS': 'BAT',
             'BATERIAS': 'BAT',
