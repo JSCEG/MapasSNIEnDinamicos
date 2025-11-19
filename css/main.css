@@ -1536,21 +1536,30 @@ Notification system */
 
 /* Legend styles */
 .legend {
-    line-height: 18px;
+    line-height: 17px;
     color: #555;
     background-color: white; /* Changed from rgba(249, 247, 242, 0.96) to white */
     padding: 12px 14px;
     border-radius: 10px;
     border: 1px solid rgba(161, 150, 132, 0.25);
     box-shadow: 0 12px 24px -18px rgba(60, 49, 39, 0.45);
+    font-size: 11px; /* Reduced from default 12px */
+}
+
+.legend strong {
+    font-size: 12px; /* Title slightly larger */
 }
 
 .legend i {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.legend-item {
+    font-size: 11px; /* Explicit size for legend items */
 }
 
 .leaflet-pane.leaflet-states-pane {
@@ -2023,6 +2032,11 @@ Notification system */
 .horizontal-legend {
     width: calc(100vw - 280px); /* Adjust width as needed */
     max-width: 1200px;
+    font-size: 11px; /* Base font size reduced */
+}
+
+.horizontal-legend strong {
+    font-size: 12px; /* Title slightly larger */
 }
 
 .horizontal-legend-container {
@@ -2035,20 +2049,20 @@ Notification system */
 .horizontal-legend-item {
     display: flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 10px; /* Reduced from 11px */
     font-weight: 600;
 }
 
 .horizontal-legend-item i {
-    width: 14px;
-    height: 14px;
+    width: 13px; /* Reduced from 14px */
+    height: 13px; /* Reduced from 14px */
     margin-right: 6px;
     border-radius: 3px;
     opacity: 1;
 }
 
 .horizontal-legend-item.total {
-    font-size: 12px;
+    font-size: 11px; /* Reduced from 12px */
     color: #1a1a1a;
     margin-left: auto; /* Pushes total to the right */
     padding-left: 20px;

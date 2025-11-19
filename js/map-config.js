@@ -6546,7 +6546,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                 // Popup with acronyms and separated totals
         
-                                let popupContent = `<div style="font-size: 12px;"><strong style="font-size: 13px;">${gcrName}</strong><br><hr>`;
+                                let popupContent = `<div style="font-size: 11px;"><strong style="font-size: 12px;">${gcrName}</strong><br><hr>`;
         
                                 capacityColumns.forEach(col => {
         
@@ -6650,7 +6650,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                            let popupContent = `<div style="font-size: 12px;"><strong style="font-size: 13px;">${regionName}</strong><br><hr>`;
+                            let popupContent = `<div style="font-size: 11px;"><strong style="font-size: 12px;">${regionName}</strong><br><hr>`;
         
                             capacityColumns.forEach(col => {
         
