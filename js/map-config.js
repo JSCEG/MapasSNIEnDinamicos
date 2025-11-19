@@ -2053,6 +2053,8 @@ document.addEventListener('DOMContentLoaded', function () {
             'TURBOGÁS': '#D2691E',                  // Café claro (gas)
             'CARBOELÉCTRICA': '#2F4F4F',            // Gris oscuro (carbón)
             'CARBOELECTRICA': '#2F4F4F',            // Gris oscuro (carbón)
+            'COGENERACIÓN': '#696969',              // Gris medio (cogeneración)
+            'COGENERACION': '#696969',              // Gris medio (cogeneración)
             
             // Hidroeléctricas
             'HIDROELÉCTRICA': '#1E90FF',            // Azul (agua)
@@ -2095,6 +2097,50 @@ document.addEventListener('DOMContentLoaded', function () {
         return '#808080';
     }
 
+    // Function to get technology acronym
+    function getTechnologyAcronym(techName) {
+        const techAcronyms = {
+            'CICLO COMBINADO': 'CC',
+            'TURBOGAS': 'TG',
+            'TURBOGÁS': 'TG',
+            'CARBOELÉCTRICA': 'CARB',
+            'CARBOELECTRICA': 'CARB',
+            'COGENERACIÓN': 'COG',
+            'COGENERACION': 'COG',
+            'HIDROELÉCTRICA': 'HIDRO',
+            'HIDROELECTRICA': 'HIDRO',
+            'HIDROELÉCTRICA CON ALMACENAMIENTO': 'HIDRO-ALM',
+            'HIDROELECTRICA CON ALMACENAMIENTO': 'HIDRO-ALM',
+            'REBOMBEO': 'REB',
+            'EÓLICA': 'EOL',
+            'EOLICA': 'EOL',
+            'FOTOVOLTAICA': 'FV',
+            'SOLAR': 'SOL',
+            'GEOTÉRMICA': 'GEO',
+            'GEOTERMICA': 'GEO',
+            'BIOMASA': 'BIO',
+            'ALMACENAMIENTO': 'ALM',
+            'BATERÍAS': 'BAT',
+            'BATERIAS': 'BAT',
+            'NUCLEAR': 'NUC',
+            'COMBUSTIÓN INTERNA': 'CI',
+            'COMBUSTION INTERNA': 'CI'
+        };
+        
+        const normalizedTech = techName.toUpperCase().trim();
+        
+        if (techAcronyms[normalizedTech]) {
+            return techAcronyms[normalizedTech];
+        }
+        
+        // Generate acronym from first letters if not found
+        return techName.split(' ')
+            .map(word => word.charAt(0))
+            .join('')
+            .toUpperCase()
+            .substring(0, 4);
+    }
+
     function addCapacityLegend(totals, mapName) {
         if (pibLegendControl) {
             map.removeControl(pibLegendControl);
@@ -2106,13 +2152,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const div = L.DomUtil.create('div', 'info legend');
             div.innerHTML = '<strong>Adiciones de Capacidad y Almacenamiento (MW)</strong><br>';
 
-            // Add dynamic legend items with color, technology and value in one line
+            // Add dynamic legend items with color, acronym, technology and value
             if (totals && totals.columnNames) {
                 totals.columnNames.forEach((col, index) => {
                     if (totals.columns[col] > 0) {
                         const color = getTechnologyColor(col);
+                        const acronym = getTechnologyAcronym(col);
                         const value = totals.columns[col].toLocaleString('es-MX');
-                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col}: ${value} MW</div>`;
+                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col} (${acronym}): ${value} MW</div>`;
                     }
                 });
             }
@@ -2141,8 +2188,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
                 const value = totals.columns[col] || 0;
                 if (value > 0) {
                     const color = getTechnologyColor(col);
+                    const acronym = getTechnologyAcronym(col);
                     const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
-                    item.innerHTML = `<i style="background:${color};"></i> ${col}: ${value.toLocaleString('es-MX')} MW`;
+                    item.innerHTML = `<i style="background:${color};"></i> ${col} (${acronym}): ${value.toLocaleString('es-MX')} MW`;
                 }
             });
         }
@@ -6119,13 +6167,14 @@ function addHorizontalCapacityLegend(totals, mapName) {
                             let labelHTML = `<div class="pib-label-content">
                                 <div class="pib-label-id">${gcrName}</div>`;
 
-                            // Add each capacity type with consistent technology colors
+                            // Add each capacity type with consistent technology colors and acronyms
                             capacityColumns.forEach((col, index) => {
                                 const value = capacityInfo[col] || 0;
                                 if (value > 0) {
                                     const color = getTechnologyColor(col);
+                                    const acronym = getTechnologyAcronym(col);
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
-                                        <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
+                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
                                     </div>`;
                                 }
                             });
@@ -6162,13 +6211,14 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         let labelHTML = `<div class="pib-label-content">
                             <div class="pib-label-id">${gcrName}</div>`;
 
-                        // Add each capacity type with consistent technology colors
+                        // Add each capacity type with consistent technology colors and acronyms
                         capacityColumns.forEach((col, index) => {
                             const value = capacityInfo[col] || 0;
                             if (value > 0) {
                                 const color = getTechnologyColor(col);
+                                const acronym = getTechnologyAcronym(col);
                                 labelHTML += `<div class="pib-row" style="color: ${color};">
-                                    <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
+                                    <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
                                 </div>`;
                             }
                         });
@@ -6364,9 +6414,11 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                         const color = getTechnologyColor(col);
         
+                                        const acronym = getTechnologyAcronym(col);
+        
                                         labelHTML += `<div class="pib-row" style="color: ${color};">
         
-                                            <span class="pib-value">${value.toLocaleString('es-MX')}</span>
+                                            <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')}</span>
         
                                         </div>`;
         
@@ -6394,7 +6446,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                                // Popup (remains the same)
+                                // Popup with acronyms
         
                                 let popupContent = `<strong>${gcrName}</strong><br><hr>`;
         
@@ -6404,7 +6456,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                     if (value > 0) {
         
-                                        popupContent += `${col}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
+                                        const acronym = getTechnologyAcronym(col);
+        
+                                        popupContent += `${acronym}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
         
                                     }
         
@@ -6456,9 +6510,11 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                     const color = getTechnologyColor(col);
         
+                                    const acronym = getTechnologyAcronym(col);
+        
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
         
-                                        <span class="pib-value">${value.toLocaleString('es-MX')}</span>
+                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')}</span>
         
                                     </div>`;
         
@@ -6494,7 +6550,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                 if (value > 0) {
         
-                                    popupContent += `${col}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
+                                    const acronym = getTechnologyAcronym(col);
+        
+                                    popupContent += `${acronym}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
         
                                 }
         
