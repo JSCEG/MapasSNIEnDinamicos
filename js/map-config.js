@@ -2079,9 +2079,9 @@ document.addEventListener('DOMContentLoaded', function () {
             'H2': '#00BFFF',                        // Azul cielo profundo (hidrógeno)
             
             // Almacenamiento
-            'ALMACENAMIENTO': '#9370DB',            // Púrpura medio (almacenamiento)
-            'BATERÍAS': '#8A2BE2',                  // Azul violeta (baterías)
-            'BATERIAS': '#8A2BE2',                  // Azul violeta (baterías)
+            'ALMACENAMIENTO': '#9932CC',            // Púrpura oscuro/Orquídea oscura (almacenamiento)
+            'BATERÍAS': '#BA55D3',                  // Orquídea medio (baterías)
+            'BATERIAS': '#BA55D3',                  // Orquídea medio (baterías)
             
             // Nuclear
             'NUCLEAR': '#FF6347',                   // Tomate (nuclear)
@@ -2160,7 +2160,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = '<strong>Adiciones de Capacidad y Almacenamiento (MW)</strong><br>';
+            div.innerHTML = '<strong>ADICIONES DE CAPACIDAD Y ALMACENAMIENTO (MW)</strong><br>';
 
             // Add dynamic legend items with color, acronym, technology and value
             if (totals && totals.columnNames) {
@@ -2169,9 +2169,21 @@ document.addEventListener('DOMContentLoaded', function () {
                         const color = getTechnologyColor(col);
                         const acronym = getTechnologyAcronym(col);
                         const value = totals.columns[col].toLocaleString('es-MX');
-                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col} (${acronym}): ${value} MW</div>`;
+                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col.toUpperCase()} (${acronym}): ${value} MW</div>`;
                     }
                 });
+            }
+
+            // Add separated totals
+            if (totals) {
+                div.innerHTML += '<br><div style="border-top: 2px solid #333; padding-top: 6px; margin-top: 6px;">';
+                if (totals.generationTotal && totals.generationTotal > 0) {
+                    div.innerHTML += `<div style="font-size: 12px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px;">TOTAL CAPACIDAD: ${totals.generationTotal.toLocaleString('es-MX')} MW</div>`;
+                }
+                if (totals.storageTotal && totals.storageTotal > 0) {
+                    div.innerHTML += `<div style="font-size: 12px; font-weight: 700; color: #9932CC; margin-bottom: 3px;">TOTAL ALMACENAMIENTO: ${totals.storageTotal.toLocaleString('es-MX')} MW</div>`;
+                }
+                div.innerHTML += '</div>';
             }
 
             return div;
@@ -2189,7 +2201,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
     pibLegendControl.onAdd = function (map) {
         const div = L.DomUtil.create('div', 'info legend horizontal-legend');
-        div.innerHTML = '<strong>Adiciones de Capacidad y Almacenamiento (MW)</strong>';
+        div.innerHTML = '<strong>ADICIONES DE CAPACIDAD Y ALMACENAMIENTO (MW)</strong>';
         
         const container = L.DomUtil.create('div', 'horizontal-legend-container', div);
 
@@ -2200,9 +2212,21 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     const color = getTechnologyColor(col);
                     const acronym = getTechnologyAcronym(col);
                     const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
-                    item.innerHTML = `<i style="background:${color};"></i> ${col} (${acronym}): ${value.toLocaleString('es-MX')} MW`;
+                    item.innerHTML = `<i style="background:${color};"></i> ${col.toUpperCase()} (${acronym}): ${value.toLocaleString('es-MX')} MW`;
                 }
             });
+        }
+
+        // Add separated totals
+        if (totals) {
+            if (totals.generationTotal && totals.generationTotal > 0) {
+                const genItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
+                genItem.innerHTML = `<strong>TOTAL CAP: ${totals.generationTotal.toLocaleString('es-MX')} MW</strong>`;
+            }
+            if (totals.storageTotal && totals.storageTotal > 0) {
+                const almItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
+                almItem.innerHTML = `<strong style="color: #9932CC;">TOTAL ALM: ${totals.storageTotal.toLocaleString('es-MX')} MW</strong>`;
+            }
         }
 
         return div;
@@ -6112,14 +6136,26 @@ function addHorizontalCapacityLegend(totals, mapName) {
             // Create a map for quick lookup
             const capacityDataMap = new Map();
 
-            // Calculate totals by column and row
+            // Function to check if a technology is storage
+            const isStorageTech = (techName) => {
+                const upperTech = techName.toUpperCase().trim();
+                return upperTech.includes('ALMACENAMIENTO') || 
+                       upperTech.includes('BATERIA') || 
+                       upperTech.includes('BATERÍAS');
+            };
+
+            // Calculate totals by column and row, separating generation and storage
             const columnTotals = {};
             capacityColumns.forEach(col => columnTotals[col] = 0);
             let grandTotal = 0;
+            let storageTotal = 0;
+            let generationTotal = 0;
 
             capacityData.forEach(row => {
                 const gcrName = row.GCR;
                 let rowTotal = 0;
+                let rowStorageTotal = 0;
+                let rowGenerationTotal = 0;
                 const rowData = { GCR: gcrName };
 
                 capacityColumns.forEach(col => {
@@ -6127,9 +6163,19 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     rowData[col] = value;
                     rowTotal += value;
                     columnTotals[col] += value;
+                    
+                    if (isStorageTech(col)) {
+                        rowStorageTotal += value;
+                        storageTotal += value;
+                    } else {
+                        rowGenerationTotal += value;
+                        generationTotal += value;
+                    }
                 });
 
                 rowData.TOTAL = rowTotal;
+                rowData.STORAGE_TOTAL = rowStorageTotal;
+                rowData.GENERATION_TOTAL = rowGenerationTotal;
                 grandTotal += rowTotal;
                 capacityDataMap.set(gcrName, rowData);
             });
@@ -6138,6 +6184,8 @@ function addHorizontalCapacityLegend(totals, mapName) {
             capacityTotals = {
                 columns: columnTotals,
                 total: grandTotal,
+                storageTotal: storageTotal,
+                generationTotal: generationTotal,
                 columnNames: capacityColumns
             };
 
@@ -6170,6 +6218,8 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
                         const gcrName = regionName;
                         const total = capacityInfo.TOTAL || 0;
+                        const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
+                        const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
 
                         // Only show label if there's capacity > 0
                         if (total > 0) {
@@ -6189,9 +6239,14 @@ function addHorizontalCapacityLegend(totals, mapName) {
                                 }
                             });
 
-                            labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
-                                <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
-                            </div></div>`;
+                            labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
+                            if (generationTotal > 0) {
+                                labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
+                            }
+                            if (storageTotal > 0) {
+                                labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
+                            }
+                            labelHTML += `</div></div>`;
 
                             const marker = L.marker([center.lat, center.lng], {
                                 icon: L.divIcon({
@@ -6215,6 +6270,8 @@ function addHorizontalCapacityLegend(totals, mapName) {
                 if (capacityInfo && coords) {
                     const gcrName = regionName;
                     const total = capacityInfo.TOTAL || 0;
+                    const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
+                    const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
 
                     if (total > 0) {
                         // Build label HTML dynamically
@@ -6233,9 +6290,14 @@ function addHorizontalCapacityLegend(totals, mapName) {
                             }
                         });
 
-                        labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">
-                            <span style="font-size: 12px; font-weight: 800; color: #1a1a1a;">${total.toLocaleString('es-MX')} MW</span>
-                        </div></div>`;
+                        labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
+                        if (generationTotal > 0) {
+                            labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
+                        }
+                        if (storageTotal > 0) {
+                            labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
+                        }
+                        labelHTML += `</div></div>`;
 
                         const marker = L.marker([coords.lat, coords.lng], {
                             icon: L.divIcon({
@@ -6302,11 +6364,21 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                 const capacityDataMap = new Map();
         
+                // Function to check if a technology is storage
+                const isStorageTech = (techName) => {
+                    const upperTech = techName.toUpperCase().trim();
+                    return upperTech.includes('ALMACENAMIENTO') || 
+                           upperTech.includes('BATERIA') || 
+                           upperTech.includes('BATERÍAS');
+                };
+
                 const columnTotals = {};
         
                 capacityColumns.forEach(col => columnTotals[col] = 0);
         
                 let grandTotal = 0;
+                let storageTotal = 0;
+                let generationTotal = 0;
         
         
         
@@ -6315,6 +6387,8 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     const gcrName = row['Gerencia de Control Regional'];
         
                     let rowTotal = 0;
+                    let rowStorageTotal = 0;
+                    let rowGenerationTotal = 0;
         
                     const rowData = { GCR: gcrName };
         
@@ -6330,11 +6404,21 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                         columnTotals[col] += value;
         
+                        if (isStorageTech(col)) {
+                            rowStorageTotal += value;
+                            storageTotal += value;
+                        } else {
+                            rowGenerationTotal += value;
+                            generationTotal += value;
+                        }
+        
                     });
         
         
         
                     rowData.TOTAL = rowTotal;
+                    rowData.STORAGE_TOTAL = rowStorageTotal;
+                    rowData.GENERATION_TOTAL = rowGenerationTotal;
         
                     grandTotal += rowTotal;
         
@@ -6349,6 +6433,10 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     columns: columnTotals,
         
                     total: grandTotal,
+        
+                    storageTotal: storageTotal,
+        
+                    generationTotal: generationTotal,
         
                     columnNames: capacityColumns
         
@@ -6456,9 +6544,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                                // Popup with acronyms
+                                // Popup with acronyms and separated totals
         
-                                let popupContent = `<strong>${gcrName}</strong><br><hr>`;
+                                let popupContent = `<div style="font-size: 12px;"><strong style="font-size: 13px;">${gcrName}</strong><br><hr>`;
         
                                 capacityColumns.forEach(col => {
         
@@ -6474,7 +6562,17 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                 });
         
-                                popupContent += `<hr><strong>Total: ${total.toLocaleString('es-MX')} MW</strong>`;
+                                const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
+                                const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
+        
+                                popupContent += `<hr>`;
+                                if (generationTotal > 0) {
+                                    popupContent += `<strong>TOTAL CAPACIDAD: ${generationTotal.toLocaleString('es-MX')} MW</strong><br>`;
+                                }
+                                if (storageTotal > 0) {
+                                    popupContent += `<strong style="color: #9932CC;">TOTAL ALMACENAMIENTO: ${storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                                }
+                                popupContent += `</div>`;
         
                                 layer.bindPopup(popupContent);
         
@@ -6552,7 +6650,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                            let popupContent = `<strong>${regionName}</strong><br><hr>`;
+                            let popupContent = `<div style="font-size: 12px;"><strong style="font-size: 13px;">${regionName}</strong><br><hr>`;
         
                             capacityColumns.forEach(col => {
         
@@ -6568,7 +6666,17 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                             });
         
-                            popupContent += `<hr><strong>Total: ${total.toLocaleString('es-MX')} MW</strong>`;
+                            const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
+                            const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
+        
+                            popupContent += `<hr>`;
+                            if (generationTotal > 0) {
+                                popupContent += `<strong>TOTAL CAPACIDAD: ${generationTotal.toLocaleString('es-MX')} MW</strong><br>`;
+                            }
+                            if (storageTotal > 0) {
+                                popupContent += `<strong style="color: #9932CC;">TOTAL ALMACENAMIENTO: ${storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                            }
+                            popupContent += `</div>`;
         
                             label.bindPopup(popupContent);
         
