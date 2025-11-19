@@ -6194,7 +6194,10 @@ function addHorizontalCapacityLegend(totals, mapName) {
                 const upperTech = techName.toUpperCase().trim();
                 return upperTech.includes('ALMACENAMIENTO') || 
                        upperTech.includes('BATERIA') || 
-                       upperTech.includes('BATERÍAS');
+                       upperTech.includes('BATERÍAS') ||
+                       upperTech === 'ALM' ||
+                       upperTech.startsWith('ALM ') ||
+                       upperTech.includes('STORAGE');
             };
 
             // Calculate totals by column and row, separating generation and storage
@@ -6264,9 +6267,11 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         const bounds = layer.getBounds();
                         let center = bounds.getCenter();
 
-                        // Override position for Baja California
+                        // Override position for Baja California and Noroeste
                         if (regionName === 'Baja California') {
                             center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
+                        } else if (regionName === 'Noroeste') {
+                            center.lat += 0.5; // Move label slightly up
                         }
 
                         const gcrName = regionName;
@@ -6283,7 +6288,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                             // Add each capacity type with consistent technology colors and acronyms
                             capacityColumns.forEach((col, index) => {
                                 const value = capacityInfo[col] || 0;
-                                if (value > 0) {
+                                if (value > 0 && !isStorageTech(col)) {
                                     const color = getTechnologyColor(col);
                                     const acronym = getTechnologyAcronym(col);
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
@@ -6334,7 +6339,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         // Add each capacity type with consistent technology colors and acronyms
                         capacityColumns.forEach((col, index) => {
                             const value = capacityInfo[col] || 0;
-                            if (value > 0) {
+                            if (value > 0 && !isStorageTech(col)) {
                                 const color = getTechnologyColor(col);
                                 const acronym = getTechnologyAcronym(col);
                                 labelHTML += `<div class="pib-row" style="color: ${color};">
@@ -6422,7 +6427,10 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     const upperTech = techName.toUpperCase().trim();
                     return upperTech.includes('ALMACENAMIENTO') || 
                            upperTech.includes('BATERIA') || 
-                           upperTech.includes('BATERÍAS');
+                           upperTech.includes('BATERÍAS') ||
+                           upperTech === 'ALM' ||
+                           upperTech.startsWith('ALM ') ||
+                           upperTech.includes('STORAGE');
                 };
 
                 const columnTotals = {};
@@ -6550,85 +6558,44 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
                             if (total > 0) {
-        
-                                let labelHTML = `<div class="pib-label-content">
-        
-                                    <div class="pib-label-id">${gcrName}</div>`;
-        
-        
-        
-                                capacityColumns.forEach((col, index) => {
-        
-                                    const value = capacityInfo[col] || 0;
-        
-                                    if (value > 0) {
-        
-                                        const color = getTechnologyColor(col);
-        
-                                        const acronym = getTechnologyAcronym(col);
-        
-                                        labelHTML += `<div class="pib-row" style="color: ${color};">
-        
-                                            <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')}</span>
-        
-                                        </div>`;
-        
-                                    }
-        
-                                });
-        
-                                labelHTML += '</div>';
-        
-        
-        
-                                const label = L.marker(center, {
-        
-                                    icon: L.divIcon({
-        
-                                        className: 'pib-label',
-        
-                                        html: labelHTML,
-        
-                                        iconSize: [120, 'auto']
-        
-                                    })
-        
-                                }).addTo(instrumentLayerGroup);
-        
-        
-        
-                                // Popup with acronyms and separated totals
-        
-                                let popupContent = `<div style="font-family: 'Montserrat', sans-serif; font-size: 9px;"><strong>${gcrName}</strong><br><hr>`;
-        
-                                capacityColumns.forEach(col => {
-        
-                                    const value = capacityInfo[col] || 0;
-        
-                                    if (value > 0) {
-        
-                                        const acronym = getTechnologyAcronym(col);
-        
-                                        popupContent += `${acronym}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
-        
-                                    }
-        
-                                });
-        
                                 const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
                                 const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
         
-                                popupContent += `<hr>`;
+                                // Build label HTML dynamically
+                                let labelHTML = `<div class="pib-label-content">
+                                    <div class="pib-label-id">${gcrName}</div>`;
+
+                                // Add each capacity type with consistent technology colors and acronyms
+                                capacityColumns.forEach((col, index) => {
+                                    const value = capacityInfo[col] || 0;
+                                    if (value > 0 && !isStorageTech(col)) {
+                                        const color = getTechnologyColor(col);
+                                        const acronym = getTechnologyAcronym(col);
+                                        labelHTML += `<div class="pib-row" style="color: ${color};">
+                                            <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
+                                        </div>`;
+                                    }
+                                });
+
+                                labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
                                 if (generationTotal > 0) {
-                                    popupContent += `<strong>TOTAL CAPACIDAD: ${generationTotal.toLocaleString('es-MX')} MW</strong><br>`;
+                                    labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
                                 }
                                 if (storageTotal > 0) {
-                                    popupContent += `<strong style="color: #9932CC;">TOTAL ALMACENAMIENTO: ${storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                                    labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
                                 }
-                                popupContent += `</div>`;
+                                labelHTML += `</div></div>`;
+
+                                const marker = L.marker([center.lat, center.lng], {
+                                    icon: L.divIcon({
+                                        className: 'pib-label',
+                                        html: labelHTML,
+                                        iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
+                                    })
+                                }).addTo(instrumentLayerGroup);
         
-                                layer.bindPopup(popupContent);
-        
+                                // Bind a simple popup for consistency, though the main label has the info
+                                layer.bindPopup(`<strong>${gcrName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
                             }
         
                         }
@@ -6656,83 +6623,44 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
                         if (total > 0) {
-        
-                            let labelHTML = `<div class="pib-label-content">
-        
-                                <div class="pib-label-id">${regionName}</div>`;
-        
-        
-        
-                            capacityColumns.forEach((col, index) => {
-        
-                                const value = capacityInfo[col] || 0;
-        
-                                if (value > 0) {
-        
-                                    const color = getTechnologyColor(col);
-        
-                                    const acronym = getTechnologyAcronym(col);
-        
-                                    labelHTML += `<div class="pib-row" style="color: ${color};">
-        
-                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')}</span>
-        
-                                    </div>`;
-        
-                                }
-        
-                            });
-        
-                            labelHTML += '</div>';
-        
-        
-        
-                            const label = L.marker(center, {
-        
-                                icon: L.divIcon({
-        
-                                    className: 'pib-label',
-        
-                                    html: labelHTML,
-        
-                                    iconSize: [120, 'auto']
-        
-                                })
-        
-                            }).addTo(instrumentLayerGroup);
-        
-        
-        
-                            let popupContent = `<div style="font-family: 'Montserrat', sans-serif; font-size: 9px;"><strong>${regionName}</strong><br><hr>`;
-        
-                            capacityColumns.forEach(col => {
-        
-                                const value = capacityInfo[col] || 0;
-        
-                                if (value > 0) {
-        
-                                    const acronym = getTechnologyAcronym(col);
-        
-                                    popupContent += `${acronym}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
-        
-                                }
-        
-                            });
-        
                             const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
                             const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
         
-                            popupContent += `<hr>`;
+                            // Build label HTML dynamically
+                            let labelHTML = `<div class="pib-label-content">
+                                <div class="pib-label-id">${regionName}</div>`;
+
+                            // Add each capacity type with consistent technology colors and acronyms
+                            capacityColumns.forEach((col, index) => {
+                                const value = capacityInfo[col] || 0;
+                                if (value > 0 && !isStorageTech(col)) {
+                                    const color = getTechnologyColor(col);
+                                    const acronym = getTechnologyAcronym(col);
+                                    labelHTML += `<div class="pib-row" style="color: ${color};">
+                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
+                                    </div>`;
+                                }
+                            });
+
+                            labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
                             if (generationTotal > 0) {
-                                popupContent += `<strong>TOTAL CAPACIDAD: ${generationTotal.toLocaleString('es-MX')} MW</strong><br>`;
+                                labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
                             }
                             if (storageTotal > 0) {
-                                popupContent += `<strong style="color: #9932CC;">TOTAL ALMACENAMIENTO: ${storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                                labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
                             }
-                            popupContent += `</div>`;
-        
-                            label.bindPopup(popupContent);
-        
+                            labelHTML += `</div></div>`;
+
+                            const marker = L.marker(center, {
+                                icon: L.divIcon({
+                                    className: 'pib-label',
+                                    html: labelHTML,
+                                    iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
+                                })
+                            }).addTo(instrumentLayerGroup);
+
+                            // Bind a simple popup for consistency
+                            marker.bindPopup(`<strong>${regionName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
                         }
         
                     }
