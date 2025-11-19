@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let map;
     let geoJsonLayer; // Declare geoJsonLayer globally
+    let leaderLineSvg;
 
     function createMapTilerLayer(styleId, keyName, fallbackUrl, name) {
         const apiKey = mapTilerKeys[keyName];
@@ -411,6 +412,11 @@ document.addEventListener('DOMContentLoaded', function () {
         preferCanvas: false // Disable canvas rendering to fall back to SVG for better event handling
     });
     map.isBasemapActive = false;
+
+    // Create SVG overlay for leader lines
+    leaderLineSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    leaderLineSvg.classList.add('leader-line-svg');
+    map.getContainer().appendChild(leaderLineSvg);
 
     // Crear panes para cada estilo con sus filtros
 
@@ -984,6 +990,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const insetBoundsLayerGroup = L.layerGroup().addTo(map);
     let insetControllers = [];
 
+    function updateLeaderLines() {
+        if (!leaderLineSvg || !insetControllers.length) return;
+
+        insetControllers.forEach(controller => {
+            if (!controller.line || !controller.rectangle || !controller.container) return;
+
+            const rectBounds = controller.rectangle.getBounds();
+            const rectCenterLatLng = rectBounds.getCenter();
+            const rectPoint = map.latLngToContainerPoint(rectCenterLatLng);
+
+            const insetRect = controller.container.getBoundingClientRect();
+            const mapRect = map.getContainer().getBoundingClientRect();
+            
+            // Calculate inset center relative to the map container
+            const insetCenterX = (insetRect.left - mapRect.left) + insetRect.width / 2;
+            const insetCenterY = (insetRect.top - mapRect.top) + insetRect.height / 2;
+
+            controller.line.setAttribute('x1', rectPoint.x);
+            controller.line.setAttribute('y1', rectPoint.y);
+            controller.line.setAttribute('x2', insetCenterX);
+            controller.line.setAttribute('y2', insetCenterY);
+        });
+    }
+
+    map.on('move', updateLeaderLines);
+
+
     function clearInsetMarkers() {
         insetControllers.forEach(controller => {
             if (controller.markersLayer && typeof controller.markersLayer.clearLayers === 'function') {
@@ -1016,6 +1049,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function destroyInsetMaps() {
         clearInsetLayers();
+        if (leaderLineSvg) {
+            leaderLineSvg.innerHTML = '';
+        }
         insetControllers.forEach(controller => {
             if (controller.map) {
                 controller.map.remove();
@@ -1070,7 +1106,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             mapContainerEl.appendChild(container);
 
-            // Prevent map interaction when clicking on the inset
             L.DomEvent.disableClickPropagation(container);
 
             const insetMap = L.map(insetMapEl, {
@@ -1109,12 +1144,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // --- Draggable and Resizable Logic ---
-
-            // 1. Draggable
             let isDragging = false;
             let dragStartX, dragStartY, elStartX, elStartY;
 
             titleEl.addEventListener('mousedown', function (e) {
+                L.DomEvent.stopPropagation(e);
                 e.preventDefault();
                 isDragging = true;
                 
@@ -1142,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 container.style.top = `${elStartY + dy}px`;
                 container.style.right = 'auto';
                 container.style.bottom = 'auto';
+                updateLeaderLines();
             }
 
             function onDragEnd() {
@@ -1149,9 +1184,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.body.style.userSelect = '';
                 document.removeEventListener('mousemove', onDrag);
                 document.removeEventListener('mouseup', onDragEnd);
+                updateLeaderLines();
             }
 
-            // 2. Resizable
             let isResizing = false;
             let resizeStartX, resizeStartY, elStartWidth, elStartHeight;
 
@@ -1185,6 +1220,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (insetMap) {
                     insetMap.invalidateSize({ debounceMoveend: true });
                 }
+                updateLeaderLines();
             }
 
             function onResizeEnd() {
@@ -1195,9 +1231,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (insetMap) {
                     insetMap.invalidateSize({ debounceMoveend: true });
                 }
+                updateLeaderLines();
             }
-
-            // --- End Draggable and Resizable Logic ---
 
             container.addEventListener('mouseover', () => {
                 insetMap.dragging.enable();
@@ -1220,7 +1255,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (initialLayerConfig && initialLayerConfig.creator) {
                 initialInsetBaseLayer = initialLayerConfig.creator();
             } else {
-                // Fallback to a default layer if something goes wrong
                 initialInsetBaseLayer = L.tileLayer(fallbackLight, {
                     attribution: fallbackAttribution,
                     maxZoom: 18
@@ -1243,6 +1277,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }).addTo(insetBoundsLayerGroup);
             }
 
+            const leaderLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            leaderLine.classList.add('leader-line');
+            leaderLineSvg.appendChild(leaderLine);
+
             if (Array.isArray(insetConfig.center) && insetConfig.center.length === 2) {
                 insetMap.setView(insetConfig.center, insetConfig.zoom || 7);
             } else if (Array.isArray(insetConfig.bounds) && insetConfig.bounds.length === 2) {
@@ -1257,9 +1295,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 linesLayer: insetLinesLayer,
                 markersLayer: insetMarkersLayer,
                 config: insetConfig,
-                rectangle
+                rectangle,
+                line: leaderLine
             });
         });
+        
+        // Initial draw of leader lines
+        updateLeaderLines();
     }
 
     function getNodeMarkerOptions(includePane) {

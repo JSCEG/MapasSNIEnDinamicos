@@ -2063,3 +2063,21 @@ Notification system */
     border-right-width: 4px;
 }
 
+.leader-line-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Clicks go through the SVG */
+    z-index: 630; /* Below insets (640), above map panes */
+}
+
+.leader-line {
+    stroke: #1f7a62;
+    stroke-width: 2;
+    stroke-dasharray: 4, 4;
+    filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
+}
+
+
