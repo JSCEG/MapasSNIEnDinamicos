@@ -2044,6 +2044,57 @@ document.addEventListener('DOMContentLoaded', function () {
         pibLegendControl.addTo(map);
     }
 
+    // Function to get consistent color for each technology
+    function getTechnologyColor(techName) {
+        const techColors = {
+            // Tecnologías fósiles/térmicas
+            'CICLO COMBINADO': '#8B4513',           // Café (gas)
+            'TURBOGAS': '#D2691E',                  // Café claro (gas)
+            'TURBOGÁS': '#D2691E',                  // Café claro (gas)
+            'CARBOELÉCTRICA': '#2F4F4F',            // Gris oscuro (carbón)
+            'CARBOELECTRICA': '#2F4F4F',            // Gris oscuro (carbón)
+            
+            // Hidroeléctricas
+            'HIDROELÉCTRICA': '#1E90FF',            // Azul (agua)
+            'HIDROELECTRICA': '#1E90FF',            // Azul (agua)
+            'HIDROELÉCTRICA CON ALMACENAMIENTO': '#4169E1', // Azul real (agua con almacenamiento)
+            'HIDROELECTRICA CON ALMACENAMIENTO': '#4169E1',
+            'REBOMBEO': '#4682B4',                  // Azul acero (rebombeo)
+            
+            // Energías renovables
+            'EÓLICA': '#87CEEB',                    // Azul cielo (viento)
+            'EOLICA': '#87CEEB',                    // Azul cielo (viento)
+            'FOTOVOLTAICA': '#FFD700',              // Dorado (sol)
+            'SOLAR': '#FFD700',                     // Dorado (sol)
+            'GEOTÉRMICA': '#DC143C',                // Rojo carmesí (calor)
+            'GEOTERMICA': '#DC143C',                // Rojo carmesí (calor)
+            'BIOMASA': '#228B22',                   // Verde bosque (biomasa)
+            
+            // Almacenamiento
+            'ALMACENAMIENTO': '#9370DB',            // Púrpura medio (almacenamiento)
+            'BATERÍAS': '#8A2BE2',                  // Azul violeta (baterías)
+            'BATERIAS': '#8A2BE2',                  // Azul violeta (baterías)
+            
+            // Nuclear
+            'NUCLEAR': '#FF6347',                   // Tomate (nuclear)
+            
+            // Otras
+            'COMBUSTIÓN INTERNA': '#CD853F',        // Marrón (diesel)
+            'COMBUSTION INTERNA': '#CD853F'         // Marrón (diesel)
+        };
+        
+        // Normalize technology name
+        const normalizedTech = techName.toUpperCase().trim();
+        
+        // Return specific color if found, otherwise return a default based on hash
+        if (techColors[normalizedTech]) {
+            return techColors[normalizedTech];
+        }
+        
+        // Default color for unknown technologies (gray)
+        return '#808080';
+    }
+
     function addCapacityLegend(totals, mapName) {
         if (pibLegendControl) {
             map.removeControl(pibLegendControl);
@@ -2053,39 +2104,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = '<strong>Adiciones de Capacidad (MW)</strong><br>';
+            div.innerHTML = '<strong>Adiciones de Capacidad y Almacenamiento (MW)</strong><br>';
 
-            // Add dynamic legend items with institutional colors
+            // Add dynamic legend items with color, technology and value in one line
             if (totals && totals.columnNames) {
-                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
                 totals.columnNames.forEach((col, index) => {
                     if (totals.columns[col] > 0) {
-                        const color = colors[index % colors.length];
-                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col}</div>`;
+                        const color = getTechnologyColor(col);
+                        const value = totals.columns[col].toLocaleString('es-MX');
+                        div.innerHTML += `<div class="legend-item"><i style="background: ${color}; width: 20px; height: 10px; border: none;"></i> ${col}: ${value} MW</div>`;
                     }
                 });
-            }
-
-            // Add totals if available
-            if (totals && totals.columns) {
-                div.innerHTML += '<br><div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">';
-                div.innerHTML += '<strong style="font-size: 11px;">TOTALES</strong><br>';
-
-                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
-                totals.columnNames.forEach((col, index) => {
-                    if (totals.columns[col] > 0) {
-                        const color = colors[index % colors.length];
-                        div.innerHTML += `<div style="font-size: 11px; color: ${color}; margin-top: 2px;">${col}: ${totals.columns[col].toLocaleString('es-MX')} MW</div>`;
-                    }
-                });
-
-                // Add storage info for specific map
-                if (mapName === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
-                    div.innerHTML += `<div style="font-size: 11px; color: #555; margin-top: 6px; font-style: italic;">Almacenamiento: 2,480 MW</div>`;
-                }
-
-                div.innerHTML += `<div style="font-size: 12px; font-weight: bold; margin-top: 6px; color: #1a1a1a;">TOTAL: ${totals.total.toLocaleString('es-MX')} MW</div>`;
-                div.innerHTML += '</div>';
             }
 
             return div;
@@ -2103,26 +2132,19 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
     pibLegendControl.onAdd = function (map) {
         const div = L.DomUtil.create('div', 'info legend horizontal-legend');
-        div.innerHTML = '<strong>Adiciones de Capacidad (MW)</strong>';
+        div.innerHTML = '<strong>Adiciones de Capacidad y Almacenamiento (MW)</strong>';
         
         const container = L.DomUtil.create('div', 'horizontal-legend-container', div);
 
         if (totals && totals.columnNames) {
-            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
             totals.columnNames.forEach((col, index) => {
                 const value = totals.columns[col] || 0;
                 if (value > 0) {
-                    const color = colors[index % colors.length];
+                    const color = getTechnologyColor(col);
                     const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
-                    item.innerHTML = `<i style="background:${color};"></i> ${col}: ${value.toLocaleString('es-MX')}`;
+                    item.innerHTML = `<i style="background:${color};"></i> ${col}: ${value.toLocaleString('es-MX')} MW`;
                 }
             });
-        }
-        
-        // Add the grand total at the end
-        if (totals && totals.total) {
-             const totalItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
-             totalItem.innerHTML = `<strong>TOTAL: ${totals.total.toLocaleString('es-MX')} MW</strong>`;
         }
 
         return div;
@@ -6097,12 +6119,11 @@ function addHorizontalCapacityLegend(totals, mapName) {
                             let labelHTML = `<div class="pib-label-content">
                                 <div class="pib-label-id">${gcrName}</div>`;
 
-                            // Add each capacity type with institutional colors
-                            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                            // Add each capacity type with consistent technology colors
                             capacityColumns.forEach((col, index) => {
                                 const value = capacityInfo[col] || 0;
                                 if (value > 0) {
-                                    const color = colors[index % colors.length];
+                                    const color = getTechnologyColor(col);
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
                                         <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
                                     </div>`;
@@ -6141,12 +6162,11 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         let labelHTML = `<div class="pib-label-content">
                             <div class="pib-label-id">${gcrName}</div>`;
 
-                        // Add each capacity type with institutional colors
-                        const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+                        // Add each capacity type with consistent technology colors
                         capacityColumns.forEach((col, index) => {
                             const value = capacityInfo[col] || 0;
                             if (value > 0) {
-                                const color = colors[index % colors.length];
+                                const color = getTechnologyColor(col);
                                 labelHTML += `<div class="pib-row" style="color: ${color};">
                                     <span class="pib-value">${value.toLocaleString('es-MX')} MW</span>
                                 </div>`;
@@ -6336,15 +6356,13 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
-        
                                 capacityColumns.forEach((col, index) => {
         
                                     const value = capacityInfo[col] || 0;
         
                                     if (value > 0) {
         
-                                        const color = colors[index % colors.length];
+                                        const color = getTechnologyColor(col);
         
                                         labelHTML += `<div class="pib-row" style="color: ${color};">
         
@@ -6430,15 +6448,13 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
-        
                             capacityColumns.forEach((col, index) => {
         
                                 const value = capacityInfo[col] || 0;
         
                                 if (value > 0) {
         
-                                    const color = colors[index % colors.length];
+                                    const color = getTechnologyColor(col);
         
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
         
