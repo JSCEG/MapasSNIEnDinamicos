@@ -1551,7 +1551,7 @@ Notification system */
 .legend {
     line-height: 18px;
     color: #555;
-    background-color: rgba(249, 247, 242, 0.96);
+    background-color: white; /* Changed from rgba(249, 247, 242, 0.96) to white */
     padding: 12px 14px;
     border-radius: 10px;
     border: 1px solid rgba(161, 150, 132, 0.25);
@@ -1572,6 +1572,10 @@ Notification system */
 
 .leaflet-pane.leaflet-gerencias-pane {
     filter: drop-shadow(5px 5px 5px rgba(0, 0, 0, 0.6));
+}
+
+.provincia-polygon {
+    filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.5));
 }
 
 .leaflet-pane.leaflet-gerencias-pane path.gerencia-focused {
@@ -2615,7 +2619,7 @@ Notification system */
    ============================================ */
 
 .provincias-legend {
-    background: rgba(249, 247, 242, 0.96);
+    background: white; /* Changed from rgba(249, 247, 242, 0.96) to white */
     padding: 10px 12px;
     border-radius: 10px;
     border: 1px solid rgba(161, 150, 132, 0.25);
@@ -2704,4 +2708,10 @@ Notification system */
     white-space: nowrap;
     font-weight: 500;
     text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Custom styles for Leaflet popups - ensure white background */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: white !important;
 }

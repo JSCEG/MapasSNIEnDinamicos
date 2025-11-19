@@ -61,15 +61,22 @@
             flex-direction: column;
         }
 
+        .map-card:fullscreen .map-content-wrapper {
+            flex: 1;
+            padding: 0;
+            display: flex;
+        }
+
         .map-card:fullscreen #map {
-            height: 100vh !important;
-            width: 100vw !important;
+            height: 100% !important;
+            width: 100% !important;
             flex: 1;
         }
 
         /* Ocultar todo excepto el mapa en pantalla completa */
         .map-card:fullscreen .card-toolbar,
         .map-card:fullscreen .map-title-banner,
+        .map-card:fullscreen .map-title-text,
         .map-card:fullscreen .filters-panel,
         .map-card:fullscreen .map-description,
         .map-card:fullscreen .card-footer {
