@@ -1050,11 +1050,9 @@ document.addEventListener('DOMContentLoaded', function () {
             container.style.height = typeof heightValue === 'number' ? heightValue + 'px' : String(heightValue);
 
             const position = insetConfig.position || defaultPositions[index] || defaultPositions[0];
-            ['top', 'right', 'bottom', 'left'].forEach(prop => {
-                if (position && position[prop] !== undefined) {
-                    const value = position[prop];
-                    container.style[prop] = typeof value === 'number' ? value + 'px' : value;
-                }
+            Object.keys(position).forEach(prop => {
+                const value = position[prop];
+                container.style[prop] = typeof value === 'number' ? value + 'px' : value;
             });
 
             const titleEl = document.createElement('div');
@@ -1066,10 +1064,17 @@ document.addEventListener('DOMContentLoaded', function () {
             insetMapEl.className = 'map-inset__map';
             container.appendChild(insetMapEl);
 
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'map-inset__resize-handle';
+            container.appendChild(resizeHandle);
+
             mapContainerEl.appendChild(container);
 
+            // Prevent map interaction when clicking on the inset
+            L.DomEvent.disableClickPropagation(container);
+
             const insetMap = L.map(insetMapEl, {
-                attributionControl: true,
+                attributionControl: false,
                 zoomControl: false,
                 dragging: false,
                 scrollWheelZoom: false,
@@ -1103,6 +1108,97 @@ document.addEventListener('DOMContentLoaded', function () {
                 insetMexicoPane.style.zIndex = 199;
             }
 
+            // --- Draggable and Resizable Logic ---
+
+            // 1. Draggable
+            let isDragging = false;
+            let dragStartX, dragStartY, elStartX, elStartY;
+
+            titleEl.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                isDragging = true;
+                
+                document.body.style.userSelect = 'none';
+
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                
+                const rect = container.getBoundingClientRect();
+                const parentRect = mapContainerEl.getBoundingClientRect();
+
+                elStartX = rect.left - parentRect.left;
+                elStartY = rect.top - parentRect.top;
+
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', onDragEnd);
+            });
+
+            function onDrag(e) {
+                if (!isDragging) return;
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+
+                container.style.left = `${elStartX + dx}px`;
+                container.style.top = `${elStartY + dy}px`;
+                container.style.right = 'auto';
+                container.style.bottom = 'auto';
+            }
+
+            function onDragEnd() {
+                isDragging = false;
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onDrag);
+                document.removeEventListener('mouseup', onDragEnd);
+            }
+
+            // 2. Resizable
+            let isResizing = false;
+            let resizeStartX, resizeStartY, elStartWidth, elStartHeight;
+
+            resizeHandle.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+
+                document.body.style.userSelect = 'none';
+
+                resizeStartX = e.clientX;
+                resizeStartY = e.clientY;
+                elStartWidth = container.offsetWidth;
+                elStartHeight = container.offsetHeight;
+
+                document.addEventListener('mousemove', onResize);
+                document.addEventListener('mouseup', onResizeEnd);
+            });
+
+            function onResize(e) {
+                if (!isResizing) return;
+                const dx = e.clientX - resizeStartX;
+                const dy = e.clientY - resizeStartY;
+
+                const newWidth = Math.max(150, elStartWidth + dx);
+                const newHeight = Math.max(100, elStartHeight + dy);
+
+                container.style.width = `${newWidth}px`;
+                container.style.height = `${newHeight}px`;
+                
+                if (insetMap) {
+                    insetMap.invalidateSize({ debounceMoveend: true });
+                }
+            }
+
+            function onResizeEnd() {
+                isResizing = false;
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onResize);
+                document.removeEventListener('mouseup', onResizeEnd);
+                if (insetMap) {
+                    insetMap.invalidateSize({ debounceMoveend: true });
+                }
+            }
+
+            // --- End Draggable and Resizable Logic ---
+
             container.addEventListener('mouseover', () => {
                 insetMap.dragging.enable();
                 insetMap.scrollWheelZoom.enable();
@@ -1111,10 +1207,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             container.addEventListener('mouseout', () => {
-                insetMap.dragging.disable();
-                insetMap.scrollWheelZoom.disable();
-                insetMap.doubleClickZoom.disable();
-                insetMap.boxZoom.disable();
+                if (!isDragging && !isResizing) {
+                    insetMap.dragging.disable();
+                    insetMap.scrollWheelZoom.disable();
+                    insetMap.doubleClickZoom.disable();
+                    insetMap.boxZoom.disable();
+                }
             });
 
             const initialLayerConfig = Object.values(layerConfigs).find(config => config.label === currentBaseLayerName);
