@@ -115,18 +115,11 @@
             // Agregar cada provincia con su color e ID del GeoJSON
             provincias.forEach(provincia => {
                 html += `
-                    <div style="margin-bottom: 3px; display: flex; align-items: center; font-size: 9px;">
-                        <span style="
-                            display: inline-block;
-                            width: 12px;
-                            height: 12px;
-                            background-color: ${provincia.color};
-                            border: 1px solid #2C3E50;
-                            margin-right: 5px;
-                            border-radius: 2px;
-                            flex-shrink: 0;
-                        "></span>
-                        <span style="color: #162230; line-height: 1.2;">${provincia.nombre} <strong style="color: #1f7a62;">(${provincia.id})</strong></span>
+                    <div style="clear: both; margin-bottom: 4px;">
+                        <i style="background: ${provincia.color}; border-radius: 3px; border: 1px solid rgba(0,0,0,0.2);"></i>
+                        <span style="font-size: 9px; color: #162230; line-height: 1.2;">
+                            ${provincia.nombre} <strong style="color: #1f7a62;">(${provincia.id})</strong>
+                        </span>
                     </div>
                 `;
             });

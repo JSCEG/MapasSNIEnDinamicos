@@ -16,6 +16,8 @@
         const exportWordFullscreenBtn = document.getElementById('export-word-fullscreen-btn');
         const mapContainer = document.getElementById('map');
         const mapCard = document.querySelector('.map-card');
+        const mapDescription = document.getElementById('map-description');
+        const cardFooter = document.querySelector('.card-footer');
         
         if (!exportBtn || !mapContainer) {
             console.warn('Botón de exportación o contenedor de mapa no encontrado');
@@ -193,10 +195,22 @@
             if (fullscreenToolbar) fullscreenToolbar.style.display = 'none';
 
             const restoreLayout = prepareLayoutForExport();
+            let mapDescriptionOriginalDisplay = '';
+            let cardFooterOriginalDisplay = '';
 
             try {
                 console.log('🔄 Esperando carga de tiles para exportación Word...');
                 await waitForTiles();
+
+                // Ocultar descripción y pie de página del mapa
+                if (mapDescription) {
+                    mapDescriptionOriginalDisplay = mapDescription.style.display;
+                    mapDescription.style.display = 'none';
+                }
+                if (cardFooter) {
+                    cardFooterOriginalDisplay = cardFooter.style.display;
+                    cardFooter.style.display = 'none';
+                }
 
                 if (progressMessage) progressMessage.textContent = 'Capturando imagen optimizada...';
                 if (progressPercentage) progressPercentage.textContent = '50%';
@@ -207,10 +221,11 @@
                 // Calcular dimensiones manteniendo aspect ratio del contenedor
                 // Escala 6x para obtener ~300 DPI en documentos Word
                 const scale = 6;
-                const targetWidth = mapContainer.offsetWidth * scale;
-                const targetHeight = (mapContainer.offsetHeight + 40) * scale; // Añadir espacio extra para evitar que las leyendas se corten
+                const mapContentWrapper = document.querySelector('.map-content-wrapper');
+                const targetWidth = mapContentWrapper.offsetWidth * scale;
+                const targetHeight = mapContentWrapper.offsetHeight * scale;
 
-                const dataUrl = await domtoimage.toPng(mapContainer, {
+                const dataUrl = await domtoimage.toPng(mapContentWrapper, {
                     quality: 1.0,
                     width: targetWidth,
                     height: targetHeight,
@@ -296,6 +311,13 @@
 
                 if (progressOverlay) progressOverlay.style.display = 'none';
             } finally {
+                // Restaurar descripción y pie de página del mapa
+                if (mapDescription) {
+                    mapDescription.style.display = mapDescriptionOriginalDisplay;
+                }
+                if (cardFooter) {
+                    cardFooter.style.display = cardFooterOriginalDisplay;
+                }
                 restoreLayout();
             }
         }
@@ -357,10 +379,22 @@
             }
 
             const restoreLayout = prepareLayoutForExport();
+            let mapDescriptionOriginalDisplay = '';
+            let cardFooterOriginalDisplay = '';
 
             try {
                 console.log('🔄 Esperando carga de tiles...');
                 await waitForTiles();
+
+                // Ocultar descripción y pie de página del mapa
+                if (mapDescription) {
+                    mapDescriptionOriginalDisplay = mapDescription.style.display;
+                    mapDescription.style.display = 'none';
+                }
+                if (cardFooter) {
+                    cardFooterOriginalDisplay = cardFooter.style.display;
+                    cardFooter.style.display = 'none';
+                }
 
                 if (progressMessage) progressMessage.textContent = 'Capturando imagen del mapa...';
                 if (progressPercentage) progressPercentage.textContent = '50%';
@@ -371,10 +405,11 @@
                 // Usar dom-to-image para capturar con máxima calidad
                 // Escala 4x para imágenes de alta resolución
                 const scale = 4;
-                const dataUrl = await domtoimage.toPng(mapContainer, {
+                const mapContentWrapper = document.querySelector('.map-content-wrapper');
+                const dataUrl = await domtoimage.toPng(mapContentWrapper, {
                     quality: 1.0,
-                    width: mapContainer.offsetWidth * scale,
-                    height: (mapContainer.offsetHeight + 40) * scale, // Añadir espacio extra
+                    width: mapContentWrapper.offsetWidth * scale,
+                    height: mapContentWrapper.offsetHeight * scale,
                     style: {
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
@@ -497,6 +532,13 @@
 
                 if (progressOverlay) progressOverlay.style.display = 'none';
             } finally {
+                // Restaurar descripción y pie de página del mapa
+                if (mapDescription) {
+                    mapDescription.style.display = mapDescriptionOriginalDisplay;
+                }
+                if (cardFooter) {
+                    cardFooter.style.display = cardFooterOriginalDisplay;
+                }
                 restoreLayout();
             }
         }
