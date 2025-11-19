@@ -1562,6 +1562,68 @@ Notification system */
     font-size: 11px; /* Explicit size for legend items */
 }
 
+/* Two-column legend for total capacity map */
+.legend-two-columns {
+    max-width: 650px;
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.legend-columns-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.legend-column {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.legend-column .legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.legend-totals-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    border-top: 2px solid #333;
+    padding-top: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.legend-total-item {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Adjust positioning to be more centered at bottom */
+.leaflet-bottom .legend-two-columns {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+@media (max-width: 768px) {
+    .legend-two-columns {
+        max-width: 90vw;
+    }
+    
+    .legend-columns-container {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
 .leaflet-pane.leaflet-states-pane {
     filter: drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.3));
 }
@@ -2066,4 +2128,13 @@ Notification system */
     color: #1a1a1a;
     margin-left: auto; /* Pushes total to the right */
     padding-left: 20px;
+}
+
+/* Force Montserrat font in all Leaflet popups */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-content,
+.leaflet-popup-content div,
+.leaflet-popup-content strong,
+.leaflet-popup-content span {
+    font-family: 'Montserrat', sans-serif !important;
 }

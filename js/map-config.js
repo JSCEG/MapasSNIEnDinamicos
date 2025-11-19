@@ -2192,6 +2192,59 @@ document.addEventListener('DOMContentLoaded', function () {
         pibLegendControl.addTo(map);
     }
 
+    function addTotalCapacityLegendTwoColumns(totals, mapName) {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+        }
+
+        pibLegendControl = L.control({ position: 'bottomleft' });
+
+        pibLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend legend-two-columns');
+            div.innerHTML = '<strong>ADICIONES DE CAPACIDAD Y ALMACENAMIENTO (MW)</strong><br>';
+
+            // Create two-column container
+            const columnsContainer = L.DomUtil.create('div', 'legend-columns-container', div);
+            const column1 = L.DomUtil.create('div', 'legend-column', columnsContainer);
+            const column2 = L.DomUtil.create('div', 'legend-column', columnsContainer);
+
+            // Add dynamic legend items with color, acronym, technology and value
+            if (totals && totals.columnNames) {
+                const itemsPerColumn = Math.ceil(totals.columnNames.length / 2);
+                let currentColumn = 0;
+
+                totals.columnNames.forEach((col, index) => {
+                    if (totals.columns[col] > 0) {
+                        const color = getTechnologyColor(col);
+                        const acronym = getTechnologyAcronym(col);
+                        const value = totals.columns[col].toLocaleString('es-MX');
+                        
+                        const targetColumn = index < itemsPerColumn ? column1 : column2;
+                        const itemDiv = L.DomUtil.create('div', 'legend-item', targetColumn);
+                        itemDiv.innerHTML = `<i style="background: ${color}; width: 16px; height: 10px; border: none; display: inline-block; margin-right: 6px;"></i> ${col.toUpperCase()} (${acronym}): ${value} MW`;
+                    }
+                });
+            }
+
+            // Add separated totals at the bottom (full width)
+            if (totals) {
+                const totalsContainer = L.DomUtil.create('div', 'legend-totals-row', div);
+                if (totals.generationTotal && totals.generationTotal > 0) {
+                    const genDiv = L.DomUtil.create('span', 'legend-total-item', totalsContainer);
+                    genDiv.innerHTML = `<strong>TOTAL CAPACIDAD: ${totals.generationTotal.toLocaleString('es-MX')} MW</strong>`;
+                }
+                if (totals.storageTotal && totals.storageTotal > 0) {
+                    const almDiv = L.DomUtil.create('span', 'legend-total-item', totalsContainer);
+                    almDiv.innerHTML = `<strong style="color: #9932CC;">TOTAL ALMACENAMIENTO: ${totals.storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                }
+            }
+
+            return div;
+        };
+
+        pibLegendControl.addTo(map);
+    }
+
 function addHorizontalCapacityLegend(totals, mapName) {
     if (pibLegendControl) {
         map.removeControl(pibLegendControl);
@@ -6191,10 +6244,10 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
             console.log('Capacity totals:', capacityTotals);
 
-            // Specific coordinates for Baja California regions
+            // Specific coordinates for Baja California regions and adjusted positions
             const bajaCaliforniaCoords = {
                 'Baja California': { lat: 32.3, lng: -115.5 },
-                'Baja California Sur': { lat: 23.5, lng: -110.0 },  // Cerca de Los Cabos (era Mulegé)
+                'Baja California Sur': { lat: 23.5, lng: -111.5 },  // Movido más a la izquierda (antes -110.0)
                 'Mulegé': { lat: 28.5, lng: -113.0 }                // Centro-norte península (era Baja California Sur)
             };
 
@@ -6452,7 +6505,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                     'Baja California': { lat: 32.3, lng: -115.5 },
         
-                    'Baja California Sur': { lat: 23.5, lng: -110.0 },
+                    'Baja California Sur': { lat: 23.5, lng: -111.5 },  // Movido más a la izquierda
         
                     'Mulegé': { lat: 28.5, lng: -113.0 }
         
@@ -6546,7 +6599,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                 // Popup with acronyms and separated totals
         
-                                let popupContent = `<div style="font-size: 11px;"><strong style="font-size: 12px;">${gcrName}</strong><br><hr>`;
+                                let popupContent = `<div style="font-family: 'Montserrat', sans-serif; font-size: 9px;"><strong>${gcrName}</strong><br><hr>`;
         
                                 capacityColumns.forEach(col => {
         
@@ -6650,7 +6703,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                            let popupContent = `<div style="font-size: 11px;"><strong style="font-size: 12px;">${regionName}</strong><br><hr>`;
+                            let popupContent = `<div style="font-family: 'Montserrat', sans-serif; font-size: 9px;"><strong>${regionName}</strong><br><hr>`;
         
                             capacityColumns.forEach(col => {
         
@@ -6688,9 +6741,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
         
         
-                // CALL ORIGINAL LEGEND FUNCTION
+                // CALL SPECIAL LEGEND FUNCTION FOR TOTAL CAPACITY MAP (TWO COLUMNS, BOTTOM)
         
-                addCapacityLegend(capacityTotals, mapConfig.name);
+                addTotalCapacityLegendTwoColumns(capacityTotals, mapConfig.name);
         
         
         
