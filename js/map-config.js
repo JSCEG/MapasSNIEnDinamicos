@@ -1451,6 +1451,94 @@ document.addEventListener('DOMContentLoaded', function () {
     let pibSinData = null; // Store SIN data for PIB map
     let capacityTotals = null; // Store totals for capacity additions map
 
+    async function loadTotalCapacityData() {
+        const urls = [
+            'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6orBJGbqI8xr6TkOUaJM7I-8RbE7inbex6PrKWHdgTUif8EBFljKuzFR42OqoroQ87kAGpZt_ry-J/pub?gid=0&single=true&output=csv',
+            'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuLWC7WRjRZ-Kicm-0rWJd9beVu4jAwsABNLcixRUCr6XvC0pVvrgPXJW-qh-44AvmLt6gYBDwdoms/pub?gid=0&single=true&output=csv',
+            'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIo6nqNkppQCVqqsUC1LNKSw8n9AyslhakQb_3gB7bccFP1Tb7ssDX1ycdMe0rTSlSrWXpH_CSTMna/pub?gid=0&single=true&output=csv',
+            'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYfjJ8D1nJGd7IFKOzzg_e7Dpn77RyyeQM1MVFLg4pN4CB7TR1hj_5Zt2igXlDiht8p7hVs-aIp3DQ/pub?gid=0&single=true&output=csv'
+        ];
+
+        const aggregatedData = {};
+        const allTechs = new Set();
+
+        const normalizeGCRName = (name) => {
+            if (!name) return null;
+            const lowerName = name.toLowerCase().trim();
+            
+            if (lowerName.includes('baja california sur') || lowerName === 'bcs' || lowerName === 'b.c.s.') return 'Baja California Sur';
+            if (lowerName.includes('baja california') || lowerName === 'bc' || lowerName === 'b.c.') return 'Baja California';
+            if (lowerName.includes('mulege')) return 'Mulegé';
+            if (lowerName === 'cen') return 'Central';
+            if (lowerName === 'nes') return 'Noreste';
+            if (lowerName === 'nor') return 'Noroeste';
+            if (lowerName === 'nte') return 'Norte';
+            if (lowerName === 'occ') return 'Occidental';
+            if (lowerName === 'ori') return 'Oriental';
+            if (lowerName === 'pen') return 'Peninsular';
+            
+            return name; 
+        };
+
+        const fetchData = url => new Promise((resolve, reject) => {
+            Papa.parse(url, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: results => resolve(results.data),
+                error: err => reject(err)
+            });
+        });
+
+        const allResults = await Promise.all(urls.map(fetchData));
+
+        allResults.forEach((dataSet, index) => {
+            console.log(`Processing file ${index + 1}`);
+            dataSet.forEach(row => {
+                const gcrKey = Object.keys(row).find(k => k.toLowerCase().trim() === 'gcr' || k.toLowerCase().trim() === 'gerencia de control regional');
+                const originalGcr = row[gcrKey];
+                const gcr = normalizeGCRName(originalGcr);
+                
+                if (!gcr) {
+                    return;
+                }
+
+                if (!aggregatedData[gcr]) {
+                    aggregatedData[gcr] = { 'Gerencia de Control Regional': gcr };
+                }
+
+                Object.keys(row).forEach(key => {
+                    const lowerKey = key.toLowerCase().trim();
+                    if (lowerKey === 'gcr' || lowerKey === 'gerencia de control regional' || lowerKey === 'id' || lowerKey === 'unidades') {
+                        return; // Skip non-data columns
+                    }
+                    
+                    const value = parseFloat(row[key]) || 0;
+                    if (value > 0) {
+                        aggregatedData[gcr][key] = (aggregatedData[gcr][key] || 0) + value;
+                        allTechs.add(key);
+                    }
+                });
+            });
+        });
+
+        console.log('Final aggregated data:', aggregatedData);
+
+        // Create a clean array of objects from the aggregated data
+        const finalData = Object.values(aggregatedData);
+        
+        // Ensure all objects have all technology columns
+        finalData.forEach(gcrData => {
+            allTechs.forEach(tech => {
+                if (!gcrData[tech]) {
+                    gcrData[tech] = 0;
+                }
+            });
+        });
+
+        return finalData;
+    }
+
     const mapConfigurations = {
         'PLADESE': [
             {
@@ -1567,6 +1655,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/1jGSjieGMNeCyk_agXzDNF90J2srt-89Ungq4Bwda8HY/edit?usp=sharing',
                 descriptionTitle: 'Adición de capacidad para desarrollarse por particulares 2026 - 2030',
                 description: 'La SENER determinó también 7,405 MW de adiciones de capacidad con base a la Planeación Vinculante, que pueden ser desarrollados por particulares durante el periodo 2026 a 2030, con la participación de fuentes de generación renovables como se observa en la Figura 4.6. De los cuales 1,638 MW de capacidad de generación, y 900 MW de rebombeo hidráulico, corresponden a proyectos estratégicos para cumplir con la política energética nacional, definidos por la SENER.\nAdicionalmente, a dicha capacidad el CENACE y CNE, podrán atender y priorizar las solicitudes de otorgamiento de permisos de generación de energía eléctrica, así como la elaboración de estudios de interconexión para la figura de autoconsumo y la modalidad de cogeneración que pretendan desarrollar los particulares y que se encuentren alineados con los criterios de planeación vinculante. Asimismo, los trámites relacionados con el proceso de conexión de Centros de Carga podrán ser priorizados tomando en cuenta la política nacional atendiendo el crecimiento de la demanda de energía eléctrica en cumplimiento de las leyes, reglamentos y demás disposiciones jurídicas aplicables.'
+            },
+            {
+                name: 'Adición de capacidad 2025-2039',
+                geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
+                geojsonUrlType: 'total-capacity-additions',
+                descriptionTitle: 'Adición de Capacidad Total (Agregada) 2025-2039',
+                description: 'Este mapa muestra la suma de todas las adiciones de capacidad planeadas de los proyectos de CFE, el Estado y particulares para el periodo 2025-2039, agregadas por Gerencia de Control Regional.'
             }
             // ... other PLADESE maps can be added here
         ],
@@ -1998,6 +2093,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
         pibLegendControl.addTo(map);
     }
+
+function addHorizontalCapacityLegend(totals, mapName) {
+    if (pibLegendControl) {
+        map.removeControl(pibLegendControl);
+    }
+
+    pibLegendControl = L.control({ position: 'bottomleft' });
+
+    pibLegendControl.onAdd = function (map) {
+        const div = L.DomUtil.create('div', 'info legend horizontal-legend');
+        div.innerHTML = '<strong>Adiciones de Capacidad (MW)</strong>';
+        
+        const container = L.DomUtil.create('div', 'horizontal-legend-container', div);
+
+        if (totals && totals.columnNames) {
+            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+            totals.columnNames.forEach((col, index) => {
+                const value = totals.columns[col] || 0;
+                if (value > 0) {
+                    const color = colors[index % colors.length];
+                    const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
+                    item.innerHTML = `<i style="background:${color};"></i> ${col}: ${value.toLocaleString('es-MX')}`;
+                }
+            });
+        }
+        
+        // Add the grand total at the end
+        if (totals && totals.total) {
+             const totalItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
+             totalItem.innerHTML = `<strong>TOTAL: ${totals.total.toLocaleString('es-MX')} MW</strong>`;
+        }
+
+        return div;
+    };
+
+    pibLegendControl.addTo(map);
+}
 
     function removePIBLegend() {
         if (pibLegendControl) {
@@ -6045,12 +6177,348 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error('Error loading capacity additions map:', error);
-        } finally {
-            togglePreloader(false);
+            } finally {
+                togglePreloader(false);
+            }
         }
-    }
-
-    // Event listeners
+        
+        async function loadTotalCapacityAdditionsMap(mapConfig) {
+        
+            togglePreloader(true);
+        
+            try {
+        
+                // Load aggregated data and GeoJSON in parallel
+        
+                const [aggregatedData, geoJsonResponse] = await Promise.all([
+        
+                    loadTotalCapacityData(),
+        
+                    fetch(mapConfig.geojsonUrl)
+        
+                ]);
+        
+        
+        
+                const geoJsonData = await geoJsonResponse.json();
+        
+        
+        
+                // Get dynamic column names from the aggregated data
+        
+                const allColumns = aggregatedData.length > 0 ? Object.keys(aggregatedData[0]) : [];
+        
+                const capacityColumns = allColumns.filter(col =>
+        
+                    col !== 'Gerencia de Control Regional' && col !== 'GCR' && col.trim() !== ''
+        
+                );
+        
+        
+        
+                console.log('Aggregated capacity columns found:', capacityColumns);
+        
+        
+        
+                const capacityDataMap = new Map();
+        
+                const columnTotals = {};
+        
+                capacityColumns.forEach(col => columnTotals[col] = 0);
+        
+                let grandTotal = 0;
+        
+        
+        
+                aggregatedData.forEach(row => {
+        
+                    const gcrName = row['Gerencia de Control Regional'];
+        
+                    let rowTotal = 0;
+        
+                    const rowData = { GCR: gcrName };
+        
+        
+        
+                    capacityColumns.forEach(col => {
+        
+                        const value = parseFloat(row[col] || 0);
+        
+                        rowData[col] = value;
+        
+                        rowTotal += value;
+        
+                        columnTotals[col] += value;
+        
+                    });
+        
+        
+        
+                    rowData.TOTAL = rowTotal;
+        
+                    grandTotal += rowTotal;
+        
+                    capacityDataMap.set(gcrName, rowData);
+        
+                });
+        
+        
+        
+                capacityTotals = {
+        
+                    columns: columnTotals,
+        
+                    total: grandTotal,
+        
+                    columnNames: capacityColumns
+        
+                };
+        
+        
+        
+                console.log('Aggregated capacity totals:', capacityTotals);
+        
+        
+        
+                const bajaCaliforniaCoords = {
+        
+                    'Baja California': { lat: 32.3, lng: -115.5 },
+        
+                    'Baja California Sur': { lat: 23.5, lng: -110.0 },
+        
+                    'Mulegé': { lat: 28.5, lng: -113.0 }
+        
+                };
+        
+        
+        
+                await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
+        
+        
+        
+                if (geoJsonLayer) {
+        
+                    geoJsonLayer.eachLayer(layer => {
+        
+                        const regionName = layer.feature.properties.name;
+        
+                        const capacityInfo = capacityDataMap.get(regionName);
+        
+        
+        
+                        if (capacityInfo) {
+        
+                            const bounds = layer.getBounds();
+        
+                            let center = bounds.getCenter();
+        
+        
+        
+                            if (regionName === 'Baja California') {
+        
+                                center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
+        
+                            }
+        
+        
+        
+                            const gcrName = regionName;
+        
+                            const total = capacityInfo.TOTAL || 0;
+        
+        
+        
+                            if (total > 0) {
+        
+                                let labelHTML = `<div class="pib-label-content">
+        
+                                    <div class="pib-label-id">${gcrName}</div>`;
+        
+        
+        
+                                const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+        
+                                capacityColumns.forEach((col, index) => {
+        
+                                    const value = capacityInfo[col] || 0;
+        
+                                    if (value > 0) {
+        
+                                        const color = colors[index % colors.length];
+        
+                                        labelHTML += `<div class="pib-row" style="color: ${color};">
+        
+                                            <span class="pib-value">${value.toLocaleString('es-MX')}</span>
+        
+                                        </div>`;
+        
+                                    }
+        
+                                });
+        
+                                labelHTML += '</div>';
+        
+        
+        
+                                const label = L.marker(center, {
+        
+                                    icon: L.divIcon({
+        
+                                        className: 'pib-label',
+        
+                                        html: labelHTML,
+        
+                                        iconSize: [120, 'auto']
+        
+                                    })
+        
+                                }).addTo(instrumentLayerGroup);
+        
+        
+        
+                                // Popup (remains the same)
+        
+                                let popupContent = `<strong>${gcrName}</strong><br><hr>`;
+        
+                                capacityColumns.forEach(col => {
+        
+                                    const value = capacityInfo[col] || 0;
+        
+                                    if (value > 0) {
+        
+                                        popupContent += `${col}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
+        
+                                    }
+        
+                                });
+        
+                                popupContent += `<hr><strong>Total: ${total.toLocaleString('es-MX')} MW</strong>`;
+        
+                                layer.bindPopup(popupContent);
+        
+                            }
+        
+                        }
+        
+                    });
+        
+                }
+        
+        
+        
+                // Manually add labels for Baja California Sur and Mulegé as they are not in the GeoJSON
+        
+                ['Baja California Sur', 'Mulegé'].forEach(regionName => {
+        
+                    const capacityInfo = capacityDataMap.get(regionName);
+        
+        
+        
+                    if (capacityInfo) {
+        
+                        const center = L.latLng(bajaCaliforniaCoords[regionName].lat, bajaCaliforniaCoords[regionName].lng);
+        
+                        const total = capacityInfo.TOTAL || 0;
+        
+        
+        
+                        if (total > 0) {
+        
+                            let labelHTML = `<div class="pib-label-content">
+        
+                                <div class="pib-label-id">${regionName}</div>`;
+        
+        
+        
+                            const colors = ['#939594', '#6A1C32', '#235B4E', '#DDC9A4', '#10302B', '#BC955C', '#9F2240', '#A16F4A'];
+        
+                            capacityColumns.forEach((col, index) => {
+        
+                                const value = capacityInfo[col] || 0;
+        
+                                if (value > 0) {
+        
+                                    const color = colors[index % colors.length];
+        
+                                    labelHTML += `<div class="pib-row" style="color: ${color};">
+        
+                                        <span class="pib-value">${value.toLocaleString('es-MX')}</span>
+        
+                                    </div>`;
+        
+                                }
+        
+                            });
+        
+                            labelHTML += '</div>';
+        
+        
+        
+                            const label = L.marker(center, {
+        
+                                icon: L.divIcon({
+        
+                                    className: 'pib-label',
+        
+                                    html: labelHTML,
+        
+                                    iconSize: [120, 'auto']
+        
+                                })
+        
+                            }).addTo(instrumentLayerGroup);
+        
+        
+        
+                            let popupContent = `<strong>${regionName}</strong><br><hr>`;
+        
+                            capacityColumns.forEach(col => {
+        
+                                const value = capacityInfo[col] || 0;
+        
+                                if (value > 0) {
+        
+                                    popupContent += `${col}: <strong>${value.toLocaleString('es-MX')} MW</strong><br>`;
+        
+                                }
+        
+                            });
+        
+                            popupContent += `<hr><strong>Total: ${total.toLocaleString('es-MX')} MW</strong>`;
+        
+                            label.bindPopup(popupContent);
+        
+                        }
+        
+                    }
+        
+                });
+        
+        
+        
+                // CALL ORIGINAL LEGEND FUNCTION
+        
+                addCapacityLegend(capacityTotals, mapConfig.name);
+        
+        
+        
+            } catch (error) {
+        
+                console.error('Error loading total capacity additions map:', error);
+        
+                if (typeof showNotification === 'function') {
+        
+                    showNotification('Error al cargar el mapa de adiciones totales', error.message, 'error');
+        
+                }
+        
+            } finally {
+        
+                togglePreloader(false);
+        
+            }
+        
+        }        // Event listeners
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async function () {
             const selectedInstrument = instrumentSelect.value;
@@ -6184,6 +6652,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (mapConfig && mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad para desarrollarse por Particulares
                     await loadCapacityAdditionsMap(mapConfig);
+                } else if (mapConfig && mapConfig.name === 'Adición de capacidad 2025-2039') {
+                    // Recargar datos del mapa de adiciones de capacidad totales
+                    await loadTotalCapacityAdditionsMap(mapConfig);
                 } else {
                     // Para otros mapas, usar la función normal
                     loadAndRender({ silent: false });
@@ -6378,6 +6849,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
+                        return;
+                    }
+
+                    if (mapConfig.name === 'Adición de capacidad 2025-2039') {
+                        updateSheetInfo(mapConfig);
+                        await loadTotalCapacityAdditionsMap(mapConfig);
                         return;
                     }
 
