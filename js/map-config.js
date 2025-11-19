@@ -561,46 +561,100 @@ document.addEventListener('DOMContentLoaded', function () {
     // Handle background for "None" basemap
     map.on('baselayerchange', function (e) {
         currentBaseLayerName = e.name;
+        window.currentBaseLayerName = e.name; // Expose globally
         map.isBasemapActive = e.name !== 'Ninguno';
 
-        // Exponer globalmente para exportación
-        window.currentBaseLayerName = e.name;
-
+        // Handle main map background for "Ninguno"
         if (e.name === 'Ninguno') {
             map.getContainer().style.backgroundColor = 'white';
-            insetControllers.forEach(controller => {
-                if (controller.baseLayer) {
-                    controller.map.removeLayer(controller.baseLayer);
-                }
-                controller.map.getContainer().style.backgroundColor = 'white';
-            });
         } else {
             map.getContainer().style.backgroundColor = '';
-            const newLayerConfig = Object.values(layerConfigs).find(config => config.label === e.name);
-            if (newLayerConfig && newLayerConfig.creator) {
-                insetControllers.forEach(controller => {
-                    if (controller.baseLayer) {
-                        controller.map.removeLayer(controller.baseLayer);
-                    }
-                    const newInsetBaseLayer = newLayerConfig.creator();
-                    if (newInsetBaseLayer) {
-                        newInsetBaseLayer.addTo(controller.map);
-                        controller.baseLayer = newInsetBaseLayer;
-                    }
-                    controller.map.getContainer().style.backgroundColor = '';
-                });
-            }
         }
+
+        // Update inset maps
+        insetControllers.forEach(controller => {
+            if (controller.baseLayer) {
+                controller.map.removeLayer(controller.baseLayer);
+            }
+
+            let newInsetBaseLayer;
+
+            if (e.name === 'Crema') {
+                newInsetBaseLayer = L.layerGroup();
+                const esriSatelliteCremaInset = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous',
+                    pane: CREMA_TILE_PANE
+                });
+                newInsetBaseLayer.addLayer(esriSatelliteCremaInset);
+                if (mexicoOutlineLayerCrema) {
+                    const clonedLayer = L.geoJSON(mexicoOutlineLayerCrema.toGeoJSON(), {
+                        pane: 'mexicoOverlayPane',
+                        style: mexicoOutlineLayerCrema.options.style
+                    });
+                    newInsetBaseLayer.addLayer(clonedLayer);
+                }
+                controller.map.getContainer().style.backgroundColor = '';
+
+            } else if (e.name === 'Gris') {
+                newInsetBaseLayer = L.layerGroup();
+                const esriSatelliteGrisInset = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri',
+                    maxZoom: 19,
+                    crossOrigin: 'anonymous',
+                    pane: GRIS_TILE_PANE
+                });
+                newInsetBaseLayer.addLayer(esriSatelliteGrisInset);
+                if (mexicoOutlineLayerGris) {
+                    const clonedLayer = L.geoJSON(mexicoOutlineLayerGris.toGeoJSON(), {
+                        pane: 'mexicoOverlayPane',
+                        style: mexicoOutlineLayerGris.options.style
+                    });
+                    newInsetBaseLayer.addLayer(clonedLayer);
+                }
+                controller.map.getContainer().style.backgroundColor = '';
+
+            } else if (e.name === 'Ninguno') {
+                newInsetBaseLayer = L.layerGroup();
+                 if (mexicoOutlineLayerNinguno) {
+                    const clonedLayer = L.geoJSON(mexicoOutlineLayerNinguno.toGeoJSON(), {
+                        pane: 'mexicoOverlayPane',
+                        style: mexicoOutlineLayerNinguno.options.style
+                    });
+                    newInsetBaseLayer.addLayer(clonedLayer);
+                }
+                controller.map.getContainer().style.backgroundColor = 'white';
+
+            } else {
+                const newLayerConfig = Object.values(layerConfigs).find(config => config.label === e.name);
+                if (newLayerConfig && newLayerConfig.creator) {
+                    newInsetBaseLayer = newLayerConfig.creator();
+                }
+                controller.map.getContainer().style.backgroundColor = '';
+            }
+
+            if (newInsetBaseLayer) {
+                newInsetBaseLayer.addTo(controller.map);
+                controller.baseLayer = newInsetBaseLayer;
+            }
+        });
     });
 
     // Contenedor para los logos institucionales
     const logoContainer = L.DomUtil.create('div', 'logos-control-wrapper', map.getContainer());
     logoContainer.innerHTML = `
         <div class="logos-container">
-            <img src="img/logo_sener.png" alt="SENER" class="logo-sener" />
-            <img src="img/snien.png" alt="SNIEn" class="logo-snien" />
+            <div id="sener-logo-wrapper" class="logo-wrapper">
+                <img src="img/logo_sener.png" alt="SENER" class="logo-sener" />
+            </div>
+            <div id="snien-logo-wrapper" class="logo-wrapper">
+                <img src="img/snien.png" alt="SNIEn" class="logo-snien" />
+            </div>
         </div>
     `;
+    const senerLogoWrapper = document.getElementById('sener-logo-wrapper');
+    const snienLogoWrapper = document.getElementById('snien-logo-wrapper');
 
 
 
@@ -789,39 +843,42 @@ document.addEventListener('DOMContentLoaded', function () {
     graticuleLabels.addTo(map);
     marinasLayer.addTo(map);
 
-    // Crear capa dummy para controlar logos
-    const logosLayer = L.layerGroup();
-    logosLayer.addTo(map);
+    // Crear capas dummy para controlar logos
+    const senerLogoLayer = L.layerGroup();
+    senerLogoLayer.addTo(map); // Add by default to be checked
+    const snienLogoLayer = L.layerGroup();
+    snienLogoLayer.addTo(map); // Add by default to be checked
+
+    function updateLogoVisibility() {
+        const showSener = map.hasLayer(senerLogoLayer);
+        const showSnien = map.hasLayer(snienLogoLayer);
+
+        if (senerLogoWrapper) {
+            senerLogoWrapper.style.display = showSener ? '' : 'none';
+        }
+        if (snienLogoWrapper) {
+            snienLogoWrapper.style.display = showSnien ? '' : 'none';
+        }
+    }
 
     // Listener para mostrar/ocultar logos
-    map.on('overlayadd', function (e) {
-        if (e.name === 'Logos Institucionales') {
-            const logosWrapper = document.querySelector('.logos-control-wrapper');
-            if (logosWrapper) {
-                logosWrapper.style.display = '';
-            }
-        }
-    });
-
-    map.on('overlayremove', function (e) {
-        if (e.name === 'Logos Institucionales') {
-            const logosWrapper = document.querySelector('.logos-control-wrapper');
-            if (logosWrapper) {
-                logosWrapper.style.display = 'none';
-            }
-        }
-    });
+    map.on('overlayadd', updateLogoVisibility);
+    map.on('overlayremove', updateLogoVisibility);
 
     // Crear overlays para el control de capas
     const overlays = {
         'Retícula (Lat/Lon)': graticuleLayer,
         'Regiones Marinas': marinasLayer,
-        'Logos Institucionales': logosLayer
+        'Logo SENER': senerLogoLayer,
+        'Logo SNIEn': snienLogoLayer
     };
 
     if (Object.keys(baseLayersForControl).length) {
         L.control.layers(baseLayersForControl, overlays, { position: 'topright', collapsed: true }).addTo(map);
     }
+
+    // Initial call to set logo visibility
+    updateLogoVisibility();
 
     console.log('✅ Control de capas con logos integrado');
 
@@ -1022,6 +1079,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 tap: false,
                 inertia: false
             });
+
+            // Crear panes para cada estilo con sus filtros
+            insetMap.createPane(CREMA_TILE_PANE);
+            const insetCremaPane = insetMap.getPane(CREMA_TILE_PANE);
+            if (insetCremaPane) {
+                insetCremaPane.style.zIndex = 150;
+                insetCremaPane.style.filter = 'sepia(0.4) saturate(0.2) brightness(1.2) contrast(0.85)';
+                insetCremaPane.style.opacity = '0.45';
+            }
+
+            insetMap.createPane(GRIS_TILE_PANE);
+            const insetGrisPane = insetMap.getPane(GRIS_TILE_PANE);
+            if (insetGrisPane) {
+                insetGrisPane.style.zIndex = 150;
+                insetGrisPane.style.filter = 'grayscale(1) brightness(1.1) contrast(0.9)';
+                insetGrisPane.style.opacity = '0.5';
+            }
+
+            insetMap.createPane(MEXICO_OVERLAY_PANE);
+            const insetMexicoPane = insetMap.getPane(MEXICO_OVERLAY_PANE);
+            if (insetMexicoPane) {
+                insetMexicoPane.style.zIndex = 199;
+            }
 
             container.addEventListener('mouseover', () => {
                 insetMap.dragging.enable();
@@ -1249,7 +1329,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: 'Detalle Baja California',
                         center: [23.2, -110.5],
                         zoom: 7,
-                        size: { width: 220, height: 160 },
+                        size: { width: 400, height: 300 },
                         position: { bottom: '18px', left: '18px' },
                         bounds: [
                             [21.5, -112.5],
@@ -1260,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: 'Detalle Peninsular',
                         center: [20.9, -87.4],
                         zoom: 7,
-                        size: { width: 220, height: 160 },
+                        size: { width: 400, height: 300 },
                         position: { top: '18px', right: '18px' },
                         bounds: [
                             [19.5, -89.2],

@@ -285,24 +285,6 @@ button {
     border-color: var(--color-verde-profundo);
 }
 
-.leaflet-tooltip.node-label {
-    background: #ffffff;
-    color: var(--color-verde-profundo);
-    border: 1px solid rgba(31, 122, 98, 0.25);
-    border-radius: 4px;
-    padding: 0.04rem 0.2rem;
-    font-size: 0.38rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.leaflet-tooltip.node-label::before,
-.leaflet-tooltip.node-label::after {
-    display: none;
-}
-
 .control {
     appearance: none;
     background-color: var(--color-surface);
@@ -1486,13 +1468,17 @@ Notification system */
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: 1001; /* Increased to be above other controls */
 }
 
 .logos-container {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.logo-wrapper {
+    /* Visibility is now controlled exclusively by JS */
 }
 
 .logo-sener,
@@ -1847,15 +1833,16 @@ Notification system */
 
 /* Node labels for map markers */
 .leaflet-tooltip.node-label {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(31, 122, 98, 0.3);
-    border-radius: 4px;
-    padding: 3px 6px;
-    font-size: 10px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: 8px; /* Reduced from 10px */
     font-weight: 700;
-    color: #1f7a62;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px);
+    color: #1f7a62; /* Kept the green color */
+    box-shadow: none;
+    backdrop-filter: none;
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff; /* White outline */
 }
 
 .leaflet-tooltip.node-label::before {
