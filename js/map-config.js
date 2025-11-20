@@ -1795,7 +1795,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 googleSheetEditUrl: 'https://docs.google.com/spreadsheets/d/182C6iNiTUcUI5HHVlNGg0IOJHoGYeI47uYwAaehC6E8/edit?usp=sharing',
                 regionDescriptions: {
                     // Descriptions will be added later
-                }
+                },
+                descriptionTitle: 'Municipios con localidades sin electrificar',
+                description: `
+                    <div style="font-family: 'Montserrat', sans-serif; color: #333;">
+                        <p style="margin-bottom: 15px;">Este mapa interactivo permite visualizar las localidades pendientes de electrificación en todo el país, organizadas por Gerencias de Control Regional.</p>
+                        
+                        <div style="background-color: #f8f9fa; border-left: 4px solid #601623; padding: 15px; border-radius: 4px;">
+                            <strong style="color: #601623; display: block; margin-bottom: 10px;">📋 Instrucciones de uso:</strong>
+                            <ul style="margin: 0; padding-left: 20px; line-height: 1.6;">
+                                <li>Haga clic en cualquier <strong>Gerencia de Control Regional</strong> (áreas coloreadas) para explorarla.</li>
+                                <li>Al seleccionar una gerencia, el mapa hará zoom y mostrará sus <strong>municipios</strong>.</li>
+                                <li>Los municipios se muestran en una escala de colores (mapa de calor) según el número de localidades pendientes.</li>
+                                <li>Pase el cursor sobre cualquier municipio para ver el detalle exacto.</li>
+                                <li>Para regresar a la vista nacional, haga clic nuevamente en la región seleccionada o utilice el botón de "Restablecer vista".</li>
+                            </ul>
+                        </div>
+                    </div>
+                `
             },
             {
                 name: 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039',
