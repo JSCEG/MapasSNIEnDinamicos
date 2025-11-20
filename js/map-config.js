@@ -1639,7 +1639,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'En la presente administración del Gobierno Federal el PVIRCE considera la adición de 14,046 MW para el horizonte 2027-2030 por parte del Estado, con una participación del 77% de energías limpias, de las cuales el 60% corresponde a renovables, en la mapa se muestra la distribución de estos proyectos por tecnología y GCR.'
             },
             {
-                name: 'Adiciones de capacidad por Particulares',
+                name: 'Adiciones de capacidad de proyectos con prelación 2025 - 2030',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'capacity-additions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIo6nqNkppQCVqqsUC1LNKSw8n9AyslhakQb_3gB7bccFP1Tb7ssDX1ycdMe0rTSlSrWXpH_CSTMna/pub?gid=0&single=true&output=csv',
@@ -1657,7 +1657,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'La SENER determinó también 7,405 MW de adiciones de capacidad con base a la Planeación Vinculante, que pueden ser desarrollados por particulares durante el periodo 2026 a 2030, con la participación de fuentes de generación renovables como se observa en la Figura 4.6. De los cuales 1,638 MW de capacidad de generación, y 900 MW de rebombeo hidráulico, corresponden a proyectos estratégicos para cumplir con la política energética nacional, definidos por la SENER.\nAdicionalmente, a dicha capacidad el CENACE y CNE, podrán atender y priorizar las solicitudes de otorgamiento de permisos de generación de energía eléctrica, así como la elaboración de estudios de interconexión para la figura de autoconsumo y la modalidad de cogeneración que pretendan desarrollar los particulares y que se encuentren alineados con los criterios de planeación vinculante. Asimismo, los trámites relacionados con el proceso de conexión de Centros de Carga podrán ser priorizados tomando en cuenta la política nacional atendiendo el crecimiento de la demanda de energía eléctrica en cumplimiento de las leyes, reglamentos y demás disposiciones jurídicas aplicables.'
             },
             {
-                name: 'Adición de capacidad 2025-2039',
+                name: 'Adición de capacidad 2025-2030',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'total-capacity-additions',
                 descriptionTitle: 'Adición de Capacidad Total (Agregada) 2025-2039',
@@ -6819,13 +6819,13 @@ function addHorizontalCapacityLegend(totals, mapName) {
                 } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad del Estado
                     await loadCapacityAdditionsMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad por Particulares') {
+                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad por Particulares
                     await loadCapacityAdditionsMap(mapConfig);
                 } else if (mapConfig && mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad para desarrollarse por Particulares
                     await loadCapacityAdditionsMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adición de capacidad 2025-2039') {
+                } else if (mapConfig && mapConfig.name === 'Adición de capacidad 2025-2030') {
                     // Recargar datos del mapa de adiciones de capacidad totales
                     await loadTotalCapacityAdditionsMap(mapConfig);
                 } else {
@@ -7013,7 +7013,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         return;
                     }
 
-                    if (mapConfig.name === 'Adiciones de capacidad por Particulares') {
+                    if (mapConfig.name === 'Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
                         return;
@@ -7025,7 +7025,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         return;
                     }
 
-                    if (mapConfig.name === 'Adición de capacidad 2025-2039') {
+                    if (mapConfig.name === 'Adición de capacidad 2025-2030') {
                         updateSheetInfo(mapConfig);
                         await loadTotalCapacityAdditionsMap(mapConfig);
                         return;
