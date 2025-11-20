@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.map = map;
 
     // Añadir controles
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
 
     // Control de escala personalizado con saltos de 50km hasta 800km
     L.Control.CustomScale = L.Control.extend({
@@ -1425,7 +1425,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const initialLayerConfig = Object.values(layerConfigs).find(config => config.label === currentBaseLayerName);
             let initialInsetBaseLayer;
-            if (initialLayerConfig && initialLayerConfig.creator) {
+
+            if (currentBaseLayerName === 'Ninguno') {
+                // Caso especial para "Ninguno": solo agregar la capa de México sin satélite
+                initialInsetBaseLayer = L.layerGroup();
+                if (mexicoOutlineLayerNinguno) {
+                    // Asegurar que el pane de México existe en el minimapa
+                    if (!insetMap.getPane(MEXICO_OVERLAY_PANE)) {
+                        insetMap.createPane(MEXICO_OVERLAY_PANE);
+                        const mexPane = insetMap.getPane(MEXICO_OVERLAY_PANE);
+                        if (mexPane) {
+                            mexPane.style.zIndex = 199;
+                        }
+                    }
+
+                    const clonedLayer = L.geoJSON(mexicoOutlineLayerNinguno.toGeoJSON(), {
+                        pane: MEXICO_OVERLAY_PANE,
+                        style: mexicoOutlineLayerNinguno.options.style
+                    });
+                    initialInsetBaseLayer.addLayer(clonedLayer);
+                }
+                // Configurar fondo blanco para el minimapa
+                insetMap.getContainer().style.backgroundColor = 'white';
+            } else if (initialLayerConfig && initialLayerConfig.creator) {
                 initialInsetBaseLayer = initialLayerConfig.creator();
             } else {
                 initialInsetBaseLayer = L.tileLayer(fallbackLight, {
@@ -2990,7 +3012,8 @@ document.addEventListener('DOMContentLoaded', function () {
             instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
 
-            if (type === 'interactive-regions') {
+            // Etiquetas de gerencias comentadas - la información está en la leyenda
+            /* if (type === 'interactive-regions') {
                 geoJsonLayer.eachLayer(layer => {
                     const regionName = layer.feature.properties.name;
                     const center = layer.getBounds().getCenter();
@@ -3011,7 +3034,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         })
                     }).addTo(markersLayer);
                 });
-            }
+            } */
 
 
             // Agregar etiquetas y actualizar leyenda si es mapa de provincias petroleras
