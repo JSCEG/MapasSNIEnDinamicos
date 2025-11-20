@@ -2177,7 +2177,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Add SEN and SIN data if available
             if (senData || sinData) {
-                div.innerHTML += '<br><strong style="font-size: 11px;">TMCA (%)</strong><br>';
+                div.innerHTML += '<br><strong style="font-size: 11px;">TMCA (%) √</strong><br>';
                 div.innerHTML += '<div style="font-size: 11px; line-height: 1.6;">';
 
                 if (senData) {
