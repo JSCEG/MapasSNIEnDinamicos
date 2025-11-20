@@ -1473,6 +1473,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     fill: false,
                     interactive: false
                 }).addTo(insetBoundsLayerGroup);
+
+            // Ocultar los rectángulos de los minimapas al inicio
+            insetBoundsLayerGroup.removeLayer(rectangle);
             }
 
             const leaderLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1624,13 +1627,19 @@ document.addEventListener('DOMContentLoaded', function () {
             transition: all 0.3s ease;
         `;
 
-        let labelsVisible = true;
+        let labelsVisible = false;
         const mapContainer = document.getElementById('map');
 
-        // Asegurar que las etiquetas sean visibles inicialmente
+        // Asegurar que las etiquetas estén ocultas inicialmente
         if (mapContainer) {
-            mapContainer.classList.remove('hide-node-labels');
+            mapContainer.classList.add('hide-node-labels');
         }
+
+        // Actualizar el estado inicial del botón
+        toggleBtn.innerHTML = '<i class="bi bi-tags"></i>';
+        toggleBtn.style.background = 'white';
+        toggleBtn.style.color = '#333';
+        toggleBtn.title = 'Mostrar Etiquetas';
 
         toggleBtn.addEventListener('click', function () {
             labelsVisible = !labelsVisible;
@@ -3188,7 +3197,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         color: 'transparent', // Transparent border by default
                         dashArray: '3',
                         fillOpacity: 0.7, // Set fillOpacity to 0.7 as requested
-                        pane: 'gerenciasPane'
+                        pane: 'gerenciasPane',
+                        className: 'region-polygon' // Clase para estilos personalizados
                     };
                 }
 

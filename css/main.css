@@ -2578,3 +2578,12 @@ Notification system */
     text-align: center;
     pointer-events: none;
 }
+/* Estilo para el "efecto padre" de los polígonos de región */
+.region-polygon {
+    transition: filter 0.3s ease;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.region-polygon:hover {
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
+}

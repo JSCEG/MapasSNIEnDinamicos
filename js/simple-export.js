@@ -250,17 +250,31 @@
                     cacheBust: true,
                     bgcolor: '#ffffff',
                     filter: function (node) {
-                        if (node.classList) {
-                            return !node.classList.contains('leaflet-control-zoom') &&
-                                !node.classList.contains('leaflet-control-layers') &&
-                                !node.classList.contains('leaflet-control-attribution') &&
-                                !node.classList.contains('leaflet-control-scale') &&
-                                !node.classList.contains('fullscreen-controls') &&
-                                !node.classList.contains('fullscreen-control-btn') &&
-                                !node.classList.contains('fullscreen-toolbar');
-                        }
-                        if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
+                        const idsToExclude = [
+                            'fullscreen-controls',
+                            'fullscreen-toolbar',
+                            'toggle-insets-btn',
+                            'toggle-labels-btn'
+                        ];
+                        if (node.id && idsToExclude.includes(node.id)) {
                             return false;
+                        }
+
+                        if (node.classList) {
+                            const classesToExclude = [
+                                'leaflet-control-zoom',
+                                'leaflet-control-layers',
+                                'leaflet-control-attribution',
+                                'leaflet-control-scale',
+                                'fullscreen-controls',
+                                'fullscreen-control-btn',
+                                'fullscreen-toolbar'
+                            ];
+                            for (let i = 0; i < classesToExclude.length; i++) {
+                                if (node.classList.contains(classesToExclude[i])) {
+                                    return false;
+                                }
+                            }
                         }
                         return true;
                     }
@@ -440,18 +454,31 @@
                     // Configuración adicional para mejor calidad
                     bgcolor: '#ffffff',
                     filter: function (node) {
-                        // Excluir todos los controles de Leaflet, botones flotantes y toolbar
-                        if (node.classList) {
-                            return !node.classList.contains('leaflet-control-zoom') &&
-                                !node.classList.contains('leaflet-control-layers') &&
-                                !node.classList.contains('leaflet-control-attribution') &&
-                                !node.classList.contains('leaflet-control-scale') &&
-                                !node.classList.contains('fullscreen-controls') &&
-                                !node.classList.contains('fullscreen-control-btn') &&
-                                !node.classList.contains('fullscreen-toolbar');
-                        }
-                        if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
+                        const idsToExclude = [
+                            'fullscreen-controls',
+                            'fullscreen-toolbar',
+                            'toggle-insets-btn',
+                            'toggle-labels-btn'
+                        ];
+                        if (node.id && idsToExclude.includes(node.id)) {
                             return false;
+                        }
+
+                        if (node.classList) {
+                            const classesToExclude = [
+                                'leaflet-control-zoom',
+                                'leaflet-control-layers',
+                                'leaflet-control-attribution',
+                                'leaflet-control-scale',
+                                'fullscreen-controls',
+                                'fullscreen-control-btn',
+                                'fullscreen-toolbar'
+                            ];
+                            for (let i = 0; i < classesToExclude.length; i++) {
+                                if (node.classList.contains(classesToExclude[i])) {
+                                    return false;
+                                }
+                            }
                         }
                         return true;
                     }
