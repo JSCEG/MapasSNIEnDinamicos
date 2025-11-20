@@ -459,6 +459,49 @@ button {
     display: none !important;
 }
 
+/* Handles de redimensionamiento para los minimapas */
+.map-inset__resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--color-verde-profundo);
+    border: 2px solid white;
+    border-radius: 50%;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+}
+
+.map-inset__resize-handle:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* Posicionamiento de cada handle */
+.map-inset__resize-handle--se {
+    bottom: -6px;
+    right: -6px;
+    cursor: nwse-resize;
+}
+
+.map-inset__resize-handle--sw {
+    bottom: -6px;
+    left: -6px;
+    cursor: nesw-resize;
+}
+
+.map-inset__resize-handle--ne {
+    top: -6px;
+    right: -6px;
+    cursor: nesw-resize;
+}
+
+.map-inset__resize-handle--nw {
+    top: -6px;
+    left: -6px;
+    cursor: nwse-resize;
+}
+
 .leaflet-interactive.connections-line {
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
     stroke-linecap: round;
@@ -1996,8 +2039,4 @@ Notification system */
 /* Large clusters */
 .marker-cluster-large {
     background-color: rgba(22, 34, 48, 0.7);
-}
-
-.mexico-border-shadow {
-    filter: drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.6));
 }

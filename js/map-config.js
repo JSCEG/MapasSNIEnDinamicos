@@ -587,6 +587,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (e.name === 'Crema') {
                 newInsetBaseLayer = L.layerGroup();
+
+                // Asegurar que el pane existe en el minimapa
+                if (!controller.map.getPane(CREMA_TILE_PANE)) {
+                    controller.map.createPane(CREMA_TILE_PANE);
+                    const pane = controller.map.getPane(CREMA_TILE_PANE);
+                    if (pane) {
+                        pane.style.zIndex = 150;
+                        pane.style.filter = 'sepia(0.4) saturate(0.2) brightness(1.2) contrast(0.85)';
+                        pane.style.opacity = '0.45';
+                    }
+                }
+
                 const esriSatelliteCremaInset = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles &copy; Esri',
                     maxZoom: 19,
@@ -594,9 +606,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     pane: CREMA_TILE_PANE
                 });
                 newInsetBaseLayer.addLayer(esriSatelliteCremaInset);
+
                 if (mexicoOutlineLayerCrema) {
+                    // Asegurar que el pane de México existe en el minimapa
+                    if (!controller.map.getPane(MEXICO_OVERLAY_PANE)) {
+                        controller.map.createPane(MEXICO_OVERLAY_PANE);
+                        const mexPane = controller.map.getPane(MEXICO_OVERLAY_PANE);
+                        if (mexPane) {
+                            mexPane.style.zIndex = 199;
+                        }
+                    }
+
                     const clonedLayer = L.geoJSON(mexicoOutlineLayerCrema.toGeoJSON(), {
-                        pane: 'mexicoOverlayPane',
+                        pane: MEXICO_OVERLAY_PANE,
                         style: mexicoOutlineLayerCrema.options.style
                     });
                     newInsetBaseLayer.addLayer(clonedLayer);
@@ -605,6 +627,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
             } else if (e.name === 'Gris') {
                 newInsetBaseLayer = L.layerGroup();
+
+                // Asegurar que el pane existe en el minimapa
+                if (!controller.map.getPane(GRIS_TILE_PANE)) {
+                    controller.map.createPane(GRIS_TILE_PANE);
+                    const pane = controller.map.getPane(GRIS_TILE_PANE);
+                    if (pane) {
+                        pane.style.zIndex = 150;
+                        pane.style.filter = 'grayscale(1) brightness(1.1) contrast(0.9)';
+                        pane.style.opacity = '0.5';
+                    }
+                }
+
                 const esriSatelliteGrisInset = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles &copy; Esri',
                     maxZoom: 19,
@@ -612,9 +646,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     pane: GRIS_TILE_PANE
                 });
                 newInsetBaseLayer.addLayer(esriSatelliteGrisInset);
+
                 if (mexicoOutlineLayerGris) {
+                    // Asegurar que el pane de México existe en el minimapa
+                    if (!controller.map.getPane(MEXICO_OVERLAY_PANE)) {
+                        controller.map.createPane(MEXICO_OVERLAY_PANE);
+                        const mexPane = controller.map.getPane(MEXICO_OVERLAY_PANE);
+                        if (mexPane) {
+                            mexPane.style.zIndex = 199;
+                        }
+                    }
+
                     const clonedLayer = L.geoJSON(mexicoOutlineLayerGris.toGeoJSON(), {
-                        pane: 'mexicoOverlayPane',
+                        pane: MEXICO_OVERLAY_PANE,
                         style: mexicoOutlineLayerGris.options.style
                     });
                     newInsetBaseLayer.addLayer(clonedLayer);
@@ -623,9 +667,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
             } else if (e.name === 'Ninguno') {
                 newInsetBaseLayer = L.layerGroup();
-                 if (mexicoOutlineLayerNinguno) {
+
+                if (mexicoOutlineLayerNinguno) {
+                    // Asegurar que el pane de México existe en el minimapa
+                    if (!controller.map.getPane(MEXICO_OVERLAY_PANE)) {
+                        controller.map.createPane(MEXICO_OVERLAY_PANE);
+                        const mexPane = controller.map.getPane(MEXICO_OVERLAY_PANE);
+                        if (mexPane) {
+                            mexPane.style.zIndex = 199;
+                        }
+                    }
+
                     const clonedLayer = L.geoJSON(mexicoOutlineLayerNinguno.toGeoJSON(), {
-                        pane: 'mexicoOverlayPane',
+                        pane: MEXICO_OVERLAY_PANE,
                         style: mexicoOutlineLayerNinguno.options.style
                     });
                     newInsetBaseLayer.addLayer(clonedLayer);
@@ -1042,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const insetRect = controller.container.getBoundingClientRect();
             const mapRect = map.getContainer().getBoundingClientRect();
-            
+
             // Calculate inset center relative to the map container
             const insetCenterX = (insetRect.left - mapRect.left) + insetRect.width / 2;
             const insetCenterY = (insetRect.top - mapRect.top) + insetRect.height / 2;
@@ -1140,9 +1194,26 @@ document.addEventListener('DOMContentLoaded', function () {
             insetMapEl.className = 'map-inset__map';
             container.appendChild(insetMapEl);
 
-            const resizeHandle = document.createElement('div');
-            resizeHandle.className = 'map-inset__resize-handle';
-            container.appendChild(resizeHandle);
+            // Crear 4 handles de redimensionamiento (uno en cada esquina)
+            const resizeHandleSE = document.createElement('div');
+            resizeHandleSE.className = 'map-inset__resize-handle map-inset__resize-handle--se';
+            resizeHandleSE.title = 'Redimensionar';
+            container.appendChild(resizeHandleSE);
+
+            const resizeHandleSW = document.createElement('div');
+            resizeHandleSW.className = 'map-inset__resize-handle map-inset__resize-handle--sw';
+            resizeHandleSW.title = 'Redimensionar';
+            container.appendChild(resizeHandleSW);
+
+            const resizeHandleNE = document.createElement('div');
+            resizeHandleNE.className = 'map-inset__resize-handle map-inset__resize-handle--ne';
+            resizeHandleNE.title = 'Redimensionar';
+            container.appendChild(resizeHandleNE);
+
+            const resizeHandleNW = document.createElement('div');
+            resizeHandleNW.className = 'map-inset__resize-handle map-inset__resize-handle--nw';
+            resizeHandleNW.title = 'Redimensionar';
+            container.appendChild(resizeHandleNW);
 
             mapContainerEl.appendChild(container);
 
@@ -1191,12 +1262,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 L.DomEvent.stopPropagation(e);
                 e.preventDefault();
                 isDragging = true;
-                
+
                 document.body.style.userSelect = 'none';
 
                 dragStartX = e.clientX;
                 dragStartY = e.clientY;
-                
+
                 const rect = container.getBoundingClientRect();
                 const parentRect = mapContainerEl.getBoundingClientRect();
 
@@ -1228,12 +1299,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             let isResizing = false;
-            let resizeStartX, resizeStartY, elStartWidth, elStartHeight;
+            let resizeStartX, resizeStartY, elStartWidth, elStartHeight, elStartLeft, elStartTop;
+            let resizeDirection = ''; // 'se', 'sw', 'ne', 'nw'
 
-            resizeHandle.addEventListener('mousedown', function (e) {
+            // Función genérica para iniciar el redimensionamiento
+            function startResize(e, direction) {
                 e.preventDefault();
                 e.stopPropagation();
                 isResizing = true;
+                resizeDirection = direction;
 
                 document.body.style.userSelect = 'none';
 
@@ -1242,21 +1316,69 @@ document.addEventListener('DOMContentLoaded', function () {
                 elStartWidth = container.offsetWidth;
                 elStartHeight = container.offsetHeight;
 
+                const rect = container.getBoundingClientRect();
+                const parentRect = mapContainerEl.getBoundingClientRect();
+                elStartLeft = rect.left - parentRect.left;
+                elStartTop = rect.top - parentRect.top;
+
                 document.addEventListener('mousemove', onResize);
                 document.addEventListener('mouseup', onResizeEnd);
-            });
+            }
+
+            // Agregar event listeners a cada handle
+            resizeHandleSE.addEventListener('mousedown', (e) => startResize(e, 'se'));
+            resizeHandleSW.addEventListener('mousedown', (e) => startResize(e, 'sw'));
+            resizeHandleNE.addEventListener('mousedown', (e) => startResize(e, 'ne'));
+            resizeHandleNW.addEventListener('mousedown', (e) => startResize(e, 'nw'));
 
             function onResize(e) {
                 if (!isResizing) return;
                 const dx = e.clientX - resizeStartX;
                 const dy = e.clientY - resizeStartY;
 
-                const newWidth = Math.max(150, elStartWidth + dx);
-                const newHeight = Math.max(100, elStartHeight + dy);
+                let newWidth = elStartWidth;
+                let newHeight = elStartHeight;
+                let newLeft = elStartLeft;
+                let newTop = elStartTop;
+
+                // Calcular nuevas dimensiones y posición según la dirección
+                switch (resizeDirection) {
+                    case 'se': // Sureste (abajo-derecha) - comportamiento original
+                        newWidth = Math.max(150, elStartWidth + dx);
+                        newHeight = Math.max(100, elStartHeight + dy);
+                        break;
+
+                    case 'sw': // Suroeste (abajo-izquierda)
+                        newWidth = Math.max(150, elStartWidth - dx);
+                        newHeight = Math.max(100, elStartHeight + dy);
+                        newLeft = elStartLeft + (elStartWidth - newWidth);
+                        break;
+
+                    case 'ne': // Noreste (arriba-derecha)
+                        newWidth = Math.max(150, elStartWidth + dx);
+                        newHeight = Math.max(100, elStartHeight - dy);
+                        newTop = elStartTop + (elStartHeight - newHeight);
+                        break;
+
+                    case 'nw': // Noroeste (arriba-izquierda)
+                        newWidth = Math.max(150, elStartWidth - dx);
+                        newHeight = Math.max(100, elStartHeight - dy);
+                        newLeft = elStartLeft + (elStartWidth - newWidth);
+                        newTop = elStartTop + (elStartHeight - newHeight);
+                        break;
+                }
 
                 container.style.width = `${newWidth}px`;
                 container.style.height = `${newHeight}px`;
-                
+
+                // Actualizar posición si es necesario (para esquinas izquierdas o superiores)
+                if (resizeDirection.includes('w') || resizeDirection.includes('n')) {
+                    container.style.left = `${newLeft}px`;
+                    container.style.top = `${newTop}px`;
+                    container.style.right = 'auto';
+                    container.style.bottom = 'auto';
+                }
+
                 if (insetMap) {
                     insetMap.invalidateSize({ debounceMoveend: true });
                 }
@@ -1265,6 +1387,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             function onResizeEnd() {
                 isResizing = false;
+                resizeDirection = '';
                 document.body.style.userSelect = '';
                 document.removeEventListener('mousemove', onResize);
                 document.removeEventListener('mouseup', onResizeEnd);
@@ -1339,7 +1462,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 line: leaderLine
             });
         });
-        
+
         // Initial draw of leader lines
         updateLeaderLines();
     }
@@ -1505,7 +1628,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const normalizeGCRName = (name) => {
             if (!name) return null;
             const lowerName = name.toLowerCase().trim();
-            
+
             if (lowerName.includes('baja california sur') || lowerName === 'bcs' || lowerName === 'b.c.s.') return 'Baja California Sur';
             if (lowerName.includes('baja california') || lowerName === 'bc' || lowerName === 'b.c.') return 'Baja California';
             if (lowerName.includes('mulege')) return 'Mulegé';
@@ -1516,8 +1639,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (lowerName === 'occ') return 'Occidental';
             if (lowerName === 'ori') return 'Oriental';
             if (lowerName === 'pen') return 'Peninsular';
-            
-            return name; 
+
+            return name;
         };
 
         const fetchData = url => new Promise((resolve, reject) => {
@@ -1538,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const gcrKey = Object.keys(row).find(k => k.toLowerCase().trim() === 'gcr' || k.toLowerCase().trim() === 'gerencia de control regional');
                 const originalGcr = row[gcrKey];
                 const gcr = normalizeGCRName(originalGcr);
-                
+
                 if (!gcr) {
                     return;
                 }
@@ -1552,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (lowerKey === 'gcr' || lowerKey === 'gerencia de control regional' || lowerKey === 'id' || lowerKey === 'unidades') {
                         return; // Skip non-data columns
                     }
-                    
+
                     const value = parseFloat(row[key]) || 0;
                     if (value > 0) {
                         aggregatedData[gcr][key] = (aggregatedData[gcr][key] || 0) + value;
@@ -1566,7 +1689,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Create a clean array of objects from the aggregated data
         const finalData = Object.values(aggregatedData);
-        
+
         // Ensure all objects have all technology columns
         finalData.forEach(gcrData => {
             allTechs.forEach(tech => {
@@ -1597,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: 'Detalle Baja California',
                         center: [23.2, -110.5],
                         zoom: 7,
-                        size: { width: 400, height: 300 },
+                        size: { width: 280, height: 200 },
                         position: { bottom: '18px', left: '18px' },
                         bounds: [
                             [21.5, -112.5],
@@ -1608,7 +1731,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: 'Detalle Peninsular',
                         center: [20.9, -87.4],
                         zoom: 7,
-                        size: { width: 400, height: 300 },
+                        size: { width: 280, height: 200 },
                         position: { top: '18px', right: '18px' },
                         bounds: [
                             [19.5, -89.2],
@@ -2095,14 +2218,14 @@ document.addEventListener('DOMContentLoaded', function () {
             'CARBOELECTRICA': '#2F4F4F',            // Gris oscuro (carbón)
             'COGENERACIÓN': '#FF8C00',              // Naranja oscuro (cogeneración)
             'COGENERACION': '#FF8C00',              // Naranja oscuro (cogeneración)
-            
+
             // Hidroeléctricas
             'HIDROELÉCTRICA': '#1E90FF',            // Azul (agua)
             'HIDROELECTRICA': '#1E90FF',            // Azul (agua)
             'HIDROELÉCTRICA CON ALMACENAMIENTO': '#4169E1', // Azul real (agua con almacenamiento)
             'HIDROELECTRICA CON ALMACENAMIENTO': '#4169E1',
             'REBOMBEO': '#4682B4',                  // Azul acero (rebombeo)
-            
+
             // Energías renovables
             'EÓLICA': '#00CED1',                    // Turquesa oscuro (viento)
             'EOLICA': '#00CED1',                    // Turquesa oscuro (viento)
@@ -2112,33 +2235,33 @@ document.addEventListener('DOMContentLoaded', function () {
             'GEOTÉRMICA': '#DC143C',                // Rojo carmesí (calor)
             'GEOTERMICA': '#DC143C',                // Rojo carmesí (calor)
             'BIOMASA': '#228B22',                   // Verde bosque (biomasa)
-            
+
             // Hidrógeno
             'HIDRÓGENO': '#00BFFF',                 // Azul cielo profundo (hidrógeno)
             'HIDROGENO': '#00BFFF',                 // Azul cielo profundo (hidrógeno)
             'H2': '#00BFFF',                        // Azul cielo profundo (hidrógeno)
-            
+
             // Almacenamiento
             'ALMACENAMIENTO': '#9932CC',            // Púrpura oscuro/Orquídea oscura (almacenamiento)
             'BATERÍAS': '#BA55D3',                  // Orquídea medio (baterías)
             'BATERIAS': '#BA55D3',                  // Orquídea medio (baterías)
-            
+
             // Nuclear
             'NUCLEAR': '#FF6347',                   // Tomate (nuclear)
-            
+
             // Otras
             'COMBUSTIÓN INTERNA': '#A0522D',        // Sienna (diesel)
             'COMBUSTION INTERNA': '#A0522D'         // Sienna (diesel)
         };
-        
+
         // Normalize technology name
         const normalizedTech = techName.toUpperCase().trim();
-        
+
         // Return specific color if found, otherwise return a default based on hash
         if (techColors[normalizedTech]) {
             return techColors[normalizedTech];
         }
-        
+
         // Default color for unknown technologies (dark gray)
         return '#696969';
     }
@@ -2176,13 +2299,13 @@ document.addEventListener('DOMContentLoaded', function () {
             'COMBUSTIÓN INTERNA': 'CI',
             'COMBUSTION INTERNA': 'CI'
         };
-        
+
         const normalizedTech = techName.toUpperCase().trim();
-        
+
         if (techAcronyms[normalizedTech]) {
             return techAcronyms[normalizedTech];
         }
-        
+
         // Generate acronym from first letters if not found
         return techName.split(' ')
             .map(word => word.charAt(0))
@@ -2258,7 +2381,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const color = getTechnologyColor(col);
                         const acronym = getTechnologyAcronym(col);
                         const value = totals.columns[col].toLocaleString('es-MX');
-                        
+
                         const targetColumn = index < itemsPerColumn ? column1 : column2;
                         const itemDiv = L.DomUtil.create('div', 'legend-item', targetColumn);
                         itemDiv.innerHTML = `<i style="background: ${color}; width: 16px; height: 10px; border: none; display: inline-block; margin-right: 6px;"></i> ${col.toUpperCase()} (${acronym}): ${value} MW`;
@@ -2285,48 +2408,48 @@ document.addEventListener('DOMContentLoaded', function () {
         pibLegendControl.addTo(map);
     }
 
-function addHorizontalCapacityLegend(totals, mapName) {
-    if (pibLegendControl) {
-        map.removeControl(pibLegendControl);
-    }
+    function addHorizontalCapacityLegend(totals, mapName) {
+        if (pibLegendControl) {
+            map.removeControl(pibLegendControl);
+        }
 
-    pibLegendControl = L.control({ position: 'bottomleft' });
+        pibLegendControl = L.control({ position: 'bottomleft' });
 
-    pibLegendControl.onAdd = function (map) {
-        const div = L.DomUtil.create('div', 'info legend horizontal-legend');
-        div.innerHTML = '<strong>ADICIONES DE CAPACIDAD Y ALMACENAMIENTO (MW)</strong>';
-        
-        const container = L.DomUtil.create('div', 'horizontal-legend-container', div);
+        pibLegendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend horizontal-legend');
+            div.innerHTML = '<strong>ADICIONES DE CAPACIDAD Y ALMACENAMIENTO (MW)</strong>';
 
-        if (totals && totals.columnNames) {
-            totals.columnNames.forEach((col, index) => {
-                const value = totals.columns[col] || 0;
-                if (value > 0) {
-                    const color = getTechnologyColor(col);
-                    const acronym = getTechnologyAcronym(col);
-                    const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
-                    item.innerHTML = `<i style="background:${color};"></i> ${col.toUpperCase()} (${acronym}): ${value.toLocaleString('es-MX')} MW`;
+            const container = L.DomUtil.create('div', 'horizontal-legend-container', div);
+
+            if (totals && totals.columnNames) {
+                totals.columnNames.forEach((col, index) => {
+                    const value = totals.columns[col] || 0;
+                    if (value > 0) {
+                        const color = getTechnologyColor(col);
+                        const acronym = getTechnologyAcronym(col);
+                        const item = L.DomUtil.create('div', 'horizontal-legend-item', container);
+                        item.innerHTML = `<i style="background:${color};"></i> ${col.toUpperCase()} (${acronym}): ${value.toLocaleString('es-MX')} MW`;
+                    }
+                });
+            }
+
+            // Add separated totals
+            if (totals) {
+                if (totals.generationTotal && totals.generationTotal > 0) {
+                    const genItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
+                    genItem.innerHTML = `<strong>TOTAL CAP: ${totals.generationTotal.toLocaleString('es-MX')} MW</strong>`;
                 }
-            });
-        }
-
-        // Add separated totals
-        if (totals) {
-            if (totals.generationTotal && totals.generationTotal > 0) {
-                const genItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
-                genItem.innerHTML = `<strong>TOTAL CAP: ${totals.generationTotal.toLocaleString('es-MX')} MW</strong>`;
+                if (totals.storageTotal && totals.storageTotal > 0) {
+                    const almItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
+                    almItem.innerHTML = `<strong style="color: #9932CC;">TOTAL ALM: ${totals.storageTotal.toLocaleString('es-MX')} MW</strong>`;
+                }
             }
-            if (totals.storageTotal && totals.storageTotal > 0) {
-                const almItem = L.DomUtil.create('div', 'horizontal-legend-item total', container);
-                almItem.innerHTML = `<strong style="color: #9932CC;">TOTAL ALM: ${totals.storageTotal.toLocaleString('es-MX')} MW</strong>`;
-            }
-        }
 
-        return div;
-    };
+            return div;
+        };
 
-    pibLegendControl.addTo(map);
-}
+        pibLegendControl.addTo(map);
+    }
 
     function removePIBLegend() {
         if (pibLegendControl) {
@@ -2856,6 +2979,30 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
             instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
+
+            if (type === 'interactive-regions') {
+                geoJsonLayer.eachLayer(layer => {
+                    const regionName = layer.feature.properties.name;
+                    const center = layer.getBounds().getCenter();
+
+                    // Consistent position overrides
+                    if (regionName === 'Noroeste') {
+                        center.lat += 2.0;
+                    } else if (regionName === 'Baja California') {
+                        center.lat = 32.3;
+                        center.lng = -115.5;
+                    }
+
+                    const label = L.marker(center, {
+                        icon: L.divIcon({
+                            className: 'region-subtitle-label',
+                            html: `<span>${regionName}</span>`,
+                            iconSize: [200, 30]
+                        })
+                    }).addTo(markersLayer);
+                });
+            }
+
 
             // Agregar etiquetas y actualizar leyenda si es mapa de provincias petroleras
             if (type === 'provincias-petroleras' && window.ProvinciasPetroleras) {
@@ -6232,12 +6379,12 @@ function addHorizontalCapacityLegend(totals, mapName) {
             // Function to check if a technology is storage
             const isStorageTech = (techName) => {
                 const upperTech = techName.toUpperCase().trim();
-                return upperTech.includes('ALMACENAMIENTO') || 
-                       upperTech.includes('BATERIA') || 
-                       upperTech.includes('BATERÍAS') ||
-                       upperTech === 'ALM' ||
-                       upperTech.startsWith('ALM ') ||
-                       upperTech.includes('STORAGE');
+                return upperTech.includes('ALMACENAMIENTO') ||
+                    upperTech.includes('BATERIA') ||
+                    upperTech.includes('BATERÍAS') ||
+                    upperTech === 'ALM' ||
+                    upperTech.startsWith('ALM ') ||
+                    upperTech.includes('STORAGE');
             };
 
             // Calculate totals by column and row, separating generation and storage
@@ -6259,7 +6406,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                     rowData[col] = value;
                     rowTotal += value;
                     columnTotals[col] += value;
-                    
+
                     if (isStorageTech(col)) {
                         rowStorageTotal += value;
                         storageTotal += value;
@@ -6310,9 +6457,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         // Override position for Baja California and Noroeste
                         if (regionName === 'Baja California') {
                             center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
-                                                                                } else if (regionName === 'Noroeste') {
-                                                                                    center.lat += 2.0; // Move label further up to avoid being covered
-                                                                                }                        const gcrName = regionName;
+                        } else if (regionName === 'Noroeste') {
+                            center.lat += 2.0; // Move label further up to avoid being covered
+                        } const gcrName = regionName;
                         const total = capacityInfo.TOTAL || 0;
                         const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
                         const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
@@ -6415,260 +6562,195 @@ function addHorizontalCapacityLegend(totals, mapName) {
 
         } catch (error) {
             console.error('Error loading capacity additions map:', error);
-            } finally {
-                togglePreloader(false);
-            }
+        } finally {
+            togglePreloader(false);
         }
-        
-        async function loadTotalCapacityAdditionsMap(mapConfig) {
-        
-            togglePreloader(true);
-        
-            try {
-        
-                // Load aggregated data and GeoJSON in parallel
-        
-                const [aggregatedData, geoJsonResponse] = await Promise.all([
-        
-                    loadTotalCapacityData(),
-        
-                    fetch(mapConfig.geojsonUrl)
-        
-                ]);
-        
-        
-        
-                const geoJsonData = await geoJsonResponse.json();
-        
-        
-        
-                // Get dynamic column names from the aggregated data
-        
-                const allColumns = aggregatedData.length > 0 ? Object.keys(aggregatedData[0]) : [];
-        
-                const capacityColumns = allColumns.filter(col =>
-        
-                    col !== 'Gerencia de Control Regional' && col !== 'GCR' && col.trim() !== ''
-        
-                );
-        
-        
-        
-                console.log('Aggregated capacity columns found:', capacityColumns);
-        
-        
-        
-                const capacityDataMap = new Map();
-        
-                // Function to check if a technology is storage
-                const isStorageTech = (techName) => {
-                    const upperTech = techName.toUpperCase().trim();
-                    return upperTech.includes('ALMACENAMIENTO') || 
-                           upperTech.includes('BATERIA') || 
-                           upperTech.includes('BATERÍAS') ||
-                           upperTech === 'ALM' ||
-                           upperTech.startsWith('ALM ') ||
-                           upperTech.includes('STORAGE');
-                };
+    }
 
-                const columnTotals = {};
-        
-                capacityColumns.forEach(col => columnTotals[col] = 0);
-        
-                let grandTotal = 0;
-                let storageTotal = 0;
-                let generationTotal = 0;
-        
-        
-        
-                aggregatedData.forEach(row => {
-        
-                    const gcrName = row['Gerencia de Control Regional'];
-        
-                    let rowTotal = 0;
-                    let rowStorageTotal = 0;
-                    let rowGenerationTotal = 0;
-        
-                    const rowData = { GCR: gcrName };
-        
-        
-        
-                    capacityColumns.forEach(col => {
-        
-                        const value = parseFloat(row[col] || 0);
-        
-                        rowData[col] = value;
-        
-                        rowTotal += value;
-        
-                        columnTotals[col] += value;
-        
-                        if (isStorageTech(col)) {
-                            rowStorageTotal += value;
-                            storageTotal += value;
-                        } else {
-                            rowGenerationTotal += value;
-                            generationTotal += value;
-                        }
-        
-                    });
-        
-        
-        
-                    rowData.TOTAL = rowTotal;
-                    rowData.STORAGE_TOTAL = rowStorageTotal;
-                    rowData.GENERATION_TOTAL = rowGenerationTotal;
-        
-                    grandTotal += rowTotal;
-        
-                    capacityDataMap.set(gcrName, rowData);
-        
+    async function loadTotalCapacityAdditionsMap(mapConfig) {
+
+        togglePreloader(true);
+
+        try {
+
+            // Load aggregated data and GeoJSON in parallel
+
+            const [aggregatedData, geoJsonResponse] = await Promise.all([
+
+                loadTotalCapacityData(),
+
+                fetch(mapConfig.geojsonUrl)
+
+            ]);
+
+
+
+            const geoJsonData = await geoJsonResponse.json();
+
+
+
+            // Get dynamic column names from the aggregated data
+
+            const allColumns = aggregatedData.length > 0 ? Object.keys(aggregatedData[0]) : [];
+
+            const capacityColumns = allColumns.filter(col =>
+
+                col !== 'Gerencia de Control Regional' && col !== 'GCR' && col.trim() !== ''
+
+            );
+
+
+
+            console.log('Aggregated capacity columns found:', capacityColumns);
+
+
+
+            const capacityDataMap = new Map();
+
+            // Function to check if a technology is storage
+            const isStorageTech = (techName) => {
+                const upperTech = techName.toUpperCase().trim();
+                return upperTech.includes('ALMACENAMIENTO') ||
+                    upperTech.includes('BATERIA') ||
+                    upperTech.includes('BATERÍAS') ||
+                    upperTech === 'ALM' ||
+                    upperTech.startsWith('ALM ') ||
+                    upperTech.includes('STORAGE');
+            };
+
+            const columnTotals = {};
+
+            capacityColumns.forEach(col => columnTotals[col] = 0);
+
+            let grandTotal = 0;
+            let storageTotal = 0;
+            let generationTotal = 0;
+
+
+
+            aggregatedData.forEach(row => {
+
+                const gcrName = row['Gerencia de Control Regional'];
+
+                let rowTotal = 0;
+                let rowStorageTotal = 0;
+                let rowGenerationTotal = 0;
+
+                const rowData = { GCR: gcrName };
+
+
+
+                capacityColumns.forEach(col => {
+
+                    const value = parseFloat(row[col] || 0);
+
+                    rowData[col] = value;
+
+                    rowTotal += value;
+
+                    columnTotals[col] += value;
+
+                    if (isStorageTech(col)) {
+                        rowStorageTotal += value;
+                        storageTotal += value;
+                    } else {
+                        rowGenerationTotal += value;
+                        generationTotal += value;
+                    }
+
                 });
-        
-        
-        
-                capacityTotals = {
-        
-                    columns: columnTotals,
-        
-                    total: grandTotal,
-        
-                    storageTotal: storageTotal,
-        
-                    generationTotal: generationTotal,
-        
-                    columnNames: capacityColumns
-        
-                };
-        
-        
-        
-                console.log('Aggregated capacity totals:', capacityTotals);
-        
-        
-        
-                const bajaCaliforniaCoords = {
-        
-                    'Baja California': { lat: 32.3, lng: -115.5 },
-        
-                    'Baja California Sur': { lat: 23.5, lng: -111.5 },  // Movido más a la izquierda
-        
-                    'Mulegé': { lat: 28.5, lng: -113.0 }
-        
-                };
-        
-        
-        
-                await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
-        
-        
-        
-                if (geoJsonLayer) {
-        
-                    geoJsonLayer.eachLayer(layer => {
-        
-                        const regionName = layer.feature.properties.name;
-        
-                        const capacityInfo = capacityDataMap.get(regionName);
-        
-        
-        
-                        if (capacityInfo) {
-        
-                            const bounds = layer.getBounds();
-        
-                            let center = bounds.getCenter();
-        
-        
-        
-                            if (regionName === 'Baja California') {
-        
-                                center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
-        
-                            } else if (regionName === 'Noroeste') {
-                                                                                    center.lat += 2.0; // Move label further up to avoid being covered
-                                                                                }
-        
-        
-        
-                            const gcrName = regionName;
-        
-                            const total = capacityInfo.TOTAL || 0;
-        
-        
-        
-                            if (total > 0) {
-                                const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
-                                const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
-        
-                                // Build label HTML dynamically
-                                let labelHTML = `<div class="pib-label-content">
-                                    <div class="pib-label-id">${gcrName}</div>`;
 
-                                // Add each capacity type with consistent technology colors and acronyms
-                                capacityColumns.forEach((col, index) => {
-                                    const value = capacityInfo[col] || 0;
-                                    if (value > 0 && !isStorageTech(col)) {
-                                        const color = getTechnologyColor(col);
-                                        const acronym = getTechnologyAcronym(col);
-                                        labelHTML += `<div class="pib-row" style="color: ${color};">
-                                            <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
-                                        </div>`;
-                                    }
-                                });
 
-                                labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
-                                if (generationTotal > 0) {
-                                    labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
-                                }
-                                if (storageTotal > 0) {
-                                    labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
-                                }
-                                labelHTML += `</div></div>`;
 
-                                const marker = L.marker([center.lat, center.lng], {
-                                    icon: L.divIcon({
-                                        className: 'pib-label',
-                                        html: labelHTML,
-                                        iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
-                                    })
-                                }).addTo(instrumentLayerGroup);
-        
-                                // Bind a simple popup for consistency, though the main label has the info
-                                layer.bindPopup(`<strong>${gcrName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
-                            }
-        
-                        }
-        
-                    });
-        
-                }
-        
-        
-        
-                // Manually add labels for Baja California Sur and Mulegé as they are not in the GeoJSON
-        
-                ['Baja California Sur', 'Mulegé'].forEach(regionName => {
-        
+                rowData.TOTAL = rowTotal;
+                rowData.STORAGE_TOTAL = rowStorageTotal;
+                rowData.GENERATION_TOTAL = rowGenerationTotal;
+
+                grandTotal += rowTotal;
+
+                capacityDataMap.set(gcrName, rowData);
+
+            });
+
+
+
+            capacityTotals = {
+
+                columns: columnTotals,
+
+                total: grandTotal,
+
+                storageTotal: storageTotal,
+
+                generationTotal: generationTotal,
+
+                columnNames: capacityColumns
+
+            };
+
+
+
+            console.log('Aggregated capacity totals:', capacityTotals);
+
+
+
+            const bajaCaliforniaCoords = {
+
+                'Baja California': { lat: 32.3, lng: -115.5 },
+
+                'Baja California Sur': { lat: 23.5, lng: -111.5 },  // Movido más a la izquierda
+
+                'Mulegé': { lat: 28.5, lng: -113.0 }
+
+            };
+
+
+
+            await loadGeoJSON(mapConfig.geojsonUrl, { type: mapConfig.geojsonUrlType });
+
+
+
+            if (geoJsonLayer) {
+
+                geoJsonLayer.eachLayer(layer => {
+
+                    const regionName = layer.feature.properties.name;
+
                     const capacityInfo = capacityDataMap.get(regionName);
-        
-        
-        
+
+
+
                     if (capacityInfo) {
-        
-                        const center = L.latLng(bajaCaliforniaCoords[regionName].lat, bajaCaliforniaCoords[regionName].lng);
-        
+
+                        const bounds = layer.getBounds();
+
+                        let center = bounds.getCenter();
+
+
+
+                        if (regionName === 'Baja California') {
+
+                            center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
+
+                        } else if (regionName === 'Noroeste') {
+                            center.lat += 2.0; // Move label further up to avoid being covered
+                        }
+
+
+
+                        const gcrName = regionName;
+
                         const total = capacityInfo.TOTAL || 0;
-        
-        
-        
+
+
+
                         if (total > 0) {
                             const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
                             const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
-        
+
                             // Build label HTML dynamically
                             let labelHTML = `<div class="pib-label-content">
-                                <div class="pib-label-id">${regionName}</div>`;
+                                    <div class="pib-label-id">${gcrName}</div>`;
 
                             // Add each capacity type with consistent technology colors and acronyms
                             capacityColumns.forEach((col, index) => {
@@ -6677,8 +6759,8 @@ function addHorizontalCapacityLegend(totals, mapName) {
                                     const color = getTechnologyColor(col);
                                     const acronym = getTechnologyAcronym(col);
                                     labelHTML += `<div class="pib-row" style="color: ${color};">
-                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
-                                    </div>`;
+                                            <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
+                                        </div>`;
                                 }
                             });
 
@@ -6691,7 +6773,7 @@ function addHorizontalCapacityLegend(totals, mapName) {
                             }
                             labelHTML += `</div></div>`;
 
-                            const marker = L.marker(center, {
+                            const marker = L.marker([center.lat, center.lng], {
                                 icon: L.divIcon({
                                     className: 'pib-label',
                                     html: labelHTML,
@@ -6699,39 +6781,104 @@ function addHorizontalCapacityLegend(totals, mapName) {
                                 })
                             }).addTo(instrumentLayerGroup);
 
-                            // Bind a simple popup for consistency
-                            marker.bindPopup(`<strong>${regionName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
+                            // Bind a simple popup for consistency, though the main label has the info
+                            layer.bindPopup(`<strong>${gcrName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
                         }
-        
+
                     }
-        
+
                 });
-        
-        
-        
-                // CALL SPECIAL LEGEND FUNCTION FOR TOTAL CAPACITY MAP (TWO COLUMNS, BOTTOM)
-        
-                addTotalCapacityLegendTwoColumns(capacityTotals, mapConfig.name);
-        
-        
-        
-            } catch (error) {
-        
-                console.error('Error loading total capacity additions map:', error);
-        
-                if (typeof showNotification === 'function') {
-        
-                    showNotification('Error al cargar el mapa de adiciones totales', error.message, 'error');
-        
-                }
-        
-            } finally {
-        
-                togglePreloader(false);
-        
+
             }
-        
-        }        // Event listeners
+
+
+
+            // Manually add labels for Baja California Sur and Mulegé as they are not in the GeoJSON
+
+            ['Baja California Sur', 'Mulegé'].forEach(regionName => {
+
+                const capacityInfo = capacityDataMap.get(regionName);
+
+
+
+                if (capacityInfo) {
+
+                    const center = L.latLng(bajaCaliforniaCoords[regionName].lat, bajaCaliforniaCoords[regionName].lng);
+
+                    const total = capacityInfo.TOTAL || 0;
+
+
+
+                    if (total > 0) {
+                        const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
+                        const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
+
+                        // Build label HTML dynamically
+                        let labelHTML = `<div class="pib-label-content">
+                                <div class="pib-label-id">${regionName}</div>`;
+
+                        // Add each capacity type with consistent technology colors and acronyms
+                        capacityColumns.forEach((col, index) => {
+                            const value = capacityInfo[col] || 0;
+                            if (value > 0 && !isStorageTech(col)) {
+                                const color = getTechnologyColor(col);
+                                const acronym = getTechnologyAcronym(col);
+                                labelHTML += `<div class="pib-row" style="color: ${color};">
+                                        <span class="pib-value">${acronym}: ${value.toLocaleString('es-MX')} MW</span>
+                                    </div>`;
+                            }
+                        });
+
+                        labelHTML += `<div style="border-top: 1px solid #333; margin-top: 2px; padding-top: 2px;">`;
+                        if (generationTotal > 0) {
+                            labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #1a1a1a;">CAP: ${generationTotal.toLocaleString('es-MX')} MW</div>`;
+                        }
+                        if (storageTotal > 0) {
+                            labelHTML += `<div style="font-size: 11px; font-weight: 700; color: #9932CC;">ALM: ${storageTotal.toLocaleString('es-MX')} MW</div>`;
+                        }
+                        labelHTML += `</div></div>`;
+
+                        const marker = L.marker(center, {
+                            icon: L.divIcon({
+                                className: 'pib-label',
+                                html: labelHTML,
+                                iconSize: [90, 60 + (capacityColumns.filter(col => (capacityInfo[col] || 0) > 0).length * 5)]
+                            })
+                        }).addTo(instrumentLayerGroup);
+
+                        // Bind a simple popup for consistency
+                        marker.bindPopup(`<strong>${regionName}</strong><br>Capacidad Total: ${total.toLocaleString('es-MX')} MW`);
+                    }
+
+                }
+
+            });
+
+
+
+            // CALL SPECIAL LEGEND FUNCTION FOR TOTAL CAPACITY MAP (TWO COLUMNS, BOTTOM)
+
+            addTotalCapacityLegendTwoColumns(capacityTotals, mapConfig.name);
+
+
+
+        } catch (error) {
+
+            console.error('Error loading total capacity additions map:', error);
+
+            if (typeof showNotification === 'function') {
+
+                showNotification('Error al cargar el mapa de adiciones totales', error.message, 'error');
+
+            }
+
+        } finally {
+
+            togglePreloader(false);
+
+        }
+
+    }        // Event listeners
     if (refreshBtn) {
         refreshBtn.addEventListener('click', async function () {
             const selectedInstrument = instrumentSelect.value;
