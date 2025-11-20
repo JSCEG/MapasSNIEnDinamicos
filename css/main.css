@@ -2071,8 +2071,8 @@ Notification system */
     border: none;
     border-radius: 0;
     padding: 0;
-    font-size: 8px;
-    /* Reduced from 10px */
+    font-size: 11px;
+    /* Increased for better visibility */
     font-weight: 700;
     color: #1f7a62;
     /* Kept the green color */
