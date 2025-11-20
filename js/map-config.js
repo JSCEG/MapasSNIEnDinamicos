@@ -6270,11 +6270,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
                         // Override position for Baja California and Noroeste
                         if (regionName === 'Baja California') {
                             center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
-                        } else if (regionName === 'Noroeste') {
-                            center.lat += 0.5; // Move label slightly up
-                        }
-
-                        const gcrName = regionName;
+                                                                                } else if (regionName === 'Noroeste') {
+                                                                                    center.lat += 2.0; // Move label further up to avoid being covered
+                                                                                }                        const gcrName = regionName;
                         const total = capacityInfo.TOTAL || 0;
                         const storageTotal = capacityInfo.STORAGE_TOTAL || 0;
                         const generationTotal = capacityInfo.GENERATION_TOTAL || 0;
@@ -6547,7 +6545,9 @@ function addHorizontalCapacityLegend(totals, mapName) {
         
                                 center = L.latLng(bajaCaliforniaCoords['Baja California'].lat, bajaCaliforniaCoords['Baja California'].lng);
         
-                            }
+                            } else if (regionName === 'Noroeste') {
+                                                                                    center.lat += 2.0; // Move label further up to avoid being covered
+                                                                                }
         
         
         
