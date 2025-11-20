@@ -871,7 +871,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     color: '#333333',
                     weight: 1.5,
                     opacity: 0.8,
-                    fillOpacity: 0
+                    fillOpacity: 0,
+                    className: 'mexico-border-shadow' // Add class for styling
                 },
                 interactive: false
             });
