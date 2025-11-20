@@ -3,11 +3,11 @@
  * Usa dom-to-image para capturar el mapa como PNG
  */
 
-(function() {
+(function () {
     'use strict';
 
     // Esperar a que el DOM esté listo
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const exportBtn = document.getElementById('export-map-btn');
         const exportWordBtn = document.getElementById('export-word-btn');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -18,7 +18,7 @@
         const mapCard = document.querySelector('.map-card');
         const mapDescription = document.getElementById('map-description');
         const cardFooter = document.querySelector('.card-footer');
-        
+
         if (!exportBtn || !mapContainer) {
             console.warn('Botón de exportación o contenedor de mapa no encontrado');
             return;
@@ -30,7 +30,7 @@
             if (typeof window.currentBaseLayerName === 'undefined') {
                 return false;
             }
-            
+
             const mapTilerLayers = ['SENER Azul', 'SENER Light', 'SENER Oscuro'];
             return mapTilerLayers.includes(window.currentBaseLayerName);
         }
@@ -41,11 +41,11 @@
             if (modal) {
                 modal.style.display = 'flex';
                 modal.setAttribute('aria-hidden', 'false');
-                
+
                 // Cerrar modal
                 const closeButtons = modal.querySelectorAll('.maptiler-warning-close, .modal-overlay');
                 closeButtons.forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function () {
                         modal.style.display = 'none';
                         modal.setAttribute('aria-hidden', 'true');
                     });
@@ -89,7 +89,7 @@
 
         function prepareLayoutForExport() {
             if (!mapContainer) {
-                return () => {};
+                return () => { };
             }
 
             const layoutState = {
@@ -194,6 +194,17 @@
             const fullscreenToolbarWasVisible = fullscreenToolbar && fullscreenToolbar.style.display !== 'none';
             if (fullscreenToolbar) fullscreenToolbar.style.display = 'none';
 
+            // Mostrar temporalmente el título del mapa si estamos en pantalla completa
+            const mapTitle = document.getElementById('map-title-display');
+            let mapTitleOriginalDisplay = '';
+            const isFullscreen = document.fullscreenElement !== null;
+
+            if (mapTitle && isFullscreen) {
+                mapTitleOriginalDisplay = mapTitle.style.display;
+                mapTitle.style.display = 'block';
+                mapTitle.style.visibility = 'visible';
+            }
+
             const restoreLayout = prepareLayoutForExport();
             let mapDescriptionOriginalDisplay = '';
             let cardFooterOriginalDisplay = '';
@@ -238,15 +249,15 @@
                     },
                     cacheBust: true,
                     bgcolor: '#ffffff',
-                    filter: function(node) {
+                    filter: function (node) {
                         if (node.classList) {
                             return !node.classList.contains('leaflet-control-zoom') &&
-                                   !node.classList.contains('leaflet-control-layers') &&
-                                   !node.classList.contains('leaflet-control-attribution') &&
-                                   !node.classList.contains('leaflet-control-scale') &&
-                                   !node.classList.contains('fullscreen-controls') &&
-                                   !node.classList.contains('fullscreen-control-btn') &&
-                                   !node.classList.contains('fullscreen-toolbar');
+                                !node.classList.contains('leaflet-control-layers') &&
+                                !node.classList.contains('leaflet-control-attribution') &&
+                                !node.classList.contains('leaflet-control-scale') &&
+                                !node.classList.contains('fullscreen-controls') &&
+                                !node.classList.contains('fullscreen-control-btn') &&
+                                !node.classList.contains('fullscreen-toolbar');
                         }
                         if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
                             return false;
@@ -279,8 +290,8 @@
 
                 if (typeof showNotification === 'function') {
                     showNotification(
-                        'Exportación para Word completada', 
-                        `Imagen optimizada (6x, ~300 DPI) guardada como: ${filename}`, 
+                        'Exportación para Word completada',
+                        `Imagen optimizada (6x, ~300 DPI) guardada como: ${filename}`,
                         'success'
                     );
                 }
@@ -297,14 +308,14 @@
 
             } catch (error) {
                 console.error('❌ Error en exportación para Word:', error);
-                
+
                 // Restaurar todos los controles
                 if (layersControl && layersControlWasVisible) layersControl.style.display = '';
                 if (fullscreenControls && fullscreenControlsWasVisible) fullscreenControls.style.display = '';
                 if (attribution && attributionWasVisible) attribution.style.display = '';
                 if (scaleControl && scaleControlWasVisible) scaleControl.style.display = '';
                 if (fullscreenToolbar && fullscreenToolbarWasVisible) fullscreenToolbar.style.display = '';
-                
+
                 if (typeof showNotification === 'function') {
                     showNotification('Error en exportación', error.message, 'error');
                 }
@@ -318,6 +329,13 @@
                 if (cardFooter) {
                     cardFooter.style.display = cardFooterOriginalDisplay;
                 }
+
+                // Restaurar el título del mapa a su estado original
+                if (mapTitle && isFullscreen) {
+                    mapTitle.style.display = mapTitleOriginalDisplay;
+                    mapTitle.style.visibility = '';
+                }
+
                 restoreLayout();
             }
         }
@@ -421,16 +439,16 @@
                     cacheBust: true,
                     // Configuración adicional para mejor calidad
                     bgcolor: '#ffffff',
-                    filter: function(node) {
+                    filter: function (node) {
                         // Excluir todos los controles de Leaflet, botones flotantes y toolbar
                         if (node.classList) {
                             return !node.classList.contains('leaflet-control-zoom') &&
-                                   !node.classList.contains('leaflet-control-layers') &&
-                                   !node.classList.contains('leaflet-control-attribution') &&
-                                   !node.classList.contains('leaflet-control-scale') &&
-                                   !node.classList.contains('fullscreen-controls') &&
-                                   !node.classList.contains('fullscreen-control-btn') &&
-                                   !node.classList.contains('fullscreen-toolbar');
+                                !node.classList.contains('leaflet-control-layers') &&
+                                !node.classList.contains('leaflet-control-attribution') &&
+                                !node.classList.contains('leaflet-control-scale') &&
+                                !node.classList.contains('fullscreen-controls') &&
+                                !node.classList.contains('fullscreen-control-btn') &&
+                                !node.classList.contains('fullscreen-toolbar');
                         }
                         if (node.id === 'fullscreen-controls' || node.id === 'fullscreen-toolbar') {
                             return false;
@@ -466,8 +484,8 @@
                 // Mostrar notificación de éxito
                 if (typeof showNotification === 'function') {
                     showNotification(
-                        'Exportación completada', 
-                        `Imagen de alta resolución (${scale}x) guardada como: ${filename}`, 
+                        'Exportación completada',
+                        `Imagen de alta resolución (${scale}x) guardada como: ${filename}`,
                         'success'
                     );
                 }
@@ -475,27 +493,27 @@
                 // Cerrar overlay después de un momento
                 setTimeout(() => {
                     if (progressOverlay) progressOverlay.style.display = 'none';
-                    
+
                     // Restaurar control de capas
                     if (layersControl && layersControlWasVisible) {
                         layersControl.style.display = '';
                     }
-                    
+
                     // Restaurar botones flotantes
                     if (fullscreenControls && fullscreenControlsWasVisible) {
                         fullscreenControls.style.display = '';
                     }
-                    
+
                     // Restaurar atribución
                     if (attribution && attributionWasVisible) {
                         attribution.style.display = '';
                     }
-                    
+
                     // Restaurar control de escala
                     if (scaleControl && scaleControlWasVisible) {
                         scaleControl.style.display = '';
                     }
-                    
+
                     // Restaurar toolbar de pantalla completa
                     if (fullscreenToolbar && fullscreenToolbarWasVisible) {
                         fullscreenToolbar.style.display = '';
@@ -504,28 +522,28 @@
 
             } catch (error) {
                 console.error('❌ Error en exportación:', error);
-                
+
                 // Restaurar todos los controles en caso de error
                 if (layersControl && layersControlWasVisible) {
                     layersControl.style.display = '';
                 }
-                
+
                 if (fullscreenControls && fullscreenControlsWasVisible) {
                     fullscreenControls.style.display = '';
                 }
-                
+
                 if (attribution && attributionWasVisible) {
                     attribution.style.display = '';
                 }
-                
+
                 if (scaleControl && scaleControlWasVisible) {
                     scaleControl.style.display = '';
                 }
-                
+
                 if (fullscreenToolbar && fullscreenToolbarWasVisible) {
                     fullscreenToolbar.style.display = '';
                 }
-                
+
                 if (typeof showNotification === 'function') {
                     showNotification('Error en exportación', error.message, 'error');
                 }
@@ -552,14 +570,14 @@
                 mapCard.requestFullscreen().catch(err => {
                     console.error('Error al entrar en pantalla completa:', err);
                 });
-                
+
                 // Invalidar tamaño del mapa después de un momento
                 setTimeout(() => {
                     if (window.map && window.map.invalidateSize) {
                         window.map.invalidateSize();
                     }
                 }, 100);
-                
+
                 if (fullscreenBtn) {
                     fullscreenBtn.querySelector('i').className = 'bi bi-fullscreen-exit';
                     fullscreenBtn.title = 'Salir de pantalla completa';
@@ -567,14 +585,14 @@
             } else {
                 // Salir de pantalla completa
                 document.exitFullscreen();
-                
+
                 // Invalidar tamaño del mapa después de un momento
                 setTimeout(() => {
                     if (window.map && window.map.invalidateSize) {
                         window.map.invalidateSize();
                     }
                 }, 100);
-                
+
                 if (fullscreenBtn) {
                     fullscreenBtn.querySelector('i').className = 'bi bi-arrows-fullscreen';
                     fullscreenBtn.title = 'Pantalla completa';
@@ -583,7 +601,7 @@
         }
 
         // Event listeners
-        exportBtn.addEventListener('click', function(e) {
+        exportBtn.addEventListener('click', function (e) {
             // Prevenir que el click se propague al mapa
             e.stopPropagation();
             e.preventDefault();
@@ -591,7 +609,7 @@
         });
 
         if (exportWordBtn) {
-            exportWordBtn.addEventListener('click', function(e) {
+            exportWordBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 exportMapForWord();
@@ -599,15 +617,15 @@
         }
 
         if (exportWordFullscreenBtn) {
-            exportWordFullscreenBtn.addEventListener('click', function(e) {
+            exportWordFullscreenBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 exportMapForWord();
             });
         }
-        
+
         if (fullscreenBtn) {
-            fullscreenBtn.addEventListener('click', function(e) {
+            fullscreenBtn.addEventListener('click', function (e) {
                 // Prevenir que el click se propague al mapa
                 e.stopPropagation();
                 e.preventDefault();
@@ -616,7 +634,7 @@
         }
 
         if (exitFullscreenBtn) {
-            exitFullscreenBtn.addEventListener('click', function(e) {
+            exitFullscreenBtn.addEventListener('click', function (e) {
                 // Prevenir que el click se propague al mapa
                 e.stopPropagation();
                 e.preventDefault();
@@ -627,7 +645,7 @@
         }
 
         if (exportFullscreenBtn) {
-            exportFullscreenBtn.addEventListener('click', function(e) {
+            exportFullscreenBtn.addEventListener('click', function (e) {
                 // Prevenir que el click se propague al mapa
                 e.stopPropagation();
                 e.preventDefault();
@@ -636,14 +654,14 @@
         }
 
         // Listener para cambios de pantalla completa
-        document.addEventListener('fullscreenchange', function() {
+        document.addEventListener('fullscreenchange', function () {
             // Invalidar tamaño del mapa cuando cambia el estado de pantalla completa
             setTimeout(() => {
                 if (window.map && window.map.invalidateSize) {
                     window.map.invalidateSize();
                 }
             }, 100);
-            
+
             if (fullscreenBtn) {
                 if (document.fullscreenElement) {
                     fullscreenBtn.querySelector('i').className = 'bi bi-fullscreen-exit';
@@ -658,13 +676,13 @@
         // Prevenir propagación de clicks en el contenedor de controles flotantes
         const fullscreenControlsContainer = document.getElementById('fullscreen-controls');
         if (fullscreenControlsContainer) {
-            fullscreenControlsContainer.addEventListener('click', function(e) {
+            fullscreenControlsContainer.addEventListener('click', function (e) {
                 e.stopPropagation();
             });
-            fullscreenControlsContainer.addEventListener('mousedown', function(e) {
+            fullscreenControlsContainer.addEventListener('mousedown', function (e) {
                 e.stopPropagation();
             });
-            fullscreenControlsContainer.addEventListener('mouseup', function(e) {
+            fullscreenControlsContainer.addEventListener('mouseup', function (e) {
                 e.stopPropagation();
             });
         }

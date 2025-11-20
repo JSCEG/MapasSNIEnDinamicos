@@ -1166,6 +1166,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         insetControllers = [];
         insetBoundsLayerGroup.clearLayers();
+
+        // Remover botón de toggle de minimapas
+        removeInsetToggleButton();
     }
 
     function createInsetMaps(insets) {
@@ -1493,10 +1496,99 @@ document.addEventListener('DOMContentLoaded', function () {
                 rectangle,
                 line: leaderLine
             });
+
+            // Ocultar minimapas por defecto
+            container.style.display = 'none';
         });
 
         // Initial draw of leader lines
         updateLeaderLines();
+
+        // Crear botón de toggle para minimapas
+        createInsetToggleButton();
+    }
+
+    // Función para crear el botón de toggle de minimapas
+    function createInsetToggleButton() {
+        // Remover botón existente si hay
+        const existingBtn = document.getElementById('toggle-insets-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+
+        // Crear botón de toggle
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggle-insets-btn';
+        toggleBtn.className = 'btn-secondary btn-icon toggle-insets-btn';
+        toggleBtn.title = 'Mostrar/Ocultar Minimapas';
+        toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap"></i>';
+        toggleBtn.style.cssText = `
+            position: absolute;
+            bottom: 80px;
+            right: 10px;
+            z-index: 1000;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        `;
+
+        let insetsVisible = false;
+
+        toggleBtn.addEventListener('click', function () {
+            insetsVisible = !insetsVisible;
+
+            insetControllers.forEach(controller => {
+                if (controller.container) {
+                    controller.container.style.display = insetsVisible ? 'block' : 'none';
+                }
+                if (controller.line) {
+                    controller.line.style.display = insetsVisible ? 'block' : 'none';
+                }
+                if (controller.rectangle) {
+                    if (insetsVisible) {
+                        insetBoundsLayerGroup.addLayer(controller.rectangle);
+                    } else {
+                        insetBoundsLayerGroup.removeLayer(controller.rectangle);
+                    }
+                }
+            });
+
+            // Actualizar icono y estilo del botón
+            if (insetsVisible) {
+                toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap-fill"></i>';
+                toggleBtn.style.background = '#1f7a62';
+                toggleBtn.style.color = 'white';
+                toggleBtn.title = 'Ocultar Minimapas';
+                updateLeaderLines();
+            } else {
+                toggleBtn.innerHTML = '<i class="bi bi-grid-3x3-gap"></i>';
+                toggleBtn.style.background = 'white';
+                toggleBtn.style.color = '#333';
+                toggleBtn.title = 'Mostrar Minimapas';
+            }
+        });
+
+        // Agregar al contenedor del mapa
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.appendChild(toggleBtn);
+        }
+    }
+
+    // Función para remover el botón de toggle
+    function removeInsetToggleButton() {
+        const toggleBtn = document.getElementById('toggle-insets-btn');
+        if (toggleBtn) {
+            toggleBtn.remove();
+        }
     }
 
     function getNodeMarkerOptions(includePane) {
