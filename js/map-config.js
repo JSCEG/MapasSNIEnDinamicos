@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMexicoOutline('ninguno').then(layer => {
         if (layer) {
             mexicoOutlineLayerNinguno = layer;
-            ningunoBaseLayer.addLayer(layer);
+
         }
     });
 
@@ -845,9 +845,47 @@ document.addEventListener('DOMContentLoaded', function () {
     map.createPane('marinasPane');
     const marinasLayer = L.layerGroup({ pane: 'marinasPane' }).addTo(map);
 
+    // Crear capa de contorno de México para el control
+    let mexicoBorderLayer = L.layerGroup();
+    (async () => {
+        try {
+            const response = await fetch('https://cdn.sassoapps.com/Mapas/mexico.geojson');
+            const data = await response.json();
+            const mexicoProj = '+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +ellps=GRS80 +units=m +no_defs';
+            const wgs84 = 'EPSG:4326';
+            const reprojectCoordinates = (coords) => {
+                if (typeof coords[0] === 'number') {
+                    const [lng, lat] = proj4(mexicoProj, wgs84, coords);
+                    return [lng, lat];
+                } else {
+                    return coords.map(coord => reprojectCoordinates(coord));
+                }
+            };
+            data.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    feature.geometry.coordinates = reprojectCoordinates(feature.geometry.coordinates);
+                }
+            });
+            const borderLayer = L.geoJSON(data, {
+                style: {
+                    color: '#333333',
+                    weight: 1.5,
+                    opacity: 0.8,
+                    fillOpacity: 0
+                },
+                interactive: false
+            });
+            mexicoBorderLayer.addLayer(borderLayer);
+            console.log('✅ Capa de contorno de México cargada para el control.');
+        } catch (error) {
+            console.error('Error al cargar la capa de contorno de México:', error);
+        }
+    })();
+
     graticuleLayer.addTo(map);
     graticuleLabels.addTo(map);
     marinasLayer.addTo(map);
+    mexicoBorderLayer.addTo(map); // Add to map by default
 
     // Crear capas dummy para controlar logos
     const senerLogoLayer = L.layerGroup();
@@ -873,6 +911,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Crear overlays para el control de capas
     const overlays = {
+        'Contorno de México': mexicoBorderLayer,
         'Retícula (Lat/Lon)': graticuleLayer,
         'Regiones Marinas': marinasLayer,
         'Logo SENER': senerLogoLayer,
