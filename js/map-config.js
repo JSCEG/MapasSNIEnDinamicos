@@ -1749,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'El suministro eléctrico es uno de los principales servicios capaces de impulsar y generar prosperidad y desarrollo para todos los sectores del país: desde un hogar, hasta comercios, el campo, otros servicios públicos y la industria. En esta sección se presenta un diagnóstico con las principales características que guarda el sector eléctrico nacional y su evolución de 2010 a 2024, como lo son: la demanda y el consumo, el consumo final, las pérdidas eléctricas, la infraestructura de transmisión y distribución, la red de gasoductos, la cobertura eléctrica, las tarifas eléctricas, las emisiones de gases de efecto invernadero, la cobertura del servicio eléctrico, la innovación, así como el desarrollo tecnológico y de capacidades.<br><br>El SEN se compone de 8 Gerencias de Control Regional (GCR) con 100 regiones de transmisión (Figura 2.1) y enlaces equivalentes que interconectan a estas y a las GCR. La GCR Baja California contiene tres sistemas interconectados: El Sistema Interconectado de Baja California (SIBC), el Sistema Interconectado de Baja California Sur (SIBCS) y el Sistema Interconectado de Mulegé (SIMUL). Por su parte, las GCR Central (CEN), Noreste (NES), Noroeste (NOR), Norte (NTE), Occidental (OCC), Oriental (ORI) y Peninsular (PEN) conforman el Sistema Interconectado Nacional (SIN).',
                 insets: [
                     {
-                        label: 'Detalle Baja California',
+                        label: 'Baja California 1',
                         center: [23.2, -110.5],
                         zoom: 7,
                         size: { width: 280, height: 200 },
@@ -1760,11 +1760,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         ]
                     },
                     {
-                        label: 'Detalle Peninsular',
+                        label: 'Peninsular 1',
                         center: [20.9, -87.4],
                         zoom: 7,
                         size: { width: 280, height: 200 },
                         position: { top: '18px', right: '18px' },
+                        bounds: [
+                            [19.5, -89.2],
+                            [22.2, -85.5]
+                        ]
+                    },
+                    {
+                        label: 'Baja California 2',
+                        center: [23.2, -110.5],
+                        zoom: 7,
+                        size: { width: 280, height: 200 },
+                        position: { bottom: '230px', left: '18px' },
+                        bounds: [
+                            [21.5, -112.5],
+                            [24.8, -108.5]
+                        ]
+                    },
+                    {
+                        label: 'Peninsular 2',
+                        center: [20.9, -87.4],
+                        zoom: 7,
+                        size: { width: 280, height: 200 },
+                        position: { top: '230px', right: '18px' },
                         bounds: [
                             [19.5, -89.2],
                             [22.2, -85.5]
