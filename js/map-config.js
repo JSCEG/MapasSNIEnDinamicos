@@ -395,9 +395,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const defaultBaseKey = 'Crema';
-    const activeBaseLayer = cremaBaseLayer;
-    console.log('✅ Listo. Mapa base por defecto: Crema');
+    const defaultBaseKey = 'Ninguno';
+    const activeBaseLayer = ningunoBaseLayer;
+    console.log('✅ Listo. Mapa base por defecto: Ninguno');
 
     // Inicializar el mapa
     map = L.map(MAP_CONTAINER_ID, {
@@ -412,6 +412,11 @@ document.addEventListener('DOMContentLoaded', function () {
         preferCanvas: false // Disable canvas rendering to fall back to SVG for better event handling
     });
     map.isBasemapActive = false;
+
+    // Configurar fondo blanco si la capa base por defecto es "Ninguno"
+    if (defaultBaseKey === 'Ninguno') {
+        map.getContainer().style.backgroundColor = 'white';
+    }
 
     // Create SVG overlay for leader lines
     leaderLineSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -561,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateWhenIdle: true
     }).addTo(map);
 
-    let currentBaseLayerName = 'Crema';
+    let currentBaseLayerName = 'Ninguno';
     window.currentBaseLayerName = currentBaseLayerName;
 
     // Handle background for "None" basemap
@@ -939,7 +944,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     graticuleLayer.addTo(map);
     graticuleLabels.addTo(map);
-    marinasLayer.addTo(map);
+    // marinasLayer.addTo(map); // Deshabilitado por defecto
     mexicoBorderLayer.addTo(map); // Add to map by default
 
     // Crear capas dummy para controlar logos
@@ -979,6 +984,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial call to set logo visibility
     updateLogoVisibility();
+
+    // Asegurar que las regiones marinas estén deshabilitadas al inicio
+    if (map.hasLayer(marinasLayer)) {
+        map.removeLayer(marinasLayer);
+    }
 
     console.log('✅ Control de capas con logos integrado');
 
