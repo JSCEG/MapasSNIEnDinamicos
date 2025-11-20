@@ -2368,7 +2368,7 @@ document.addEventListener('DOMContentLoaded', function () {
             map.removeControl(pibLegendControl);
         }
 
-        pibLegendControl = L.control({ position: 'bottomleft' });
+        pibLegendControl = L.control({ position: 'topright' });
 
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend');
@@ -2409,7 +2409,7 @@ document.addEventListener('DOMContentLoaded', function () {
             map.removeControl(pibLegendControl);
         }
 
-        pibLegendControl = L.control({ position: 'bottomleft' });
+        pibLegendControl = L.control({ position: 'topright' });
 
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend legend-two-columns');
@@ -2462,7 +2462,7 @@ document.addEventListener('DOMContentLoaded', function () {
             map.removeControl(pibLegendControl);
         }
 
-        pibLegendControl = L.control({ position: 'bottomleft' });
+        pibLegendControl = L.control({ position: 'topright' });
 
         pibLegendControl.onAdd = function (map) {
             const div = L.DomUtil.create('div', 'info legend horizontal-legend');
