@@ -2155,10 +2155,426 @@ Notification system */
 }
 
 .marker-cluster-medium div {
+    align-items: flex-start;
+    background: transparent;
+    /* No background on item */
+    padding: 0;
+}
+
+.instruction-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--color-verde-profundo);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 10px rgba(31, 122, 98, 0.2);
+}
+
+.instruction-content h3 {
+    color: var(--color-text);
+    font-size: 1rem;
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+}
+
+.instruction-content p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.welcome-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 0.8rem 1.5rem;
+    background: var(--color-verde-profundo);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(31, 122, 98, 0.3);
+}
+
+.welcome-btn i {
+    font-size: 1.1em;
+}
+
+.welcome-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(31, 122, 98, 0.4);
+    background: var(--color-verde-claro);
+}
+
+.welcome-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(31, 122, 98, 0.3);
+}
+
+.welcome-footer {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Responsive adjustments for welcome screen */
+@media (max-width: 768px) {
+    .welcome-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .welcome-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .welcome-logo-sener {
+        width: 140px;
+    }
+
+    .welcome-logo-snien {
+        width: 90px;
+    }
+
+    .welcome-instructions {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+}
+
+/* Node labels for map markers */
+.leaflet-tooltip.node-label {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: 14px;
+    /* Increased for better visibility */
+    font-weight: 700;
+    color: #1f7a62;
+    /* Kept the green color */
+    box-shadow: none;
+    backdrop-filter: none;
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
+    /* White outline */
+}
+
+.leaflet-tooltip.node-label::before {
+    border-top-color: rgba(31, 122, 98, 0.3);
+}
+
+/* Marker Cluster Styles - Themed */
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 50%;
+    z-index: 650 !important;
+}
+
+.marker-cluster div {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 30px;
+    color: #ffffff;
+    font-weight: 700;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* State and GCR Tooltips with Enhanced Visibility */
+.leaflet-tooltip.state-tooltip,
+.leaflet-tooltip.gcr-tooltip {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 2px solid var(--color-verde-profundo) !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: var(--color-verde-profundo) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(8px);
+}
+
+.leaflet-tooltip.state-tooltip::before,
+.leaflet-tooltip.gcr-tooltip::before {
+    border-top-color: var(--color-verde-profundo) !important;
+}
+
+/* Custom electricity marker icon */
+.electricity-marker-icon {
+    background: transparent !important;
+    border: none !important;
+    z-index: 650 !important;
+}
+
+.electricity-marker-icon img {
+    display: block;
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* Small clusters */
+.marker-cluster-small {
+    background-color: rgba(36, 164, 122, 0.5);
+}
+
+.marker-cluster-small div {
+    background-color: rgba(36, 164, 122, 0.8);
+}
+
+/* Medium clusters */
+.marker-cluster-medium {
+    background-color: rgba(31, 122, 98, 0.6);
+}
+
+.marker-cluster-medium div {
+    align-items: flex-start;
+    background: transparent;
+    /* No background on item */
+    padding: 0;
+}
+
+.instruction-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--color-verde-profundo);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 10px rgba(31, 122, 98, 0.2);
+}
+
+.instruction-content h3 {
+    color: var(--color-text);
+    font-size: 1rem;
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+}
+
+.instruction-content p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.welcome-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 0.8rem 1.5rem;
+    background: var(--color-verde-profundo);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(31, 122, 98, 0.3);
+}
+
+.welcome-btn i {
+    font-size: 1.1em;
+}
+
+.welcome-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(31, 122, 98, 0.4);
+    background: var(--color-verde-claro);
+}
+
+.welcome-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(31, 122, 98, 0.3);
+}
+
+.welcome-footer {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Responsive adjustments for welcome screen */
+@media (max-width: 768px) {
+    .welcome-content {
+        padding: 1.5rem 1rem;
+    }
+
+    .welcome-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .welcome-logo-sener {
+        width: 140px;
+    }
+
+    .welcome-logo-snien {
+        width: 90px;
+    }
+
+    .welcome-instructions {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+}
+
+/* Node labels for map markers */
+.leaflet-tooltip.node-label {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: 14px;
+    /* Increased for better visibility */
+    font-weight: 700;
+    color: #1f7a62;
+    /* Kept the green color */
+    box-shadow: none;
+    backdrop-filter: none;
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff;
+    /* White outline */
+}
+
+.leaflet-tooltip.node-label::before {
+    border-top-color: rgba(31, 122, 98, 0.3);
+}
+
+/* Marker Cluster Styles - Themed */
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 50%;
+    z-index: 650 !important;
+}
+
+.marker-cluster div {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 30px;
+    color: #ffffff;
+    font-weight: 700;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* State and GCR Tooltips with Enhanced Visibility */
+.leaflet-tooltip.state-tooltip,
+.leaflet-tooltip.gcr-tooltip {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 2px solid var(--color-verde-profundo) !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: var(--color-verde-profundo) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(8px);
+}
+
+.leaflet-tooltip.state-tooltip::before,
+.leaflet-tooltip.gcr-tooltip::before {
+    border-top-color: var(--color-verde-profundo) !important;
+}
+
+/* Custom electricity marker icon */
+.electricity-marker-icon {
+    background: transparent !important;
+    border: none !important;
+    z-index: 650 !important;
+}
+
+.electricity-marker-icon img {
+    display: block;
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* Small clusters */
+.marker-cluster-small {
+    background-color: rgba(36, 164, 122, 0.5);
+}
+
+.marker-cluster-small div {
+    background-color: rgba(36, 164, 122, 0.8);
+}
+
+/* Medium clusters */
+.marker-cluster-medium {
+    background-color: rgba(31, 122, 98, 0.6);
+}
+
+.marker-cluster-medium div {
     background-color: rgba(31, 122, 98, 0.9);
 }
 
 /* Large clusters */
 .marker-cluster-large {
     background-color: rgba(22, 34, 48, 0.7);
+}
+
+/* Hide labels when toggled off */
+.hide-node-labels .node-label,
+.hide-node-labels .region-label {
+    display: none !important;
+}
+
+/* Region Label Styling */
+.region-label {
+    background: transparent !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.region-label span {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    text-shadow: 0 0 4px #000000, 0 0 4px #000000;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-align: center;
+    pointer-events: none;
 }

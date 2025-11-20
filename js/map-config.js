@@ -1591,6 +1591,85 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Función para crear el botón de toggle de etiquetas
+    function createLabelToggleControl() {
+        // Remover botón existente si hay
+        const existingBtn = document.getElementById('toggle-labels-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+
+        // Crear botón de toggle
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggle-labels-btn';
+        toggleBtn.className = 'btn-secondary btn-icon toggle-labels-btn';
+        toggleBtn.title = 'Ocultar Etiquetas';
+        toggleBtn.innerHTML = '<i class="bi bi-tags-fill"></i>'; // Icono de etiquetas activas por defecto
+        toggleBtn.style.cssText = `
+            position: absolute;
+            bottom: 130px; /* Encima del botón de minimapas */
+            right: 10px;
+            z-index: 1000;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: #1f7a62; /* Activo por defecto */
+            color: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        `;
+
+        let labelsVisible = true;
+        const mapContainer = document.getElementById('map');
+
+        // Asegurar que las etiquetas sean visibles inicialmente
+        if (mapContainer) {
+            mapContainer.classList.remove('hide-node-labels');
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            labelsVisible = !labelsVisible;
+
+            if (mapContainer) {
+                if (labelsVisible) {
+                    mapContainer.classList.remove('hide-node-labels');
+                    toggleBtn.innerHTML = '<i class="bi bi-tags-fill"></i>';
+                    toggleBtn.style.background = '#1f7a62';
+                    toggleBtn.style.color = 'white';
+                    toggleBtn.title = 'Ocultar Etiquetas';
+                } else {
+                    mapContainer.classList.add('hide-node-labels');
+                    toggleBtn.innerHTML = '<i class="bi bi-tags"></i>';
+                    toggleBtn.style.background = 'white';
+                    toggleBtn.style.color = '#333';
+                    toggleBtn.title = 'Mostrar Etiquetas';
+                }
+            }
+        });
+
+        // Agregar al contenedor del mapa
+        if (mapContainer) {
+            mapContainer.appendChild(toggleBtn);
+        }
+    }
+
+    // Función para remover el botón de toggle de etiquetas
+    function removeLabelToggleControl() {
+        const toggleBtn = document.getElementById('toggle-labels-btn');
+        if (toggleBtn) {
+            toggleBtn.remove();
+        }
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.classList.remove('hide-node-labels');
+        }
+    }
+
     function getNodeMarkerOptions(includePane) {
         const options = {
             radius: NODE_MARKER_OPTIONS.radius,
@@ -1609,6 +1688,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearData() {
         markersLayer.clearLayers();
         clearInsetMarkers();
+        removeLabelToggleControl();
 
         // Clear cluster group if exists
         if (markersClusterGroup) {
@@ -3143,8 +3223,8 @@ document.addEventListener('DOMContentLoaded', function () {
             instrumentLayerGroup.clearLayers(); // Clear before adding new layers
             instrumentLayerGroup.addLayer(geoJsonLayer);
 
-            // Etiquetas de gerencias comentadas - la información está en la leyenda
-            /* if (type === 'interactive-regions') {
+            // Etiquetas de gerencias - la información está en la leyenda
+            if (type === 'regions') {
                 geoJsonLayer.eachLayer(layer => {
                     const regionName = layer.feature.properties.name;
                     const center = layer.getBounds().getCenter();
@@ -3159,13 +3239,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     const label = L.marker(center, {
                         icon: L.divIcon({
-                            className: 'region-subtitle-label',
+                            className: 'region-label',
                             html: `<span>${regionName}</span>`,
                             iconSize: [200, 30]
-                        })
-                    }).addTo(markersLayer);
+                        }),
+                        pane: 'nodesPane' // Ensure it's on top
+                    }).addTo(instrumentLayerGroup); // Use instrumentLayerGroup so it persists until clearData
                 });
-            } */
+
+                // Add toggle control for these labels
+                createLabelToggleControl();
+            }
 
 
             // Agregar etiquetas y actualizar leyenda si es mapa de provincias petroleras
