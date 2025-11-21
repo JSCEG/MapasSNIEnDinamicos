@@ -284,15 +284,15 @@
 </head>
 
 <body>
-        <div id="preloader">
-            <div class="preloader-content">
-                <img src="img/snien.png" alt="SNIEn Logo" class="preloader-logo">
-                <p>Cargando datos del mapa...</p>
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
+    <div id="preloader">
+        <div class="preloader-content">
+            <img src="img/snien.png" alt="SNIEn Logo" class="preloader-logo">
+            <p>Cargando datos del mapa...</p>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
             </div>
         </div>
+    </div>
 
     <!-- Pantalla de Bienvenida -->
     <div id="welcome-screen" class="welcome-screen">
@@ -457,11 +457,13 @@
                                     title="Salir de pantalla completa (ESC)">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
-                                <button id="export-fullscreen-btn" class="fullscreen-control-btn" title="Descargar mapa">
+                                <button id="export-fullscreen-btn" class="fullscreen-control-btn"
+                                    title="Descargar mapa">
                                     <i class="bi bi-download"></i>
                                 </button>
                                 <button id="export-word-fullscreen-btn"
-                                    class="fullscreen-control-btn fullscreen-control-btn--word" title="Exportar para Word">
+                                    class="fullscreen-control-btn fullscreen-control-btn--word"
+                                    title="Exportar para Word">
                                     <i class="bi bi-file-word"></i>
                                 </button>
                             </div>
@@ -491,8 +493,9 @@
                                     <div class="fullscreen-toolbar-group" id="fullscreen-search-group"
                                         style="display: none;">
                                         <label for="fullscreen-permit-search">Buscar</label>
-                                        <input type="text" id="fullscreen-permit-search" class="fullscreen-control-input"
-                                            placeholder="Buscar permiso..." autocomplete="off">
+                                        <input type="text" id="fullscreen-permit-search"
+                                            class="fullscreen-control-input" placeholder="Buscar permiso..."
+                                            autocomplete="off">
                                     </div>
 
                                     <button id="fullscreen-refresh-btn" class="fullscreen-toolbar-btn"
@@ -500,7 +503,8 @@
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
 
-                                    <button id="fullscreen-edit-btn" class="fullscreen-toolbar-btn" title="Editar datos">
+                                    <button id="fullscreen-edit-btn" class="fullscreen-toolbar-btn"
+                                        title="Editar datos">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
 
@@ -594,7 +598,8 @@
                         <div id="petroliferos-filters-panel" class="filters-panel" style="display: none;">
                             <div class="filters-header">
                                 <h3><i class="bi bi-fuel-pump"></i> Filtros de Permisos de Petrolíferos</h3>
-                                <button type="button" id="reset-petroliferos-filters-btn" class="btn-secondary btn-small">
+                                <button type="button" id="reset-petroliferos-filters-btn"
+                                    class="btn-secondary btn-small">
                                     <i class="bi bi-arrow-counterclockwise"></i> Resetear Filtros
                                 </button>
                             </div>
@@ -1135,6 +1140,13 @@
     <script src="js/notification-system.js"></script>
     <script src="js/provincias-petroleras.js"></script>
     <script src="js/pladeshi-maps.js"></script>
+    <script src="js/pladese-maps.js"></script>
+    <script src="js/platease-maps.js"></script>
+    <script src="js/prosener-maps.js"></script>
+    <script src="js/electricidad-maps.js"></script>
+    <script src="js/gas-natural-maps.js"></script>
+    <script src="js/gas-lp-maps.js"></script>
+    <script src="js/petroliferos-maps.js"></script>
     <script src="js/map-config.js"></script>
     <script src="js/fullscreen-toolbar.js"></script>
     <script src="js/simple-export.js"></script>
