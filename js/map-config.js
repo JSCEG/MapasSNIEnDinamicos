@@ -1474,8 +1474,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     interactive: false
                 }).addTo(insetBoundsLayerGroup);
 
-            // Ocultar los rectángulos de los minimapas al inicio
-            insetBoundsLayerGroup.removeLayer(rectangle);
+                // Ocultar los rectángulos de los minimapas al inicio
+                insetBoundsLayerGroup.removeLayer(rectangle);
             }
 
             const leaderLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1918,7 +1918,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapConfigurations = {
         'PLADESE': [
             {
-                name: 'Regiones y enlaces del SEN en 2025',
+                name: 'Figura 2.1. Regiones y enlaces del SEN en 2025',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'regions',
                 connectionsGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/lienas.geojson',
@@ -1976,7 +1976,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ]
             },
             {
-                name: 'Red nacional de gasoductos en 2024',
+                name: 'Figura 2.12. Red nacional de gasoductos en 2024',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/estados.geojson',
                 geojsonUrlType: 'states',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSR7XevbKi6yGLS8hLXmWnBZIvOWu4xB45B0-VA7CNIleOY_88YGzZf9W_zf0GVIb5k5pHzSI7RE7tY/pub?gid=0&single=true&output=csv',
@@ -1990,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ]
             },
             {
-                name: 'Municipios con localidades sin electrificar',
+                name: 'Figuras 2.15 a 2.22. Municipios con localidades sin electrificar',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'interactive-regions',
                 municipalitiesGeojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/municipios.geojson',
@@ -2018,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 `
             },
             {
-                name: 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039',
+                name: 'Figura 3.5. Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'pib-forecast',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVE7N8gjuivL9JiM59vFBjiej5k48foC60TrSRGXjEAbJXvW0NXTZ3Fq0-kWzY73kmMPSq68xtpZE2/pub?gid=0&single=true&output=csv',
@@ -2027,7 +2027,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'El periodo de estudio 2025-2039, se estima que la participación en el PIB de los sectores de la economía mexicana se comporte de la siguiente manera: se estima que el PIB del sector primario crezca en promedio 1.9% por año, mientras que el Sector Industrial y el Sector Servicios lo harán a una tasa de 2.5% cada uno. En la composición sectorial del PIB, se prevé que, en 2039, el sector Agrícola represente el 3.1% del PIB Nacional, mientras que el Industrial y el de Servicios integrarán el 33.5% y 63.4%, respectivamente.<br><br>El Servicio Público de Energía Eléctrica se distribuye a través de las diferentes entidades responsables de carga los cuales se desagregan en seis sectores por el uso final de la energía eléctrica, con una diferente participación en el Consumo Eléctrico Nacional: residencial, comercial, servicios, agrícola, empresa mediana y gran industria.<br><br>Para el 2024 el SEN tuvo un consumo final de 304,011 GWh, siendo 1.8% mayor al del año previo. En cuanto a los usuarios con servicio de energía eléctrica crecieron 1.7% respecto al 2023, llegando a 49 millones de clientes. Los sectores empresa mediana y la gran industria consumieron el 60.6 % del consumo final, con solo el 0.9% del total de los usuarios. En el sector residencial, se alberga la mayor cantidad de usuarios con 89.2%, los cuales consumen sólo el 27.1% del SEN. El 12.4% restante del consumo final es utilizado por los usuarios de los sectores comercial con 5.9%, bombeo agrícola con 5.2% y servicios 1.3%.<br><br>Con el propósito de fomentar el crecimiento económico del país, se creó el Plan México, una estrategia gubernamental de largo plazo, que tiene como propósitos: incrementar la inversión, la creación de nuevos empleos, la proveeduría y consumo nacional en sectores estratégicos, disminución de la pobreza y la desigualdad, entre otros. Para ello, se planteó garantizar el acceso universal a la electricidad mediante el fortalecimiento de la infraestructura eléctrica del país. Por lo que, el Plan México contempla además de obras de electrificación, aumentos en la capacidad de generación pública y capacidad de generación mixta (pública y privada), además de proyectos de transmisión y distribución, con énfasis en las áreas marginadas. Se dará continuidad al programa de cobertura eléctrica nacional con fines sociales y comunitarios, permitiendo así el desarrollo local y regional, con la premisa de asegurar que las tarifas no aumenten en términos reales.<br><br>El Plan México regionaliza sus proyectos en Polos de Desarrollo Económico para el Bienestar (PODECOBIS), los primeros 15 polos estarán ubicados en 14 estados en los que se busca desarrollar zonas industriales, sin dejar de lado los servicios y el turismo. Dentro de ramas industriales contempladas están: agroindustria, aeroespacial, automotriz, bienes de consumo, farmacéutica y dispositivos médicos, electrónica y semiconductores, energía, química y petroquímica, textil y calzado, y economía circular.<br><br>Como parte de las inversiones estratégicas derivadas del Plan México, se continuará con la expansión y rehabilitación de redes ferroviarias mediante proyectos como los trenes México-Querétaro, México-Pachuca, Saltillo-Nuevo Laredo, Querétaro-Irapuato, Tren Insurgente y Tren Maya de Carga, así como la modernización de puertos y carreteras. Con estas acciones, se busca posicionar a México como nodo estratégico en las cadenas de suministro, impulsando la inversión en logística y comercio, y promoviendo el crecimiento y el desarrollo económico.<br><br>Las expectativas de crecimiento del PIB presentan un comportamiento diferenciado entre el mediano y largo plazo, ya que, en este último, la incertidumbre es mayor. Para el periodo 2025-2030, por Gerencia de Control Regional (GCR), se espera que los sistemas de Baja california y Mulegé (SIBCS y SIMUL) presenten la mayor TMCA con 3.1%, mientras que el menor crecimiento del PIB se estima ocurra en la GCR NTE, con 2.0%. Tanto el SIN como el SEN se proyecta un crecimiento de 2.5% anual en el mismo periodo. En el periodo 2025-2039, los SIBCS y SIMUL se prevé que continúen con mayor crecimiento y, en contraste, en la GCR NTE y ORI se estima la menor TMCA, con 2.2%. Para el SIN y el SEN se espera una TMCA de 2.5% cada uno.'
             },
             {
-                name: 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039',
+                name: 'Figura 3.9. Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'consumption-forecast',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQytuUc9Cmf9kOvPCmLkYEOObPEP_rM1bSb9_awO0wYqdLAKw4x_b9FLEBSVGoGXKbDuK8nK4ge2cjM/pub?gid=0&single=true&output=csv',
@@ -2036,7 +2036,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'Se presentan las TMCA de los tres escenarios para cada una de las GCR que integran el SIN en el periodo de estudio. Tomando en cuenta el escenario de planeación, el cual es considerado como el escenario principal para la realización de estudios y evaluación de proyectos, se observa que, la península de Yucatán presenta la TMCA más alta con un crecimiento de 3.6% en el escenario bajo, 3.9% en el escenario de planeación y 4.3% en el escenario alto. Por el contrario, en las GCR Central, Oriental, Norte y Noroeste se esperan crecimientos menores a 1.9% en el escenario bajo. Los crecimientos de estas GCR en el escenario alto oscilan entre 2.4% y 2.7%, y en el escenario de planeación se estiman incrementos de 2% a 2.2%. La GCR Noreste y Occidental crecerán en el escenario de planeación 2.8% y 2.7%, respectivamente, mientras que para el escenario alto se estiman crecimientos ligeramente superiores al 3% y para el bajo se estima 2.4% para el Noreste y 2.3% el Occidental. En lo que refiere al escenario de planeación, se estima que la GCR Peninsular tenga un mayor crecimiento, con una TMCA de 3.9%, seguida de las GCR Noreste y Occidental con crecimientos promedio de 2.8% y 2.7%, respectivamente. En cuanto a los Sistemas Interconectados, el SIBC crecerá en promedio 3.4%, mientras que el SIBCS y SIMUL se calcula avancen 3.1% y 1.8%, en ese orden.'
             },
             {
-                name: 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027',
+                name: 'Figura 4.3. Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'capacity-additions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6orBJGbqI8xr6TkOUaJM7I-8RbE7inbex6PrKWHdgTUif8EBFljKuzFR42OqoroQ87kAGpZt_ry-J/pub?gid=0&single=true&output=csv',
@@ -2045,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'Como parte del fortalecimiento de la CFE durante la administración del Gobierno Federal en el periodo 2018-2024 se impulsaron proyectos de fortalecimiento correspondientes a modernización, rehabilitación y construcción de nuevas centrales. El PVIRCE considera la adición de 2,963 MW para el horizonte 2025-2027, de los cuales 2,330 MW corresponden a tecnología de ciclo combinado, 173 MW de turbogás y 460 MW de hidroeléctricas. En la Figura 4.3 se muestra la distribución de estos proyectos por tecnología y GCR.'
             },
             {
-                name: 'Adiciones de capacidad de proyectos del Estado 2027 - 2030',
+                name: 'Figura 4.4. Adiciones de capacidad de proyectos del Estado 2027 - 2030',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'capacity-additions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSuLWC7WRjRZ-Kicm-0rWJd9beVu4jAwsABNLcixRUCr6XvC0pVvrgPXJW-qh-44AvmLt6gYBDwdoms/pub?gid=0&single=true&output=csv',
@@ -2054,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'En la presente administración del Gobierno Federal el PVIRCE considera la adición de 14,046 MW para el horizonte 2027-2030 por parte del Estado, con una participación del 77% de energías limpias, de las cuales el 60% corresponde a renovables, en la mapa se muestra la distribución de estos proyectos por tecnología y GCR.'
             },
             {
-                name: 'Adiciones de capacidad de proyectos con prelación 2025 - 2030',
+                name: 'Figura 4.5. Adiciones de capacidad de proyectos con prelación 2025 - 2030',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'capacity-additions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRIo6nqNkppQCVqqsUC1LNKSw8n9AyslhakQb_3gB7bccFP1Tb7ssDX1ycdMe0rTSlSrWXpH_CSTMna/pub?gid=0&single=true&output=csv',
@@ -2063,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: 'De 2025 a 2030 se espera adicionar 3,590 MW de capacidad de generación que cuentan con contrato de interconexión como se observa en mapa'
             },
             {
-                name: 'Adición de capacidad para desarrollarse por particulares 2026 - 2030',
+                name: 'Figura 4.6. Adición de capacidad para desarrollarse por particulares 2026 - 2030',
                 geojsonUrl: 'https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson',
                 geojsonUrlType: 'capacity-additions',
                 googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYfjJ8D1nJGd7IFKOzzg_e7Dpn77RyyeQM1MVFLg4pN4CB7TR1hj_5Zt2igXlDiht8p7hVs-aIp3DQ/pub?gid=0&single=true&output=csv',
@@ -2798,6 +2798,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 };
 
+                const gcrTitles = {
+                    "Central": "Figura 2.15. Municipios con localidades sin electrificar en la GCR Central",
+                    "Oriental": "Figura 2.16. Municipios con localidades sin electrificar en la GCR Oriental",
+                    "Occidental": "Figura 2.17. Municipios con localidades sin electrificar en la GCR Occidental",
+                    "Noroeste": "Figura 2.18. Municipios con localidades sin electrificar en la GCR Noroeste",
+                    "Norte": "Figura 2.19. Municipios con localidades sin electrificar en la GCR Norte",
+                    "Noreste": "Figura 2.20. Municipios con localidades sin electrificar en la GCR Noreste",
+                    "Peninsular": "Figura 2.21. Municipios con localidades sin electrificar en la GCR Peninsular",
+                    "Baja California": "Figura 2.22. Municipios con localidades sin electrificar en la GCR de Baja California"
+                };
+
                 function resetAllRegionsToInitialState() {
                     focusedRegion = null;
                     geoJsonLayer.eachLayer(l => {
@@ -2816,10 +2827,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         selectedRegionBanner.style.display = 'none';
                     }
 
-                    // Hide description
                     if (mapDescriptionEl) {
                         mapDescriptionEl.style.display = 'none';
                     }
+
+                    // Reset map title
+                    updateMapTitleDisplay('Figuras 2.15 a 2.22. Municipios con localidades sin electrificar');
                 }
 
                 onEachFeatureFunction = function (feature, layer) {
@@ -2854,6 +2867,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (selectedRegionBanner && selectedRegionText) {
                                 selectedRegionText.textContent = 'Gerencia de Control Regional: ' + clickedRegionName;
                                 selectedRegionBanner.style.display = 'block';
+                            }
+
+                            // Update map title
+                            if (gcrTitles[clickedRegionName]) {
+                                updateMapTitleDisplay(gcrTitles[clickedRegionName]);
                             }
 
                             // Update description
@@ -7146,7 +7164,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const mapConfig = mapConfigurations[selectedInstrument].find(m => m.name === selectedMapName);
 
                 // Si es el mapa de electrificación
-                if (mapConfig && mapConfig.name === 'Municipios con localidades sin electrificar') {
+                if (mapConfig && mapConfig.name === 'Figuras 2.15 a 2.22. Municipios con localidades sin electrificar') {
                     togglePreloader(true);
                     try {
                         // Recargar solo los datos del Google Sheets
@@ -7252,22 +7270,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     } finally {
                         togglePreloader(false);
                     }
-                } else if (mapConfig && mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
+                } else if (mapConfig && mapConfig.name === 'Figura 3.5. Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
                     // Recargar datos del mapa PIB
                     await loadPIBForecastMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
+                } else if (mapConfig && mapConfig.name === 'Figura 3.9. Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
                     // Recargar datos del mapa de consumo
                     await loadConsumptionForecastMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
+                } else if (mapConfig && mapConfig.name === 'Figura 4.3. Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
                     // Recargar datos del mapa de adiciones de capacidad CFE
                     await loadCapacityAdditionsMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
+                } else if (mapConfig && mapConfig.name === 'Figura 4.4. Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad del Estado
                     await loadCapacityAdditionsMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
+                } else if (mapConfig && mapConfig.name === 'Figura 4.5. Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad por Particulares
                     await loadCapacityAdditionsMap(mapConfig);
-                } else if (mapConfig && mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
+                } else if (mapConfig && mapConfig.name === 'Figura 4.6. Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
                     // Recargar datos del mapa de adiciones de capacidad para desarrollarse por Particulares
                     await loadCapacityAdditionsMap(mapConfig);
                 } else if (mapConfig && mapConfig.name === 'Adición de capacidad 2025-2030') {
@@ -7428,43 +7446,43 @@ document.addEventListener('DOMContentLoaded', function () {
                         searchGroup.style.display = mapConfig.enableSearch ? 'flex' : 'none';
                     }
 
-                    if (mapConfig.name === 'Municipios con localidades sin electrificar') {
+                    if (mapConfig.name === 'Figuras 2.15 a 2.22. Municipios con localidades sin electrificar') {
                         updateSheetInfo(mapConfig); // Update sheet info for this map
                         loadElectrificationMap(mapConfig);
                         return; // Stop further processing for this map for now
                     }
 
-                    if (mapConfig.name === 'Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
+                    if (mapConfig.name === 'Figura 3.5. Pronóstico regional del PIB, escenario de planeación 2025 - 2030 y 2025-2039') {
                         updateSheetInfo(mapConfig);
                         await loadPIBForecastMap(mapConfig);
                         return;
                     }
 
-                    if (mapConfig.name === 'Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
+                    if (mapConfig.name === 'Figura 3.9. Pronósticos del consumo bruto 2025 - 2030 y 2025 - 2039') {
                         updateSheetInfo(mapConfig);
                         await loadConsumptionForecastMap(mapConfig);
                         return;
                     }
 
-                    if (mapConfig.name === 'Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
+                    if (mapConfig.name === 'Figura 4.3. Adiciones de Capacidad de proyectos de fortalecimiento de la CFE 2025 - 2027') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
                         return;
                     }
 
-                    if (mapConfig.name === 'Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
+                    if (mapConfig.name === 'Figura 4.4. Adiciones de capacidad de proyectos del Estado 2027 - 2030') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
                         return;
                     }
 
-                    if (mapConfig.name === 'Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
+                    if (mapConfig.name === 'Figura 4.5. Adiciones de capacidad de proyectos con prelación 2025 - 2030') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
                         return;
                     }
 
-                    if (mapConfig.name === 'Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
+                    if (mapConfig.name === 'Figura 4.6. Adición de capacidad para desarrollarse por particulares 2026 - 2030') {
                         updateSheetInfo(mapConfig);
                         await loadCapacityAdditionsMap(mapConfig);
                         return;
