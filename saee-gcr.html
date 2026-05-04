@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mapa SAEE por GCR | DGMSNIE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --guinda: #611232;
+            --guinda-2: #7f1734;
+            --dorado: #bc955c;
+            --dorado-2: #ddc9a4;
+            --verde: #235b4e;
+            --verde-2: #10302b;
+            --gris: #706f6f;
+            --borde: #e5d9cd;
+            --fondo: #f8f6f2;
+            --panel: #ffffff;
+            --texto: #2c2c2c;
+            --muted: #6f6f6f;
+            --shadow: 0 18px 45px rgba(35, 26, 20, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                linear-gradient(180deg, rgba(97, 18, 50, 0.06), transparent 250px),
+                var(--fondo);
+            color: var(--texto);
+            font-family: "Noto Sans", Arial, sans-serif;
+        }
+
+        .app-shell {
+            width: min(1420px, calc(100% - 36px));
+            margin: 0 auto;
+            padding: 22px 0 34px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(28, 22, 18, 0.08);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .brand-logo {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .brand-separator {
+            width: 1px;
+            height: 42px;
+            background: var(--borde);
+        }
+
+        .brand-text {
+            min-width: 0;
+        }
+
+        .brand-text b {
+            display: block;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 14px;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .brand-text span {
+            display: block;
+            margin-top: 3px;
+            color: var(--gris);
+            font-size: 12px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button,
+        select {
+            font: inherit;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 38px;
+            padding: 0 14px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: var(--guinda);
+            color: #ffffff;
+            font-family: "Montserrat", sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+        }
+
+        .btn:hover {
+            background: var(--guinda-2);
+            box-shadow: 0 10px 22px rgba(97, 18, 50, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: #ffffff;
+            color: var(--guinda);
+            border-color: #d8c7bb;
+        }
+
+        .btn.secondary:hover {
+            background: #fbf8f4;
+            box-shadow: 0 8px 18px rgba(80, 60, 45, 0.12);
+        }
+
+        .export-surface {
+            margin-top: 18px;
+            background: #ffffff;
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .map-title {
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid var(--borde);
+            background:
+                linear-gradient(90deg, rgba(97, 18, 50, 0.08), transparent 70%),
+                #ffffff;
+        }
+
+        .map-title h1 {
+            margin: 0;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: clamp(24px, 2.4vw, 36px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .map-title p {
+            max-width: 960px;
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .map-controls {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 14px 24px;
+            background: #fbfaf7;
+            border-bottom: 1px solid var(--borde);
+        }
+
+        .control {
+            display: grid;
+            gap: 6px;
+        }
+
+        .control label {
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .control select,
+        .toggle-grid {
+            width: 100%;
+            min-height: 40px;
+            border: 1px solid #d8c7bb;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #333333;
+            padding: 0 12px;
+            outline: none;
+        }
+
+        .toggle-grid {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .toggle-grid input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--guinda);
+        }
+
+        .map-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 370px;
+            min-height: 690px;
+        }
+
+        .map-wrap {
+            position: relative;
+            min-width: 0;
+            min-height: 690px;
+            background: #f7f4ef;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 690px;
+            background: #f7f4ef;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 24px;
+            background: #ffffff;
+            border-left: 1px solid var(--borde);
+        }
+
+        .metric {
+            padding: 18px;
+            border: 1px solid #eaded4;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #fffdfb, #fbf7f1);
+        }
+
+        .metric span,
+        .export-total-label {
+            color: var(--gris);
+            font-family: "Montserrat", sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .metric strong,
+        .export-total-value {
+            display: block;
+            margin-top: 6px;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 36px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .metric small {
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .legend {
+            display: grid;
+            gap: 10px;
+        }
+
+        .legend h2,
+        .table h2,
+        .export-legend-panel h2 {
+            margin: 0;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 16px;
+            letter-spacing: 0;
+        }
+
+        .legend-row,
+        .export-legend-row {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            color: #303030;
+            font-size: 13px;
+        }
+
+        .swatch {
+            width: 28px;
+            height: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.16);
+            border-radius: 3px;
+        }
+
+        .legend-row b {
+            font-family: "Montserrat", sans-serif;
+            font-size: 13px;
+            color: #323232;
+        }
+
+        .legend-row span:last-child {
+            font-weight: 800;
+            color: var(--guinda);
+        }
+
+        .table {
+            display: grid;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #eee5dc;
+            text-align: left;
+        }
+
+        th {
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        td:last-child,
+        th:last-child {
+            text-align: right;
+            font-weight: 800;
+        }
+
+        .note {
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 1px solid #eaded4;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .export-legend-panel {
+            display: none;
+        }
+
+        .export-total-block {
+            padding-bottom: 18px;
+            border-bottom: 1px solid #e3d7cc;
+        }
+
+        .export-legend-rows {
+            display: grid;
+            gap: 9px;
+            margin-top: 16px;
+        }
+
+        .export-legend-row {
+            grid-template-columns: 24px minmax(112px, 1fr) auto;
+            min-height: 30px;
+            white-space: nowrap;
+            font-size: 13px;
+            line-height: 1;
+        }
+
+        .export-legend-row .swatch {
+            width: 24px;
+            height: 13px;
+        }
+
+        .export-legend-row b {
+            overflow: hidden;
+            color: #303030;
+            font-weight: 700;
+            text-overflow: ellipsis;
+        }
+
+        .export-legend-row span:last-child {
+            color: #303030;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .leaflet-control-attribution {
+            font-size: 10px;
+        }
+
+        .gcr-popup {
+            min-width: 190px;
+            font-family: "Noto Sans", Arial, sans-serif;
+        }
+
+        .gcr-popup b {
+            display: block;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .saee-label {
+            transform: translate(-50%, -50%);
+        }
+
+        .saee-label-card {
+            position: relative;
+            min-width: 90px;
+            padding: 8px 10px 7px;
+            border: 1px solid rgba(97, 18, 50, 0.26);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 8px 18px rgba(42, 24, 22, 0.16);
+            text-align: center;
+            font-family: "Montserrat", sans-serif;
+            line-height: 1.05;
+            white-space: nowrap;
+        }
+
+        .saee-label-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            border-radius: 7px 0 0 7px;
+            background: var(--label-color, var(--guinda));
+        }
+
+        .saee-label-name {
+            color: var(--label-color, var(--guinda));
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .saee-label-mw {
+            display: block;
+            margin-top: 4px;
+            color: #272727;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .saee-label-time {
+            display: block;
+            margin-top: 4px;
+            color: #777777;
+            font-family: "Noto Sans", Arial, sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .bcs-marker {
+            width: 16px;
+            height: 16px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            background: var(--label-color, var(--dorado));
+            box-shadow: 0 0 0 1px rgba(97, 18, 50, 0.35), 0 6px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .grid-label {
+            padding: 1px 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.78);
+            color: #30584e;
+            font: 700 11px "Noto Sans", Arial, sans-serif;
+            text-shadow: 0 1px 0 #ffffff;
+            white-space: nowrap;
+        }
+
+        .leaflet-pane .grid-line {
+            stroke-dasharray: 7 8;
+        }
+
+        .toast {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 9999;
+            display: none;
+            max-width: 360px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: var(--verde-2);
+            color: #ffffff;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .exporting {
+            width: 1280px !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .exporting .topbar,
+        .exporting .map-title p,
+        .exporting .map-controls,
+        .exporting .metric,
+        .exporting .legend,
+        .exporting .table,
+        .exporting .note {
+            display: none !important;
+        }
+
+        .exporting .map-title {
+            padding: 24px 32px 16px;
+            border-bottom: 1px solid #e6d8ce;
+            background: #ffffff;
+        }
+
+        .exporting .map-title h1 {
+            font-size: 32px;
+            line-height: 1.12;
+        }
+
+        .exporting .map-layout {
+            grid-template-columns: minmax(0, 1fr) 360px;
+            min-height: 690px;
+        }
+
+        .exporting .map-wrap,
+        .exporting #map {
+            min-height: 690px;
+        }
+
+        .exporting .side-panel {
+            gap: 22px;
+            padding: 28px 30px;
+            border-left: 1px solid #e6d8ce;
+        }
+
+        .exporting .export-legend-panel {
+            display: block;
+        }
+
+        .exporting .leaflet-control-container {
+            display: none !important;
+        }
+
+        @media (max-width: 1080px) {
+            .map-controls {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
+            }
+
+            .map-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .side-panel {
+                border-left: 0;
+                border-top: 1px solid var(--borde);
+            }
+        }
+
+        @media (max-width: 720px) {
+            .app-shell {
+                width: min(100% - 20px, 1420px);
+                padding-top: 10px;
+            }
+
+            .topbar,
+            .brand,
+            .header-actions {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .brand {
+                gap: 10px;
+            }
+
+            .brand-separator {
+                display: none;
+            }
+
+            .map-controls {
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }
+
+            .map-title {
+                padding: 18px 16px;
+            }
+
+            .map-wrap,
+            #map {
+                min-height: 560px;
+            }
+
+            .side-panel {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
+                <div class="brand-text">
+                    <b>Mapa SAEE por GCR</b>
+                    <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de Energía (DGMSNIE)</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn secondary" type="button" id="fit-map" title="Ajustar vista">
+                    <i class="bi bi-aspect-ratio"></i>
+                    Ajustar
+                </button>
+                <button class="btn" type="button" id="export-png" title="Descargar PNG">
+                    <i class="bi bi-download"></i>
+                    Descargar PNG
+                </button>
+            </div>
+        </header>
+
+        <section class="export-surface" id="export-surface">
+            <div class="map-title">
+                <h1>Mapa de Convocatorias SAEE por Gerencia de Control Regional</h1>
+                <p>Monto mínimo de SAEE no asociado con tres horas de almacenamiento, por Gerencia de Control Regional del Sistema Eléctrico Nacional.</p>
+            </div>
+
+            <div class="map-controls" aria-label="Configuración del mapa">
+                <div class="control">
+                    <label for="basemap-select">Mapa base</label>
+                    <select id="basemap-select">
+                        <option value="none">Sin mapa base</option>
+                        <option value="light">Claro institucional</option>
+                        <option value="osm">OpenStreetMap</option>
+                        <option value="satellite">Satélite</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="layer-mode">Capa GCR</label>
+                    <select id="layer-mode">
+                        <option value="capacity">Por capacidad</option>
+                        <option value="gcr">Por gerencia</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="export-scale">Resolución PNG</label>
+                    <select id="export-scale">
+                        <option value="2">Alta 2x</option>
+                        <option value="3" selected>Máxima 3x</option>
+                        <option value="4">Impresión 4x</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="grid-toggle">Cuadrícula</label>
+                    <label class="toggle-grid" for="grid-toggle">
+                        <span>Mostrar latitud/longitud</span>
+                        <input id="grid-toggle" type="checkbox">
+                    </label>
+                </div>
+            </div>
+
+            <div class="map-layout">
+                <div class="map-wrap">
+                    <div id="map" role="img" aria-label="Mapa de México con montos mínimos SAEE por GCR"></div>
+                </div>
+                <aside class="side-panel">
+                    <section class="metric">
+                        <span>Total SAEE</span>
+                        <strong id="total-mw">0 MW</strong>
+                        <small>Monto mínimo agregado de la convocatoria.</small>
+                    </section>
+
+                    <section class="legend">
+                        <h2>Leyenda</h2>
+                        <div id="legend-rows"></div>
+                    </section>
+
+                    <section class="table">
+                        <h2>Montos por GCR</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>GCR</th>
+                                    <th>Duración</th>
+                                    <th>MW</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-rows"></tbody>
+                        </table>
+                    </section>
+
+                    <section class="export-legend-panel" aria-label="Leyenda de exportación">
+                        <div class="export-total-block">
+                            <span class="export-total-label">Total SAEE</span>
+                            <strong class="export-total-value" id="export-total-mw">0 MW</strong>
+                        </div>
+                        <h2 id="export-legend-title">Leyenda por capacidad</h2>
+                        <div class="export-legend-rows" id="export-legend-rows"></div>
+                    </section>
+
+                    <p class="note">Información de referencia para planeación técnica. Monto mínimo no asociado de tres horas de almacenamiento por Gerencia de Control Regional.</p>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
+    <script>
+        const GEOJSON_URL = "https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson";
+
+        const SAEE_DATA = [
+            { id: "BC", gcr: "Baja California", label: "BC", mw: 100 },
+            { id: "BCS", gcr: "Baja California Sur", label: "BCS", mw: 50, coordinates: [24.2, -111.6] },
+            { id: "Norte", gcr: "Norte", label: "Norte", mw: 300 },
+            { id: "Noreste", gcr: "Noreste", label: "Noreste", mw: 100 },
+            { id: "Noroeste", gcr: "Noroeste", label: "Noroeste", mw: 200 },
+            { id: "Oriental", gcr: "Oriental", label: "Oriental", mw: 120 },
+            { id: "Occidental", gcr: "Occidental", label: "Occidental", mw: 100 },
+            { id: "Peninsular", gcr: "Peninsular", label: "Peninsular", mw: 100 },
+            { id: "Central", gcr: "Central", label: "Central", mw: 0 }
+        ];
+
+        const GCR_COLORS = {
+            "Baja California": "#7C8A8D",
+            "Baja California Sur": "#8C6B4F",
+            "Central": "#6A1C32",
+            "Norte": "#10302B",
+            "Noreste": "#235B4E",
+            "Noroeste": "#DDC9A4",
+            "Oriental": "#9F2240",
+            "Occidental": "#BC955C",
+            "Peninsular": "#A16F4A"
+        };
+
+        const CAPACITY_COLORS = [
+            { min: 300, color: "#601623" },
+            { min: 200, color: "#9F2240" },
+            { min: 120, color: "#9F7A3A" },
+            { min: 100, color: "#BC955C" },
+            { min: 50, color: "#D8C3A5" },
+            { min: 0, color: "#C9C2B8" }
+        ];
+
+        const LABEL_POSITIONS = {
+            "Baja California": [30.7, -115.2],
+            "Baja California Sur": [24.2, -111.6],
+            "Norte": [27.1, -103.1],
+            "Noreste": [25.2, -98.5],
+            "Noroeste": [28.1, -107.1],
+            "Oriental": [18.0, -95.3],
+            "Occidental": [21.7, -102.4],
+            "Peninsular": [20.8, -89.3],
+            "Central": [19.55, -99.85]
+        };
+
+        const BASEMAPS = {
+            none: null,
+            light: {
+                url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                options: {
+                    attribution: "&copy; OpenStreetMap &copy; CARTO",
+                    subdomains: "abcd",
+                    maxZoom: 19,
+                    crossOrigin: true
+                }
+            },
+            osm: {
+                url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                options: {
+                    attribution: "&copy; OpenStreetMap",
+                    maxZoom: 19,
+                    crossOrigin: true
+                }
+            },
+            satellite: {
+                url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                options: {
+                    attribution: "Tiles &copy; Esri",
+                    maxZoom: 18,
+                    crossOrigin: true
+                }
+            }
+        };
+
+        let map;
+        let gcrLayer;
+        let labelsLayer;
+        let gridLayer;
+        let currentBasemap;
+        let currentMode = "capacity";
+        let geojsonData = null;
+
+        const dataByGcr = new Map(SAEE_DATA.map((item) => [normalizeName(item.gcr), item]));
+
+        document.addEventListener("DOMContentLoaded", init);
+
+        function init() {
+            renderSidePanel();
+            setupMap();
+            bindControls();
+            loadGeojson();
+        }
+
+        function setupMap() {
+            map = L.map("map", {
+                zoomControl: false,
+                attributionControl: true,
+                preferCanvas: true
+            }).setView([23.6, -102.2], 5);
+
+            L.control.zoom({ position: "bottomright" }).addTo(map);
+            labelsLayer = L.layerGroup().addTo(map);
+            gridLayer = L.layerGroup();
+            setBasemap("none");
+        }
+
+        async function loadGeojson() {
+            try {
+                const response = await fetch(GEOJSON_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                geojsonData = await response.json();
+                drawGcrLayer();
+                fitMexico();
+            } catch (error) {
+                showToast("No fue posible cargar la geometría GCR. Revisa conexión o CDN.");
+                console.error("Error al cargar GeoJSON GCR:", error);
+            }
+        }
+
+        function bindControls() {
+            document.getElementById("basemap-select").addEventListener("change", (event) => {
+                setBasemap(event.target.value);
+            });
+
+            document.getElementById("layer-mode").addEventListener("change", (event) => {
+                currentMode = event.target.value;
+                drawGcrLayer();
+                renderSidePanel();
+            });
+
+            document.getElementById("grid-toggle").addEventListener("change", (event) => {
+                toggleGrid(event.target.checked);
+            });
+
+            document.getElementById("fit-map").addEventListener("click", fitMexico);
+            document.getElementById("export-png").addEventListener("click", exportPng);
+        }
+
+        function setBasemap(type) {
+            if (currentBasemap) {
+                map.removeLayer(currentBasemap);
+                currentBasemap = null;
+            }
+
+            const config = BASEMAPS[type];
+            if (!config) {
+                return;
+            }
+
+            currentBasemap = L.tileLayer(config.url, config.options).addTo(map);
+            if (gcrLayer) {
+                gcrLayer.bringToFront();
+            }
+            if (labelsLayer) {
+                labelsLayer.eachLayer((layer) => layer.bringToFront && layer.bringToFront());
+            }
+        }
+
+        function drawGcrLayer() {
+            if (!geojsonData) {
+                return;
+            }
+
+            if (gcrLayer) {
+                map.removeLayer(gcrLayer);
+            }
+            labelsLayer.clearLayers();
+
+            gcrLayer = L.geoJSON(geojsonData, {
+                style: styleFeature,
+                onEachFeature
+            }).addTo(map);
+
+            drawLabels();
+            if (gridLayer && map.hasLayer(gridLayer)) {
+                bringGridBack();
+            }
+        }
+
+        function styleFeature(feature) {
+            const data = getFeatureData(feature);
+            const color = data ? getFeatureColor(data) : "#C9C2B8";
+
+            return {
+                color: "#5B142A",
+                weight: 1.4,
+                opacity: 0.95,
+                fillColor: color,
+                fillOpacity: data ? 0.78 : 0.22,
+                lineJoin: "round"
+            };
+        }
+
+        function onEachFeature(feature, layer) {
+            const data = getFeatureData(feature);
+            const name = getFeatureName(feature);
+            const mw = data ? data.mw : 0;
+            layer.bindPopup(`
+                <div class="gcr-popup">
+                    <b>${escapeHtml(name)}</b>
+                    <span>Monto mínimo SAEE: <strong>${formatMw(mw)}</strong></span><br>
+                    <span>Duración: 3 horas</span>
+                </div>
+            `);
+
+            layer.on({
+                mouseover: () => {
+                    layer.setStyle({ weight: 2.4, fillOpacity: data ? 0.9 : 0.32 });
+                    layer.bringToFront();
+                },
+                mouseout: () => {
+                    gcrLayer.resetStyle(layer);
+                    labelsLayer.eachLayer((labelLayer) => labelLayer.bringToFront && labelLayer.bringToFront());
+                }
+            });
+        }
+
+        function drawLabels() {
+            const drawn = new Set();
+
+            if (gcrLayer) {
+                gcrLayer.eachLayer((layer) => {
+                    const data = getFeatureData(layer.feature);
+                    if (!data || data.id === "BCS") {
+                        return;
+                    }
+                    const center = LABEL_POSITIONS[data.gcr] || getLayerCenter(layer);
+                    addLabel(data, center);
+                    drawn.add(data.id);
+                });
+            }
+
+            SAEE_DATA.forEach((data) => {
+                if (drawn.has(data.id)) {
+                    return;
+                }
+                const center = data.coordinates || LABEL_POSITIONS[data.gcr];
+                if (center) {
+                    addLabel(data, center);
+                }
+            });
+        }
+
+        function addLabel(data, latlng) {
+            const color = getFeatureColor(data);
+            const icon = L.divIcon({
+                className: "saee-label",
+                html: `
+                    <div class="saee-label-card" style="--label-color:${color}">
+                        <span class="saee-label-name">${escapeHtml(data.label)}</span>
+                        <span class="saee-label-mw">${formatMw(data.mw)}</span>
+                        <span class="saee-label-time">3 horas</span>
+                    </div>
+                `,
+                iconSize: null,
+                iconAnchor: [0, 0]
+            });
+
+            L.marker(latlng, { icon, interactive: false, zIndexOffset: 1000 }).addTo(labelsLayer);
+
+            if (data.id === "BCS") {
+                const dotIcon = L.divIcon({
+                    className: "",
+                    html: `<div class="bcs-marker" style="--label-color:${color}"></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+                L.marker([25.2, -112.1], { icon: dotIcon, interactive: false, zIndexOffset: 999 }).addTo(labelsLayer);
+            }
+        }
+
+        function getLayerCenter(layer) {
+            const bounds = layer.getBounds && layer.getBounds();
+            if (bounds && bounds.isValid()) {
+                return bounds.getCenter();
+            }
+            return [23.6, -102.2];
+        }
+
+        function getFeatureData(feature) {
+            const name = normalizeName(getFeatureName(feature));
+            return dataByGcr.get(name);
+        }
+
+        function getFeatureName(feature) {
+            const props = feature && feature.properties ? feature.properties : {};
+            return props.GCR || props.gcr || props.NOMBRE || props.nombre || props.Name || props.name || props.Gerencia || props.gerencia || "Sin dato";
+        }
+
+        function getFeatureColor(data) {
+            if (currentMode === "gcr") {
+                return GCR_COLORS[data.gcr] || "#C9C2B8";
+            }
+            return getCapacityColor(data.mw);
+        }
+
+        function getCapacityColor(mw) {
+            const colorEntry = CAPACITY_COLORS.find((entry) => mw >= entry.min);
+            return colorEntry ? colorEntry.color : "#C9C2B8";
+        }
+
+        function renderSidePanel() {
+            const total = SAEE_DATA.reduce((sum, item) => sum + item.mw, 0);
+            document.getElementById("total-mw").textContent = formatMw(total);
+            document.getElementById("export-total-mw").textContent = formatMw(total);
+
+            const legendRows = document.getElementById("legend-rows");
+            const tableRows = document.getElementById("data-rows");
+            const exportLegendRows = document.getElementById("export-legend-rows");
+            const exportLegendTitle = document.getElementById("export-legend-title");
+            exportLegendTitle.textContent = currentMode === "gcr" ? "Leyenda por GCR" : "Leyenda por capacidad";
+
+            legendRows.innerHTML = SAEE_DATA.map((item) => {
+                const color = getFeatureColor(item);
+                return `
+                    <div class="legend-row">
+                        <span class="swatch" style="background:${color}"></span>
+                        <b>${escapeHtml(item.label)}</b>
+                        <span>${formatMw(item.mw)}</span>
+                    </div>
+                `;
+            }).join("");
+
+            tableRows.innerHTML = SAEE_DATA.map((item) => `
+                <tr>
+                    <td>${escapeHtml(item.label)}</td>
+                    <td>3 horas</td>
+                    <td>${item.mw.toLocaleString("es-MX")}</td>
+                </tr>
+            `).join("");
+
+            exportLegendRows.innerHTML = SAEE_DATA.map((item) => {
+                const color = getFeatureColor(item);
+                return `
+                    <div class="export-legend-row">
+                        <span class="swatch" style="background:${color}"></span>
+                        <b>${escapeHtml(item.label)}</b>
+                        <span>${formatMw(item.mw)}</span>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function toggleGrid(show) {
+            gridLayer.clearLayers();
+            if (!show) {
+                if (map.hasLayer(gridLayer)) {
+                    map.removeLayer(gridLayer);
+                }
+                return;
+            }
+
+            const lineStyle = {
+                color: "#4B8A8F",
+                weight: 1,
+                opacity: 0.45,
+                className: "grid-line",
+                interactive: false
+            };
+
+            for (let lat = 16; lat <= 32; lat += 4) {
+                L.polyline([[lat, -116], [lat, -86]], lineStyle).addTo(gridLayer);
+                addGridLabel(`${lat}°N`, [lat, -115.6]);
+            }
+
+            for (let lng = -116; lng <= -88; lng += 4) {
+                L.polyline([[15.5, lng], [32.8, lng]], lineStyle).addTo(gridLayer);
+                addGridLabel(`${Math.abs(lng)}°W`, [15.75, lng]);
+            }
+
+            gridLayer.addTo(map);
+            bringGridBack();
+        }
+
+        function addGridLabel(text, latlng) {
+            const icon = L.divIcon({
+                className: "grid-label",
+                html: text,
+                iconSize: null,
+                iconAnchor: [0, 0]
+            });
+            L.marker(latlng, { icon, interactive: false }).addTo(gridLayer);
+        }
+
+        function bringGridBack() {
+            gridLayer.eachLayer((layer) => {
+                if (layer.bringToBack) {
+                    layer.bringToBack();
+                }
+            });
+            if (currentBasemap && currentBasemap.bringToBack) {
+                currentBasemap.bringToBack();
+            }
+        }
+
+        function fitMexico() {
+            if (gcrLayer) {
+                const bounds = gcrLayer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds.pad(0.08));
+                    return;
+                }
+            }
+            map.setView([23.6, -102.2], 5);
+        }
+
+        async function exportPng() {
+            const surface = document.getElementById("export-surface");
+            const button = document.getElementById("export-png");
+            const scale = Number(document.getElementById("export-scale").value) || 3;
+            const previousText = button.innerHTML;
+
+            button.disabled = true;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando';
+            surface.classList.add("exporting");
+            map.invalidateSize();
+            fitMexico();
+
+            await wait(750);
+
+            try {
+                const width = surface.offsetWidth;
+                const height = surface.offsetHeight;
+                const dataUrl = await domtoimage.toPng(surface, {
+                    bgcolor: "#ffffff",
+                    quality: 1,
+                    width: width * scale,
+                    height: height * scale,
+                    style: {
+                        transform: `scale(${scale})`,
+                        transformOrigin: "top left",
+                        width: `${width}px`,
+                        height: `${height}px`
+                    },
+                    filter: (node) => !node.classList || !node.classList.contains("leaflet-control-container")
+                });
+
+                const link = document.createElement("a");
+                link.download = `mapa-saee-gcr-${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = dataUrl;
+                link.click();
+                showToast("PNG generado en alta resolución.");
+            } catch (error) {
+                console.error("Error al exportar PNG:", error);
+                showToast("No fue posible exportar el PNG. Prueba sin mapa base para evitar restricciones CORS.");
+            } finally {
+                surface.classList.remove("exporting");
+                map.invalidateSize();
+                fitMexico();
+                button.disabled = false;
+                button.innerHTML = previousText;
+            }
+        }
+
+        function formatMw(value) {
+            return `${Number(value).toLocaleString("es-MX")} MW`;
+        }
+
+        function normalizeName(value) {
+            return String(value || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .trim();
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.classList.add("show");
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => toast.classList.remove("show"), 3200);
+        }
+
+        function wait(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
