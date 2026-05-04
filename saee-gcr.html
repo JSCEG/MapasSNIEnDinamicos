@@ -227,6 +227,81 @@
             accent-color: var(--guinda);
         }
 
+        .label-selector {
+            position: relative;
+        }
+
+        .label-summary {
+            list-style: none;
+        }
+
+        .label-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .label-summary i {
+            color: var(--guinda);
+            font-size: 14px;
+        }
+
+        .label-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 900;
+            width: 260px;
+            padding: 12px;
+            border: 1px solid #d8c7bb;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 16px 36px rgba(42, 27, 22, 0.16);
+        }
+
+        .label-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .label-action {
+            min-height: 32px;
+            border: 1px solid #d8c7bb;
+            border-radius: 7px;
+            background: #fbf8f4;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .label-options {
+            display: grid;
+            gap: 7px;
+            max-height: 260px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .label-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-height: 30px;
+            color: #333333;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .label-option input {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--guinda);
+        }
+
         .map-layout {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 370px;
@@ -790,11 +865,20 @@
                     </label>
                 </div>
                 <div class="control">
-                    <label for="central-label-toggle">Etiqueta Central</label>
-                    <label class="toggle-grid" for="central-label-toggle">
-                        <span>Mostrar Central</span>
-                        <input id="central-label-toggle" type="checkbox">
-                    </label>
+                    <label for="label-selector">Etiquetas</label>
+                    <details class="label-selector" id="label-selector">
+                        <summary class="toggle-grid label-summary">
+                            <span id="label-summary-text">8 visibles</span>
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                        </summary>
+                        <div class="label-menu">
+                            <div class="label-actions">
+                                <button class="label-action" type="button" data-label-action="all">Todas</button>
+                                <button class="label-action" type="button" data-label-action="none">Ninguna</button>
+                            </div>
+                            <div class="label-options" id="label-options"></div>
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -930,15 +1014,16 @@
         let gridLayer;
         let currentBasemap;
         let currentMode = "capacity";
-        let showCentralLabel = false;
         let geojsonData = null;
 
         const dataByGcr = new Map(SAEE_DATA.map((item) => [normalizeName(item.gcr), item]));
+        const visibleLabelIds = new Set(SAEE_DATA.filter((item) => item.id !== "Central").map((item) => item.id));
 
         document.addEventListener("DOMContentLoaded", init);
 
         function init() {
             renderSidePanel();
+            renderLabelSelector();
             setupMap();
             bindControls();
             loadGeojson();
@@ -990,9 +1075,20 @@
                 toggleGrid(event.target.checked);
             });
 
-            document.getElementById("central-label-toggle").addEventListener("change", (event) => {
-                showCentralLabel = event.target.checked;
-                drawGcrLayer();
+            document.getElementById("label-options").addEventListener("change", (event) => {
+                if (!event.target.matches("input[type='checkbox']")) {
+                    return;
+                }
+                setLabelVisibility(event.target.value, event.target.checked);
+            });
+
+            document.querySelectorAll("[data-label-action]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const showAll = button.dataset.labelAction === "all";
+                    SAEE_DATA.forEach((item) => setLabelVisibility(item.id, showAll, false));
+                    syncLabelSelector();
+                    drawGcrLayer();
+                });
             });
 
             document.getElementById("fit-map").addEventListener("click", fitMexico);
@@ -1087,7 +1183,7 @@
                     if (!data || data.id === "BCS") {
                         return;
                     }
-                    if (data.id === "Central" && !showCentralLabel) {
+                    if (!visibleLabelIds.has(data.id)) {
                         drawn.add(data.id);
                         return;
                     }
@@ -1101,7 +1197,7 @@
                 if (drawn.has(data.id)) {
                     return;
                 }
-                if (data.id === "Central" && !showCentralLabel) {
+                if (!visibleLabelIds.has(data.id)) {
                     return;
                 }
                 const center = data.coordinates || LABEL_POSITIONS[data.gcr];
@@ -1209,6 +1305,37 @@
                     </div>
                 `;
             }).join("");
+        }
+
+        function renderLabelSelector() {
+            const labelOptions = document.getElementById("label-options");
+            labelOptions.innerHTML = SAEE_DATA.map((item) => `
+                <label class="label-option">
+                    <span>${escapeHtml(item.label)}</span>
+                    <input type="checkbox" value="${escapeHtml(item.id)}" ${visibleLabelIds.has(item.id) ? "checked" : ""}>
+                </label>
+            `).join("");
+            syncLabelSelector();
+        }
+
+        function setLabelVisibility(id, visible, redraw = true) {
+            if (visible) {
+                visibleLabelIds.add(id);
+            } else {
+                visibleLabelIds.delete(id);
+            }
+            syncLabelSelector();
+            if (redraw) {
+                drawGcrLayer();
+            }
+        }
+
+        function syncLabelSelector() {
+            document.querySelectorAll("#label-options input[type='checkbox']").forEach((input) => {
+                input.checked = visibleLabelIds.has(input.value);
+            });
+            const count = visibleLabelIds.size;
+            document.getElementById("label-summary-text").textContent = count === 1 ? "1 visible" : `${count} visibles`;
         }
 
         function toggleGrid(show) {
