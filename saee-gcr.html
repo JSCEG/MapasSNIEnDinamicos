@@ -526,6 +526,91 @@
             display: block;
         }
 
+        .preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            padding: 22px;
+            background:
+                radial-gradient(circle at top left, rgba(188, 149, 92, 0.18), transparent 360px),
+                linear-gradient(180deg, #ffffff 0%, #f8f6f2 100%);
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.28s ease, visibility 0.28s ease;
+        }
+
+        .preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .preloader-card {
+            width: min(430px, 100%);
+            padding: 28px;
+            border: 1px solid #e4d8cf;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 20px 52px rgba(36, 26, 21, 0.14);
+            text-align: center;
+        }
+
+        .preloader-card img {
+            height: 54px;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .preloader-card h2 {
+            margin: 20px 0 6px;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 18px;
+            line-height: 1.25;
+            letter-spacing: 0;
+        }
+
+        .preloader-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .preloader-bar {
+            position: relative;
+            height: 5px;
+            margin-top: 22px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #eaded4;
+        }
+
+        .preloader-bar::after {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 42%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--guinda), var(--dorado));
+            animation: preloader-slide 1.2s ease-in-out infinite;
+        }
+
+        @keyframes preloader-slide {
+            0% {
+                transform: translateX(-110%);
+            }
+            50% {
+                transform: translateX(85%);
+            }
+            100% {
+                transform: translateX(260%);
+            }
+        }
+
         .exporting {
             width: 1280px !important;
             margin: 0 !important;
@@ -636,6 +721,15 @@
     </style>
 </head>
 <body>
+    <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Cargando mapa SAEE">
+        <div class="preloader-card">
+            <img src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
+            <h2>Cargando mapa SAEE por GCR</h2>
+            <p>Preparando geometría, montos y leyenda institucional.</p>
+            <div class="preloader-bar" aria-hidden="true"></div>
+        </div>
+    </div>
+
     <main class="app-shell">
         <header class="topbar">
             <div class="brand">
@@ -864,7 +958,10 @@
                 geojsonData = await response.json();
                 drawGcrLayer();
                 fitMexico();
+                await wait(350);
+                hidePreloader();
             } catch (error) {
+                hidePreloader();
                 showToast("No fue posible cargar la geometría GCR. Revisa conexión o CDN.");
                 console.error("Error al cargar GeoJSON GCR:", error);
             }
@@ -1232,6 +1329,15 @@
             toast.classList.add("show");
             clearTimeout(showToast.timer);
             showToast.timer = setTimeout(() => toast.classList.remove("show"), 3200);
+        }
+
+        function hidePreloader() {
+            const preloader = document.getElementById("preloader");
+            if (!preloader) {
+                return;
+            }
+            preloader.classList.add("hidden");
+            setTimeout(() => preloader.remove(), 360);
         }
 
         function wait(ms) {
