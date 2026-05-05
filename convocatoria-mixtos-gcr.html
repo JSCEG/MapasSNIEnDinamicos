@@ -615,6 +615,94 @@
             box-shadow: 0 0 0 1px rgba(97, 18, 50, 0.35), 0 6px 12px rgba(0, 0, 0, 0.18);
         }
 
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 18px 40px rgba(35, 26, 20, 0.18);
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+        }
+
+        .gcr-popup {
+            width: 330px;
+            padding: 14px;
+            font-family: "Noto Sans", Arial, sans-serif;
+        }
+
+        .gcr-popup-title {
+            margin: 0 0 10px;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.18;
+        }
+
+        .gcr-popup-current {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 7px;
+            background: #fbf7f1;
+            color: #333333;
+            font-size: 12px;
+        }
+
+        .gcr-popup-current strong {
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            white-space: nowrap;
+        }
+
+        .gcr-popup-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .gcr-popup-block {
+            border: 1px solid #eaded4;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .gcr-popup-block h3 {
+            margin: 0;
+            padding: 8px 10px;
+            background: var(--guinda);
+            color: #ffffff;
+            font-family: "Montserrat", sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .gcr-popup-block.specific h3 {
+            background: #d85b83;
+        }
+
+        .gcr-popup-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 7px 10px;
+            border-top: 1px solid #f0e6dc;
+            color: #333333;
+            font-size: 12px;
+        }
+
+        .gcr-popup-row:first-of-type {
+            border-top: 0;
+        }
+
+        .gcr-popup-row span:last-child {
+            color: var(--guinda);
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
         .grid-label {
             padding: 1px 4px;
             border-radius: 4px;
@@ -1149,14 +1237,7 @@
 
         function onEachFeature(feature, layer) {
             const data = getFeatureData(feature);
-            const name = getFeatureName(feature);
-            const value = data ? Number(data[currentMetric]) || 0 : 0;
-            layer.bindPopup(`
-                <div class="gcr-popup">
-                    <b>${escapeHtml(name)}</b>
-                    <span>${escapeHtml(METRICS[currentMetric].label)}: <strong>${formatValue(value, currentMetric)}</strong></span>
-                </div>
-            `);
+            layer.bindPopup(buildGcrPopup(data, getFeatureName(feature)), { maxWidth: 360, className: "mixtos-popup" });
             layer.on({
                 mouseover: () => {
                     layer.setStyle({ weight: 2.4, fillOpacity: data ? 0.9 : 0.32 });
@@ -1175,7 +1256,7 @@
                 gcrLayer.eachLayer((layer) => {
                     const data = getFeatureData(layer.feature);
                     if (!data || data.id === "BCS") return;
-                    if (!visibleLabelIds.has(data.id)) {
+                    if (!visibleLabelIds.has(data.id) || isZeroForCurrentMetric(data)) {
                         drawn.add(data.id);
                         return;
                     }
@@ -1184,10 +1265,14 @@
                 });
             }
             appData.rows.forEach((data) => {
-                if (drawn.has(data.id) || !visibleLabelIds.has(data.id)) return;
+                if (drawn.has(data.id) || !visibleLabelIds.has(data.id) || isZeroForCurrentMetric(data)) return;
                 const center = data.coordinates || LABEL_POSITIONS[data.gcr];
                 if (center) addLabel(data, center);
             });
+        }
+
+        function isZeroForCurrentMetric(data) {
+            return (Number(data[currentMetric]) || 0) === 0;
         }
 
         function addLabel(data, latlng) {
@@ -1212,8 +1297,49 @@
                     iconSize: [16, 16],
                     iconAnchor: [8, 8]
                 });
-                L.marker([25.2, -112.1], { icon: dotIcon, interactive: false, zIndexOffset: 999 }).addTo(labelsLayer);
+                L.marker([25.2, -112.1], { icon: dotIcon, interactive: true, zIndexOffset: 999 })
+                    .bindPopup(buildGcrPopup(data, data.gcr), { maxWidth: 360, className: "mixtos-popup" })
+                    .addTo(labelsLayer);
             }
+        }
+
+        function buildGcrPopup(data, fallbackName) {
+            if (!data) {
+                return `
+                    <div class="gcr-popup">
+                        <h2 class="gcr-popup-title">${escapeHtml(fallbackName || "Sin dato")}</h2>
+                        <div class="gcr-popup-current">
+                            <span>Información no disponible</span>
+                            <strong>0</strong>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const metric = METRICS[currentMetric];
+            return `
+                <div class="gcr-popup">
+                    <h2 class="gcr-popup-title">${escapeHtml(data.label)} · ${escapeHtml(data.gcr)}</h2>
+                    <div class="gcr-popup-current">
+                        <span>${escapeHtml(metric.label)}</span>
+                        <strong>${formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
+                    </div>
+                    <div class="gcr-popup-grid">
+                        <section class="gcr-popup-block">
+                            <h3>Proyectos no específicos</h3>
+                            <div class="gcr-popup-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(data.requiredCfe)} MW</span></div>
+                            <div class="gcr-popup-row"><span>Proyectos identificados</span><span>${formatNumber(data.identifiedMw)} MW</span></div>
+                            <div class="gcr-popup-row"><span>No.</span><span>${formatNumber(data.identifiedCount)}</span></div>
+                        </section>
+                        <section class="gcr-popup-block specific">
+                            <h3>Proyectos específicos</h3>
+                            <div class="gcr-popup-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(data.specificRequiredCfe)} MW</span></div>
+                            <div class="gcr-popup-row"><span>Proyectos registrados</span><span>${formatNumber(data.registeredMw)} MW</span></div>
+                            <div class="gcr-popup-row"><span>No.</span><span>${formatNumber(data.registeredCount)}</span></div>
+                        </section>
+                    </div>
+                </div>
+            `;
         }
 
         function renderAll() {
