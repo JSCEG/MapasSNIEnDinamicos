@@ -603,6 +603,10 @@
             transform: translate(-50%, -50%);
         }
 
+        .saee-label.draggable-label {
+            cursor: move;
+        }
+
         .saee-label-card {
             position: relative;
             min-width: 84px;
@@ -649,31 +653,31 @@
         }
 
         .saee-label-card.detail-label {
-            min-width: 118px;
-            padding: 5px 7px;
+            min-width: 210px;
+            padding: 8px 10px;
             text-align: left;
         }
 
         .label-detail-grid {
             display: grid;
-            gap: 2px;
-            margin-top: 3px;
+            gap: 4px;
+            margin-top: 5px;
         }
 
         .label-detail-row {
             display: grid;
-            grid-template-columns: 30px 1fr 1fr;
+            grid-template-columns: 42px minmax(74px, 1fr) minmax(74px, 1fr);
             align-items: baseline;
-            gap: 5px;
+            gap: 8px;
             color: #303030;
-            font-size: 9px;
-            line-height: 1.1;
+            font-size: 11px;
+            line-height: 1.18;
             text-align: right;
         }
 
         .label-detail-row b {
             color: var(--label-color, var(--guinda));
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 800;
             text-align: left;
         }
@@ -685,7 +689,7 @@
 
         .label-detail-head span {
             color: #777777;
-            font-size: 8px;
+            font-size: 10px;
             font-weight: 700;
             white-space: nowrap;
         }
@@ -697,10 +701,6 @@
             border-radius: 50%;
             background: var(--label-color, var(--dorado));
             box-shadow: 0 0 0 1px rgba(97, 18, 50, 0.35), 0 6px 12px rgba(0, 0, 0, 0.18);
-        }
-
-        .leader-line {
-            stroke-dasharray: 4 5;
         }
 
         .leaflet-popup-content-wrapper {
@@ -1428,7 +1428,7 @@
 
             return `
                 <div class="label-detail-grid">
-                    <div class="label-detail-row label-detail-head"><b></b><span>NE</span><span>ES</span></div>
+                    <div class="label-detail-row label-detail-head"><b></b><span>No específico</span><span>Específico</span></div>
                     <div class="label-detail-row"><b>Req.</b><span>${formatNumber(data.requiredCfe)} MW</span><span>${formatNumber(data.specificRequiredCfe)} MW</span></div>
                     <div class="label-detail-row"><b>Proy.</b><span>${formatNumber(data.identifiedMw)} MW</span><span>${formatNumber(data.registeredMw)} MW</span></div>
                     <div class="label-detail-row"><b>No.</b><span>${formatNumber(data.identifiedCount)}</span><span>${formatNumber(data.registeredCount)}</span></div>
@@ -1438,11 +1438,8 @@
 
         function addLabel(data, latlng) {
             const color = getFeatureColor(data);
-            if (currentMetric === "allInfo") {
-                addLeaderLine(data, latlng, color);
-            }
             const icon = L.divIcon({
-                className: "saee-label",
+                className: currentMetric === "allInfo" ? "saee-label draggable-label" : "saee-label",
                 html: `
                     <div class="saee-label-card ${currentMetric === "allInfo" ? "detail-label" : ""}" style="--label-color:${color}">
                         <span class="saee-label-name">${escapeHtml(data.label)}</span>
@@ -1452,7 +1449,19 @@
                 iconSize: null,
                 iconAnchor: [0, 0]
             });
-            L.marker(latlng, { icon, interactive: false, zIndexOffset: 1000 }).addTo(labelsLayer);
+            const labelMarker = L.marker(latlng, {
+                icon,
+                interactive: currentMetric === "allInfo",
+                draggable: currentMetric === "allInfo",
+                zIndexOffset: 1000
+            }).addTo(labelsLayer);
+
+            if (currentMetric === "allInfo") {
+                labelMarker.on("dragend", () => {
+                    const position = labelMarker.getLatLng();
+                    LABEL_POSITIONS[data.gcr] = [position.lat, position.lng];
+                });
+            }
             if (data.id === "BCS") {
                 const dotIcon = L.divIcon({
                     className: "",
@@ -1464,18 +1473,6 @@
                     .bindPopup(buildGcrPopup(data, data.gcr), { maxWidth: 360, className: "mixtos-popup" })
                     .addTo(labelsLayer);
             }
-        }
-
-        function addLeaderLine(data, labelLatLng, color) {
-            const anchor = LABEL_ANCHORS[data.gcr];
-            if (!anchor) return;
-            L.polyline([anchor, labelLatLng], {
-                color,
-                weight: 1.1,
-                opacity: 0.55,
-                className: "leader-line",
-                interactive: false
-            }).addTo(labelsLayer);
         }
 
         function buildGcrPopup(data, fallbackName) {
