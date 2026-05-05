@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="es-MX">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mapa Convocatoria de Mixtos | DGMSNIE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -24,7 +27,9 @@
             --shadow: 0 18px 45px rgba(35, 26, 20, 0.12);
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -34,7 +39,12 @@
             font-family: "Noto Sans", Arial, sans-serif;
         }
 
-        button, select, input, textarea { font: inherit; }
+        button,
+        select,
+        input,
+        textarea {
+            font: inherit;
+        }
 
         .app-shell {
             width: min(1480px, calc(100% - 36px));
@@ -151,9 +161,13 @@
             background: #fbfaf7;
         }
 
-        .control { display: grid; gap: 6px; }
+        .control {
+            display: grid;
+            gap: 6px;
+        }
 
-        .control label {
+        .control label,
+        .control .control-label {
             color: var(--guinda);
             font-family: "Montserrat", sans-serif;
             font-size: 11px;
@@ -188,10 +202,22 @@
             accent-color: var(--guinda);
         }
 
-        .label-selector { position: relative; }
-        .label-summary { list-style: none; }
-        .label-summary::-webkit-details-marker { display: none; }
-        .label-summary i { color: var(--guinda); font-size: 14px; }
+        .label-selector {
+            position: relative;
+        }
+
+        .label-summary {
+            list-style: none;
+        }
+
+        .label-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .label-summary i {
+            color: var(--guinda);
+            font-size: 14px;
+        }
 
         .label-menu {
             position: absolute;
@@ -547,6 +573,13 @@
             font-weight: 800;
         }
 
+        .all-info-table tfoot td {
+            background: #fbf6f1;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-weight: 800;
+        }
+
         .note {
             margin-top: auto;
             padding-top: 14px;
@@ -631,7 +664,9 @@
             gap: 8px;
         }
 
-        .export-legend-panel { display: none; }
+        .export-legend-panel {
+            display: none;
+        }
 
         .export-total-block {
             padding-bottom: 18px;
@@ -910,7 +945,9 @@
             white-space: nowrap;
         }
 
-        .leaflet-pane .grid-line { stroke-dasharray: 7 8; }
+        .leaflet-pane .grid-line {
+            stroke-dasharray: 7 8;
+        }
 
         .preloader {
             position: fixed;
@@ -979,9 +1016,17 @@
         }
 
         @keyframes preloader-slide {
-            0% { transform: translateX(-110%); }
-            50% { transform: translateX(85%); }
-            100% { transform: translateX(260%); }
+            0% {
+                transform: translateX(-110%);
+            }
+
+            50% {
+                transform: translateX(85%);
+            }
+
+            100% {
+                transform: translateX(260%);
+            }
         }
 
         .toast {
@@ -1000,7 +1045,9 @@
             font-weight: 700;
         }
 
-        .toast.show { display: block; }
+        .toast.show {
+            display: block;
+        }
 
         .exporting {
             width: 1280px !important;
@@ -1050,8 +1097,21 @@
             border-left: 1px solid #e6d8ce;
         }
 
-        .exporting .export-legend-panel { display: block; }
-        .exporting .leaflet-control-container { display: none !important; }
+        .exporting[data-export-metric="allInfo"] .map-layout {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .exporting[data-export-metric="allInfo"] .side-panel {
+            display: none !important;
+        }
+
+        .exporting .export-legend-panel {
+            display: block;
+        }
+
+        .exporting .leaflet-control-container {
+            display: none !important;
+        }
 
         .exporting .comparison-panel h2,
         .exporting .export-legend-panel h2 {
@@ -1151,25 +1211,63 @@
         }
 
         @media (max-width: 1180px) {
-            .map-controls { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+            .map-controls {
+                grid-template-columns: repeat(3, minmax(150px, 1fr));
+            }
+
             .map-layout,
-            .update-grid { grid-template-columns: 1fr; }
-            .side-panel { border-left: 0; border-top: 1px solid var(--borde); }
+            .update-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .side-panel {
+                border-left: 0;
+                border-top: 1px solid var(--borde);
+            }
         }
 
         @media (max-width: 720px) {
-            .app-shell { width: min(100% - 20px, 1480px); padding-top: 10px; }
-            .topbar, .brand, .header-actions { align-items: flex-start; flex-direction: column; }
-            .map-controls { grid-template-columns: 1fr; padding: 14px; }
-            .map-title { padding: 18px 16px; }
-            .map-wrap, #map { min-height: 560px; }
-            #map { height: 560px; }
-            .side-panel, .update-panel { padding: 18px; }
+            .app-shell {
+                width: min(100% - 20px, 1480px);
+                padding-top: 10px;
+            }
+
+            .topbar,
+            .brand,
+            .header-actions {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .map-controls {
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }
+
+            .map-title {
+                padding: 18px 16px;
+            }
+
+            .map-wrap,
+            #map {
+                min-height: 560px;
+            }
+
+            #map {
+                height: 560px;
+            }
+
+            .side-panel,
+            .update-panel {
+                padding: 18px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Cargando Mapa Convocatoria de Mixtos">
+    <div class="preloader" id="preloader" role="status" aria-live="polite"
+        aria-label="Cargando Mapa Convocatoria de Mixtos">
         <div class="preloader-card">
             <img src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
             <h2>Cargando Mapa Convocatoria de Mixtos</h2>
@@ -1181,10 +1279,12 @@
     <main class="app-shell">
         <header class="topbar">
             <div class="brand">
-                <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
+                <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png"
+                    alt="Secretaría de Energía">
                 <div class="brand-text">
                     <b>Mapa Convocatoria de Mixtos</b>
-                    <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de Energía (DGMSNIE)</span>
+                    <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de
+                        Energía (DGMSNIE)</span>
                 </div>
             </div>
             <div class="header-actions">
@@ -1202,7 +1302,8 @@
         <section class="export-surface" id="export-surface">
             <div class="map-title">
                 <h1>Mapa Convocatoria de Mixtos por Gerencia de Control Regional</h1>
-                <p>Capacidad requerida e identificación de proyectos mixtos por Gerencia de Control Regional. Datos preliminares capturados a partir de la tabla de referencia.</p>
+                <p>Capacidad requerida e identificación de proyectos mixtos por Gerencia de Control Regional. Datos
+                    preliminares capturados a partir de la tabla de referencia.</p>
             </div>
 
             <div class="map-controls" aria-label="Configuración del mapa">
@@ -1242,7 +1343,7 @@
                     </label>
                 </div>
                 <div class="control">
-                    <label for="label-selector">Etiquetas</label>
+                    <span class="control-label">Etiquetas</span>
                     <details class="label-selector" id="label-selector">
                         <summary class="toggle-control label-summary">
                             <span id="label-summary-text">8 visibles</span>
@@ -1261,9 +1362,10 @@
 
             <div class="map-layout">
                 <div class="map-wrap">
-                    <div id="map" role="img" aria-label="Mapa de México con indicadores de la Convocatoria de Mixtos por GCR"></div>
+                    <div id="map" role="img"
+                        aria-label="Mapa de México con indicadores de la Convocatoria de Mixtos por GCR"></div>
                     <section class="all-info-table-panel" id="all-info-table-panel" hidden>
-                        <h2>Detalle completo por GCR</h2>
+                        <h2>Toda la información por GCR</h2>
                         <div class="all-info-table-wrap">
                             <table class="all-info-table" id="all-info-table"></table>
                         </div>
@@ -1320,7 +1422,8 @@
                     </table>
                 </div>
                 <div class="batch-box">
-                    <textarea id="batch-input" placeholder="Pegar JSON, CSV o tabla Markdown. Columnas: GCR, requerida, identificados, noIdentificados, requeridaEspecificos, registradosEspecificos, noEspecificos"></textarea>
+                    <textarea id="batch-input"
+                        placeholder="Pegar JSON, CSV o tabla Markdown. Columnas: GCR, requerida, identificados, noIdentificados, requeridaEspecificos, registradosEspecificos, noEspecificos"></textarea>
                     <div class="button-row">
                         <button class="btn" type="button" id="apply-table">Aplicar tabla</button>
                         <button class="btn secondary" type="button" id="apply-batch">Cargar lote</button>
@@ -1341,7 +1444,7 @@
         const STORAGE_KEY = "convocatoria-mixtos-gcr-data-v1";
 
         const METRICS = {
-            allInfo: { label: "Toda la información", short: "Detalle", unit: "", decimals: 0 },
+            allInfo: { label: "Toda la información", short: "Toda la info", unit: "", decimals: 0 },
             requiredCfe: { label: "Capacidad requerida (CFE)", short: "Req. CFE", unit: "MW", decimals: 0 },
             identifiedMw: { label: "Proyectos identificados", short: "Identificados", unit: "MW", decimals: 0 },
             identifiedCount: { label: "No. proyectos identificados", short: "No. ident.", unit: "", decimals: 0 },
@@ -1415,7 +1518,7 @@
         let gridLayer;
         let currentBasemap;
         let geojsonData = null;
-        let currentMetric = "requiredCfe";
+        let currentMetric = "allInfo";
         let currentMode = "metric";
         let dataByGcr = new Map();
         let visibleLabelIds = new Set();
@@ -1425,6 +1528,7 @@
         function init() {
             updateDataIndexes();
             renderMetricSelect();
+            syncLayerModeForMetric();
             renderLabelSelector();
             renderAll();
             setupMap();
@@ -1601,9 +1705,7 @@
                 `;
             }
 
-            return `
-                <span class="saee-label-detail-text">Detalle completo</span>
-            `;
+            return "";
         }
 
         function addLabel(data, latlng) {
@@ -1659,13 +1761,18 @@
             }
 
             const metric = METRICS[currentMetric];
+            const currentMetricBlock = currentMetric === "allInfo"
+                ? ""
+                : `
+                    <div class="gcr-popup-current">
+                        <span>${escapeHtml(metric.label)}</span>
+                        <strong>${formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
+                    </div>
+                `;
             return `
                 <div class="gcr-popup">
                     <h2 class="gcr-popup-title">${escapeHtml(data.label)} · ${escapeHtml(data.gcr)}</h2>
-                    <div class="gcr-popup-current">
-                        <span>${escapeHtml(metric.label)}</span>
-                        <strong>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
-                    </div>
+                    ${currentMetricBlock}
                     <table class="gcr-popup-table">
                         <thead>
                             <tr>
@@ -1706,6 +1813,7 @@
         function renderSidePanel() {
             const metric = METRICS[currentMetric];
             const total = currentMetric === "allInfo" ? null : appData.rows.reduce((sum, item) => sum + (Number(item[currentMetric]) || 0), 0);
+            document.getElementById("export-surface").dataset.exportMetric = currentMetric;
             document.getElementById("total-label").textContent = metric.label;
             document.getElementById("total-value").textContent = currentMetric === "allInfo" ? "8 GCR" : formatValue(total, currentMetric);
             document.getElementById("metric-note").textContent = currentMetric === "allInfo" ? "NE: no específicos · ES: específicos." : currentMode === "gcr" ? "Mapa coloreado por gerencia." : "Mapa coloreado por indicador seleccionado.";
@@ -1717,7 +1825,7 @@
             const exportRows = document.getElementById("export-legend-rows");
             const rowsHtml = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
-                const value = currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric);
+                const value = currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric);
                 return `
                     <div class="legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
@@ -1733,7 +1841,7 @@
                     <div class="export-legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
-                        <span>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
+                        <span>${currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
                     </div>
                 `;
             }).join("");
@@ -1743,6 +1851,7 @@
             const panel = document.getElementById("all-info-table-panel");
             const table = document.getElementById("all-info-table");
             const showTable = currentMetric === "allInfo";
+            const totals = getComparisonTotals();
             panel.hidden = !showTable;
             if (!showTable) {
                 table.innerHTML = "";
@@ -1777,6 +1886,35 @@
                         </tr>
                     `).join("")}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td>Subtotal no específicos</td>
+                        <td>${formatNumber(totals.noSpecific.required)} MW</td>
+                        <td>${formatNumber(totals.noSpecific.identified)} MW</td>
+                        <td>${formatNumber(totals.noSpecific.count)}</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                    </tr>
+                    <tr>
+                        <td>Subtotal específicos</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>${formatNumber(totals.specific.required)} MW</td>
+                        <td>${formatNumber(totals.specific.registered)} MW</td>
+                        <td>${formatNumber(totals.specific.count)}</td>
+                    </tr>
+                    <tr>
+                        <td>Total general</td>
+                        <td>${formatNumber(totals.noSpecific.required)} MW</td>
+                        <td>${formatNumber(totals.noSpecific.identified)} MW</td>
+                        <td>${formatNumber(totals.noSpecific.count)}</td>
+                        <td>${formatNumber(totals.specific.required)} MW</td>
+                        <td>${formatNumber(totals.specific.registered)} MW</td>
+                        <td>${formatNumber(totals.specific.count)}</td>
+                    </tr>
+                </tfoot>
             `;
         }
 
@@ -2041,27 +2179,35 @@
         async function exportPng() {
             const surface = document.getElementById("export-surface");
             const button = document.getElementById("export-png");
+            const tableWrap = document.querySelector(".all-info-table-wrap");
             const scale = Number(document.getElementById("export-scale").value) || 3;
             const previousText = button.innerHTML;
+            const previousSurfaceWidth = surface.style.getPropertyValue("width");
+            const previousSurfaceWidthPriority = surface.style.getPropertyPriority("width");
+            const previousTableWrapOverflow = tableWrap ? tableWrap.style.overflow : "";
             button.disabled = true;
             button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando';
             surface.classList.add("exporting");
+            if (currentMetric === "allInfo" && tableWrap) {
+                tableWrap.style.overflow = "visible";
+            }
+            const captureWidth = Math.max(surface.offsetWidth, surface.scrollWidth);
+            const captureHeight = Math.max(surface.offsetHeight, surface.scrollHeight);
+            surface.style.setProperty("width", `${captureWidth}px`, "important");
             map.invalidateSize();
             fitMexico();
             await wait(750);
             try {
-                const width = surface.offsetWidth;
-                const height = surface.offsetHeight;
                 const dataUrl = await domtoimage.toPng(surface, {
                     bgcolor: "#ffffff",
                     quality: 1,
-                    width: width * scale,
-                    height: height * scale,
+                    width: captureWidth * scale,
+                    height: captureHeight * scale,
                     style: {
                         transform: `scale(${scale})`,
                         transformOrigin: "top left",
-                        width: `${width}px`,
-                        height: `${height}px`
+                        width: `${captureWidth}px`,
+                        height: `${captureHeight}px`
                     }
                 });
                 const blob = dataUrlToBlob(dataUrl);
@@ -2080,6 +2226,14 @@
                 showToast("No fue posible exportar el PNG. Prueba sin mapa base para evitar restricciones CORS.");
             } finally {
                 surface.classList.remove("exporting");
+                if (previousSurfaceWidth) {
+                    surface.style.setProperty("width", previousSurfaceWidth, previousSurfaceWidthPriority || undefined);
+                } else {
+                    surface.style.removeProperty("width");
+                }
+                if (tableWrap) {
+                    tableWrap.style.overflow = previousTableWrapOverflow;
+                }
                 map.invalidateSize();
                 fitMexico();
                 button.disabled = false;
@@ -2106,7 +2260,7 @@
         function formatValue(value, metricKey) {
             const metric = METRICS[metricKey];
             if (metricKey === "allInfo") {
-                return "Detalle completo";
+                return "";
             }
             const formatted = formatNumber(value);
             return metric.unit ? `${formatted} ${metric.unit}` : formatted;
@@ -2167,4 +2321,5 @@
         }
     </script>
 </body>
+
 </html>
