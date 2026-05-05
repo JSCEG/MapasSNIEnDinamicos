@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="es-MX">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mapa SAEE por GCR | DGMSNIE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -32,8 +35,15 @@
             box-sizing: border-box;
         }
 
-        html { font-size: 15px; }
-        @media (min-width: 720px) { html { font-size: 16px; } }
+        html {
+            font-size: 15px;
+        }
+
+        @media (min-width: 720px) {
+            html {
+                font-size: 16px;
+            }
+        }
 
         body {
             margin: 0;
@@ -45,13 +55,21 @@
             text-rendering: optimizeLegibility;
         }
 
-        h1, h2, h3, h4, b, strong { font-family: var(--font-heading); }
+        h1,
+        h2,
+        h3,
+        h4,
+        b,
+        strong {
+            font-family: var(--font-heading);
+        }
 
         .app-shell {
             width: min(1420px, calc(100% - 16px));
             margin: 0 auto;
             padding: 12px 0 24px;
         }
+
         @media (min-width: 720px) {
             .app-shell {
                 width: min(1420px, calc(100% - 36px));
@@ -171,8 +189,11 @@
             border-bottom: 3px solid var(--guinda);
             background: #ffffff;
         }
+
         @media (min-width: 720px) {
-            .map-title { padding: 22px 24px 18px; }
+            .map-title {
+                padding: 22px 24px 18px;
+            }
         }
 
         .map-title h1 {
@@ -200,6 +221,7 @@
             background: #fbfaf7;
             border-bottom: 1px solid var(--borde);
         }
+
         @media (min-width: 720px) {
             .map-controls {
                 grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -207,6 +229,7 @@
                 padding: 14px 18px;
             }
         }
+
         @media (min-width: 1080px) {
             .map-controls {
                 grid-template-columns: repeat(5, minmax(150px, 1fr));
@@ -349,16 +372,28 @@
             min-height: 380px;
             background: #f7f4ef;
         }
+
         @media (min-width: 720px) {
-            .map-layout { min-height: 560px; }
-            .map-wrap, #map { min-height: 540px; }
+            .map-layout {
+                min-height: 560px;
+            }
+
+            .map-wrap,
+            #map {
+                min-height: 540px;
+            }
         }
+
         @media (min-width: 1080px) {
             .map-layout {
                 grid-template-columns: minmax(0, 1fr) 370px;
                 min-height: 690px;
             }
-            .map-wrap, #map { min-height: 690px; }
+
+            .map-wrap,
+            #map {
+                min-height: 690px;
+            }
         }
 
         :root {
@@ -413,9 +448,14 @@
             background: #ffffff;
             border-top: 1px solid var(--borde);
         }
+
         @media (min-width: 720px) {
-            .side-panel { padding: 20px; gap: 16px; }
+            .side-panel {
+                padding: 20px;
+                gap: 16px;
+            }
         }
+
         @media (min-width: 1080px) {
             .side-panel {
                 padding: 24px;
@@ -653,11 +693,30 @@
         }
 
         @media (min-width: 720px) {
-            .saee-label-card { min-width: 76px; padding: 6px 8px; border-radius: 7px; }
-            .saee-label-card::before { width: 4px; border-radius: 7px 0 0 7px; }
-            .saee-label-name { font-size: 10px; }
-            .saee-label-mw { font-size: 14px; margin-top: 3px; }
-            .saee-label-time { font-size: 9px; margin-top: 3px; }
+            .saee-label-card {
+                min-width: 76px;
+                padding: 6px 8px;
+                border-radius: 7px;
+            }
+
+            .saee-label-card::before {
+                width: 4px;
+                border-radius: 7px 0 0 7px;
+            }
+
+            .saee-label-name {
+                font-size: 10px;
+            }
+
+            .saee-label-mw {
+                font-size: 14px;
+                margin-top: 3px;
+            }
+
+            .saee-label-time {
+                font-size: 9px;
+                margin-top: 3px;
+            }
         }
 
         .bcs-marker {
@@ -778,9 +837,11 @@
             0% {
                 transform: translateX(-110%);
             }
+
             50% {
                 transform: translateX(85%);
             }
+
             100% {
                 transform: translateX(260%);
             }
@@ -845,17 +906,39 @@
             align-items: flex-start;
             flex-direction: column;
         }
-        .brand { gap: 10px; }
-        .brand-separator { display: none; }
+
+        .brand {
+            gap: 10px;
+        }
+
+        .brand-separator {
+            display: none;
+        }
 
         @media (min-width: 720px) {
-            .topbar { flex-direction: row; align-items: center; }
-            .brand { flex-direction: row; align-items: center; gap: 16px; }
-            .brand-separator { display: block; }
-            .header-actions { flex-direction: row; align-items: center; }
+            .topbar {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .brand {
+                flex-direction: row;
+                align-items: center;
+                gap: 16px;
+            }
+
+            .brand-separator {
+                display: block;
+            }
+
+            .header-actions {
+                flex-direction: row;
+                align-items: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Cargando mapa SAEE">
         <div class="preloader-card">
@@ -869,10 +952,12 @@
     <main class="app-shell">
         <header class="topbar">
             <div class="brand">
-                <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
+                <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png"
+                    alt="Secretaría de Energía">
                 <div class="brand-text">
                     <b>Mapa SAEE por GCR</b>
-                    <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de Energía (DGMSNIE)</span>
+                    <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de
+                        Energía (DGMSNIE)</span>
                 </div>
             </div>
             <div class="header-actions">
@@ -895,7 +980,8 @@
             <div class="export-watermark" aria-hidden="true"></div>
             <div class="map-title">
                 <h1>Mapa de Convocatoria SAEE por Gerencia de Control Regional</h1>
-                <p>Monto mínimo de SAEE no asociado con tres horas de almacenamiento, por Gerencia de Control Regional del Sistema Eléctrico Nacional.</p>
+                <p>Monto mínimo de SAEE no asociado con tres horas de almacenamiento, por Gerencia de Control Regional
+                    del Sistema Eléctrico Nacional.</p>
             </div>
 
             <div class="map-controls" aria-label="Configuración del mapa">
@@ -987,7 +1073,8 @@
                         <div class="export-legend-rows" id="export-legend-rows"></div>
                     </section>
 
-                    <p class="note">Información de referencia para planeación técnica. Monto mínimo no asociado de tres horas de almacenamiento por Gerencia de Control Regional.</p>
+                    <p class="note">Información de referencia para planeación técnica. Monto mínimo no asociado de tres
+                        horas de almacenamiento por Gerencia de Control Regional.</p>
                 </aside>
             </div>
         </section>
@@ -1531,19 +1618,19 @@
                 const fadedBuffer = await (async () => {
                     const blob = new Blob([logoBuffer], { type: "image/png" });
                     const bmp = await createImageBitmap(blob);
-                    const tile = 380;
+                    const tile = 190;
                     const canvas = document.createElement("canvas");
                     canvas.width = tile;
                     canvas.height = tile;
                     const ctx = canvas.getContext("2d");
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, tile, tile);
-                    ctx.globalAlpha = 0.06;
-                    const ratio = Math.min(tile * 0.55 / bmp.width, tile * 0.55 / bmp.height);
+                    ctx.globalAlpha = 0.52;
+                    const ratio = Math.min(tile * 0.8 / bmp.width, tile * 0.8 / bmp.height);
                     const w = bmp.width * ratio;
                     const h = bmp.height * ratio;
                     ctx.drawImage(bmp, (tile - w) / 2, (tile - h) / 2, w, h);
-                    ctx.globalAlpha = 0.55;
+                    ctx.globalAlpha = 0.14;
                     ctx.fillStyle = "#ffffff";
                     ctx.fillRect(0, 0, tile, tile);
                     const outBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
@@ -1688,4 +1775,5 @@
         }
     </script>
 </body>
+
 </html>
