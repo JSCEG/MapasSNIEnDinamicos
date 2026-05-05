@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mapa de Proyectos SAEE por GCR | DGMSNIE</title>
+    <title>Mapa Convocatoria de Mixtos | DGMSNIE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -744,10 +744,10 @@
     </style>
 </head>
 <body>
-    <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Cargando mapa de proyectos SAEE">
+    <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Cargando Mapa Convocatoria de Mixtos">
         <div class="preloader-card">
             <img src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
-            <h2>Cargando mapa de proyectos SAEE</h2>
+            <h2>Cargando Mapa Convocatoria de Mixtos</h2>
             <p>Preparando geometría, tabla y leyenda institucional.</p>
             <div class="preloader-bar" aria-hidden="true"></div>
         </div>
@@ -758,7 +758,7 @@
             <div class="brand">
                 <img class="brand-logo" src="https://cdn.sassoapps.com/dgmesnie/logo_sener.png" alt="Secretaría de Energía">
                 <div class="brand-text">
-                    <b>Mapa de proyectos SAEE por GCR</b>
+                    <b>Mapa Convocatoria de Mixtos</b>
                     <span>Dirección General de Metodologías y Estadísticas del Sistema Nacional de Información de Energía (DGMSNIE)</span>
                 </div>
             </div>
@@ -776,8 +776,8 @@
 
         <section class="export-surface" id="export-surface">
             <div class="map-title">
-                <h1>Mapa de Proyectos SAEE por Gerencia de Control Regional</h1>
-                <p>Capacidad requerida e identificación de proyectos SAEE por Gerencia de Control Regional. Datos preliminares capturados a partir de la tabla de referencia.</p>
+                <h1>Mapa Convocatoria de Mixtos por Gerencia de Control Regional</h1>
+                <p>Capacidad requerida e identificación de proyectos mixtos por Gerencia de Control Regional. Datos preliminares capturados a partir de la tabla de referencia.</p>
             </div>
 
             <div class="map-controls" aria-label="Configuración del mapa">
@@ -836,7 +836,7 @@
 
             <div class="map-layout">
                 <div class="map-wrap">
-                    <div id="map" role="img" aria-label="Mapa de México con indicadores de proyectos SAEE por GCR"></div>
+                    <div id="map" role="img" aria-label="Mapa de México con indicadores de la Convocatoria de Mixtos por GCR"></div>
                 </div>
                 <aside class="side-panel">
                     <section class="metric">
@@ -923,7 +923,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
     <script>
         const GEOJSON_URL = "https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson";
-        const STORAGE_KEY = "saee-proyectos-gcr-data-v1";
+        const STORAGE_KEY = "convocatoria-mixtos-gcr-data-v1";
 
         const METRICS = {
             requiredCfe: { label: "Capacidad requerida (CFE)", short: "Req. CFE", unit: "MW", decimals: 0 },
@@ -1490,7 +1490,7 @@
                     }
                 });
                 const link = document.createElement("a");
-                link.download = `mapa-proyectos-saee-gcr-${new Date().toISOString().slice(0, 10)}.png`;
+                link.download = `mapa-convocatoria-mixtos-gcr-${new Date().toISOString().slice(0, 10)}.png`;
                 link.href = dataUrl;
                 link.click();
                 showToast("PNG generado en alta resolución.");
