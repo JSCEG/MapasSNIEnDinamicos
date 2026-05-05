@@ -884,6 +884,10 @@
                     <i class="bi bi-download"></i>
                     Descargar PNG
                 </button>
+                <button class="btn secondary" type="button" id="export-xlsx" title="Descargar Excel">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    Descargar Excel
+                </button>
             </div>
         </header>
 
@@ -993,6 +997,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script>
         const GEOJSON_URL = "https://cdn.sassoapps.com/Mapas/Electricidad/gerenciasdecontrol.geojson";
 
@@ -1155,6 +1161,7 @@
 
             document.getElementById("fit-map").addEventListener("click", fitMexico);
             document.getElementById("export-png").addEventListener("click", exportPng);
+            document.getElementById("export-xlsx").addEventListener("click", exportXlsx);
         }
 
         function setBasemap(type) {
@@ -1506,6 +1513,130 @@
                 surface.classList.remove("exporting");
                 map.invalidateSize();
                 fitMexico();
+                button.disabled = false;
+                button.innerHTML = previousText;
+            }
+        }
+
+        async function exportXlsx() {
+            const button = document.getElementById("export-xlsx");
+            const previousText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando';
+            try {
+                if (!window.ExcelJS) throw new Error("ExcelJS no cargado");
+
+                const logoBuffer = await fetch("img/logo_sener.png").then(r => r.arrayBuffer());
+
+                const fadedBuffer = await (async () => {
+                    const blob = new Blob([logoBuffer], { type: "image/png" });
+                    const bmp = await createImageBitmap(blob);
+                    const tile = 320;
+                    const canvas = document.createElement("canvas");
+                    canvas.width = tile;
+                    canvas.height = tile;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, tile, tile);
+                    ctx.globalAlpha = 0.10;
+                    const ratio = Math.min(tile * 0.7 / bmp.width, tile * 0.7 / bmp.height);
+                    const w = bmp.width * ratio;
+                    const h = bmp.height * ratio;
+                    ctx.drawImage(bmp, (tile - w) / 2, (tile - h) / 2, w, h);
+                    const outBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
+                    return await outBlob.arrayBuffer();
+                })();
+
+                const workbook = new ExcelJS.Workbook();
+                workbook.creator = "SENER · DGMSNIE";
+                workbook.created = new Date();
+                const ws = workbook.addWorksheet("SAEE por GCR", {
+                    views: [{ showGridLines: false }],
+                    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true }
+                });
+
+                const logoId = workbook.addImage({ buffer: logoBuffer, extension: "png" });
+                const fadedId = workbook.addImage({ buffer: fadedBuffer, extension: "png" });
+                ws.addBackgroundImage(fadedId);
+
+                ws.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 110, height: 60 } });
+
+                ws.mergeCells("B1:D2");
+                const titleCell = ws.getCell("B1");
+                titleCell.value = "Mapa SAEE por Gerencia de Control Regional";
+                titleCell.font = { name: "Montserrat", size: 16, bold: true, color: { argb: "FF611232" } };
+                titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+                ws.mergeCells("B3:D3");
+                const subCell = ws.getCell("B3");
+                subCell.value = `Generado ${new Date().toLocaleDateString("es-MX")} · DGMSNIE`;
+                subCell.font = { name: "Noto Sans", size: 10, color: { argb: "FF6A6A6A" } };
+
+                ws.getRow(1).height = 30;
+                ws.getRow(2).height = 30;
+                ws.getRow(3).height = 18;
+
+                const headerRow = ws.addRow([]);
+                headerRow.values = ["GCR", "Etiqueta", "Monto (MW)", "Horas"];
+                headerRow.eachCell((cell) => {
+                    cell.font = { name: "Montserrat", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF611232" } };
+                    cell.alignment = { vertical: "middle", horizontal: "center" };
+                    cell.border = {
+                        top: { style: "thin", color: { argb: "FFE3DFD8" } },
+                        bottom: { style: "thin", color: { argb: "FFE3DFD8" } }
+                    };
+                });
+                headerRow.height = 22;
+
+                let total = 0;
+                SAEE_DATA.forEach((item) => {
+                    const row = ws.addRow([item.gcr, item.label, Number(item.mw) || 0, "3 horas"]);
+                    total += Number(item.mw) || 0;
+                    row.eachCell((cell, col) => {
+                        cell.font = { name: "Noto Sans", size: 11 };
+                        cell.alignment = { vertical: "middle", horizontal: col === 1 ? "left" : "center" };
+                        if (col === 3) cell.numFmt = '#,##0';
+                    });
+                });
+
+                const totalRow = ws.addRow(["Total", "", total, ""]);
+                totalRow.eachCell((cell, col) => {
+                    cell.font = { name: "Montserrat", size: 12, bold: true, color: { argb: "FF611232" } };
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFAF7" } };
+                    cell.alignment = { vertical: "middle", horizontal: col === 1 ? "left" : "center" };
+                    if (col === 3) cell.numFmt = '#,##0';
+                    cell.border = { top: { style: "medium", color: { argb: "FF611232" } } };
+                });
+
+                ws.columns = [
+                    { width: 26 },
+                    { width: 14 },
+                    { width: 16 },
+                    { width: 12 }
+                ];
+
+                ws.headerFooter = {
+                    oddFooter: "&L&\"Noto Sans\"&9SENER · SNIEn&R&\"Noto Sans\"&9Página &P de &N",
+                    oddHeader: "&C&\"Montserrat\"&12&KFF611232SENER · DGMSNIE"
+                };
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                const filename = `mapa-saee-gcr-${new Date().toISOString().slice(0, 10)}.xlsx`;
+                if (window.saveAs) {
+                    saveAs(blob, filename);
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = filename; a.click();
+                    URL.revokeObjectURL(url);
+                }
+                showToast("Excel generado con marca SENER.");
+            } catch (error) {
+                console.error("Error al exportar Excel:", error);
+                showToast("No fue posible generar el Excel.");
+            } finally {
                 button.disabled = false;
                 button.innerHTML = previousText;
             }
