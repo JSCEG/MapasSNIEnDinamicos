@@ -334,6 +334,47 @@
             margin-bottom: 8px;
         }
 
+        .legend-row.detail-row,
+        .export-legend-row.detail-row {
+            grid-template-columns: 28px 72px minmax(0, 1fr);
+            align-items: start;
+            white-space: normal;
+        }
+
+        .legend-detail-table {
+            display: grid;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .legend-detail-line {
+            display: grid;
+            grid-template-columns: 24px minmax(62px, 1fr) auto;
+            align-items: baseline;
+            gap: 6px;
+            color: #303030;
+            font-size: 11px;
+            line-height: 1.1;
+        }
+
+        .legend-detail-line b {
+            color: var(--guinda);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .legend-detail-line span {
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .legend-detail-line small {
+            color: #777777;
+            font-size: 10px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .swatch {
             width: 28px;
             height: 14px;
@@ -605,6 +646,46 @@
             font-weight: 600;
         }
 
+        .saee-label-card.detail-label {
+            min-width: 124px;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .label-detail-grid {
+            display: grid;
+            gap: 3px;
+            margin-top: 4px;
+        }
+
+        .label-detail-row {
+            display: grid;
+            grid-template-columns: 22px 1fr auto;
+            align-items: baseline;
+            gap: 5px;
+            color: #303030;
+            font-size: 10px;
+            line-height: 1.1;
+        }
+
+        .label-detail-row b {
+            color: var(--label-color, var(--guinda));
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .label-detail-row span {
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .label-detail-row small {
+            color: #777777;
+            font-size: 9px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .bcs-marker {
             width: 16px;
             height: 16px;
@@ -659,6 +740,49 @@
         .gcr-popup-grid {
             display: grid;
             gap: 10px;
+        }
+
+        .gcr-popup-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border: 1px solid #eaded4;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .gcr-popup-table th {
+            padding: 8px 9px;
+            background: var(--guinda);
+            color: #ffffff;
+            font-family: "Montserrat", sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .gcr-popup-table th:first-child,
+        .gcr-popup-table td:first-child {
+            text-align: left;
+        }
+
+        .gcr-popup-table th:nth-child(3) {
+            background: #d85b83;
+        }
+
+        .gcr-popup-table td {
+            padding: 8px 9px;
+            border-top: 1px solid #f0e6dc;
+            color: #333333;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .gcr-popup-table td:first-child {
+            color: #5e5e5e;
+            font-weight: 600;
+            white-space: normal;
         }
 
         .gcr-popup-block {
@@ -1074,7 +1198,7 @@
         };
 
         const LABEL_POSITIONS = {
-            "Baja California": [30.3, -115.0],
+            "Baja California": [31.25, -115.0],
             "Baja California Sur": [24.1, -111.5],
             "Norte": [27.25, -104.15],
             "Noreste": [25.3, -98.9],
@@ -1285,8 +1409,10 @@
             }
 
             return `
-                <span class="saee-label-mw">NE ${formatNumber(data.identifiedMw)} MW</span>
-                <span class="saee-label-time">No. ${formatNumber(data.identifiedCount)} · E ${formatNumber(data.registeredMw)} MW · No. ${formatNumber(data.registeredCount)}</span>
+                <div class="label-detail-grid">
+                    <div class="label-detail-row"><b>NE</b><span>${formatNumber(data.identifiedMw)} MW</span><small>No. ${formatNumber(data.identifiedCount)}</small></div>
+                    <div class="label-detail-row"><b>ES</b><span>${formatNumber(data.registeredMw)} MW</span><small>No. ${formatNumber(data.registeredCount)}</small></div>
+                </div>
             `;
         }
 
@@ -1295,7 +1421,7 @@
             const icon = L.divIcon({
                 className: "saee-label",
                 html: `
-                    <div class="saee-label-card" style="--label-color:${color}">
+                    <div class="saee-label-card ${currentMetric === "allInfo" ? "detail-label" : ""}" style="--label-color:${color}">
                         <span class="saee-label-name">${escapeHtml(data.label)}</span>
                         ${buildLabelValue(data)}
                     </div>
@@ -1338,20 +1464,32 @@
                         <span>${escapeHtml(metric.label)}</span>
                         <strong>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
                     </div>
-                    <div class="gcr-popup-grid">
-                        <section class="gcr-popup-block">
-                            <h3>Proyectos no específicos</h3>
-                            <div class="gcr-popup-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(data.requiredCfe)} MW</span></div>
-                            <div class="gcr-popup-row"><span>Proyectos identificados</span><span>${formatNumber(data.identifiedMw)} MW</span></div>
-                            <div class="gcr-popup-row"><span>No.</span><span>${formatNumber(data.identifiedCount)}</span></div>
-                        </section>
-                        <section class="gcr-popup-block specific">
-                            <h3>Proyectos específicos</h3>
-                            <div class="gcr-popup-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(data.specificRequiredCfe)} MW</span></div>
-                            <div class="gcr-popup-row"><span>Proyectos registrados</span><span>${formatNumber(data.registeredMw)} MW</span></div>
-                            <div class="gcr-popup-row"><span>No.</span><span>${formatNumber(data.registeredCount)}</span></div>
-                        </section>
-                    </div>
+                    <table class="gcr-popup-table">
+                        <thead>
+                            <tr>
+                                <th>Campo</th>
+                                <th>NE</th>
+                                <th>ES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Capacidad requerida (CFE)</td>
+                                <td>${formatNumber(data.requiredCfe)} MW</td>
+                                <td>${formatNumber(data.specificRequiredCfe)} MW</td>
+                            </tr>
+                            <tr>
+                                <td>Proyectos</td>
+                                <td>${formatNumber(data.identifiedMw)} MW</td>
+                                <td>${formatNumber(data.registeredMw)} MW</td>
+                            </tr>
+                            <tr>
+                                <td>No.</td>
+                                <td>${formatNumber(data.identifiedCount)}</td>
+                                <td>${formatNumber(data.registeredCount)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
@@ -1367,7 +1505,7 @@
             const total = currentMetric === "allInfo" ? null : appData.rows.reduce((sum, item) => sum + (Number(item[currentMetric]) || 0), 0);
             document.getElementById("total-label").textContent = metric.label;
             document.getElementById("total-value").textContent = currentMetric === "allInfo" ? "8 GCR" : formatValue(total, currentMetric);
-            document.getElementById("metric-note").textContent = currentMetric === "allInfo" ? "Mapa coloreado por gerencia con etiqueta completa." : currentMode === "gcr" ? "Mapa coloreado por gerencia." : "Mapa coloreado por indicador seleccionado.";
+            document.getElementById("metric-note").textContent = currentMetric === "allInfo" ? "NE: no específicos · ES: específicos." : currentMode === "gcr" ? "Mapa coloreado por gerencia." : "Mapa coloreado por indicador seleccionado.";
             document.getElementById("export-total-label").textContent = metric.label;
             document.getElementById("export-total-value").textContent = currentMetric === "allInfo" ? "8 GCR" : formatValue(total, currentMetric);
             document.getElementById("export-legend-title").textContent = currentMetric === "allInfo" || currentMode === "gcr" ? "Leyenda por GCR" : "Leyenda por indicador";
@@ -1376,9 +1514,9 @@
             const exportRows = document.getElementById("export-legend-rows");
             const rowsHtml = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
-                const value = currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric);
+                const value = currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric);
                 return `
-                    <div class="legend-row">
+                    <div class="legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
                         <span>${value}</span>
@@ -1389,10 +1527,10 @@
             exportRows.innerHTML = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
                 return `
-                    <div class="export-legend-row">
+                    <div class="export-legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
-                        <span>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
+                        <span>${currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
                     </div>
                 `;
             }).join("");
@@ -1443,6 +1581,15 @@
 
         function buildSummaryDetail(item) {
             return `NE ${formatNumber(item.identifiedMw)} MW / ${formatNumber(item.identifiedCount)} · E ${formatNumber(item.registeredMw)} MW / ${formatNumber(item.registeredCount)}`;
+        }
+
+        function buildLegendDetail(item) {
+            return `
+                <span class="legend-detail-table">
+                    <span class="legend-detail-line"><b>NE</b><span>${formatNumber(item.identifiedMw)} MW</span><small>No. ${formatNumber(item.identifiedCount)}</small></span>
+                    <span class="legend-detail-line"><b>ES</b><span>${formatNumber(item.registeredMw)} MW</span><small>No. ${formatNumber(item.registeredCount)}</small></span>
+                </span>
+            `;
         }
 
         function getComparisonTotals() {
