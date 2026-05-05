@@ -122,6 +122,7 @@
         }
 
         .export-surface {
+            position: relative;
             margin-top: 18px;
             overflow: hidden;
             border: 1px solid var(--borde);
@@ -295,6 +296,50 @@
             height: 610px;
             min-height: 610px;
             background: #f7f4ef;
+        }
+
+        :root {
+            --wm-img: url("img/logo_sener.png");
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -50%;
+            pointer-events: none;
+            background-image: var(--wm-img);
+            background-repeat: repeat;
+            background-size: 220px auto;
+            background-position: 0 0;
+            opacity: 0.11;
+            z-index: 9998;
+            mix-blend-mode: multiply;
+            transform: rotate(-22deg);
+        }
+
+        .export-watermark {
+            position: absolute;
+            inset: -20%;
+            pointer-events: none;
+            background-image: var(--wm-img);
+            background-repeat: repeat;
+            background-size: 220px auto;
+            opacity: 0.13;
+            z-index: 9998;
+            mix-blend-mode: multiply;
+            transform: rotate(-22deg);
+            display: none;
+        }
+
+        .exporting .export-watermark {
+            display: block;
+        }
+
+        @media (max-width: 720px) {
+            body::before {
+                background-size: 160px auto;
+                opacity: 0.10;
+            }
         }
 
         .side-panel {
@@ -1300,6 +1345,7 @@
         </header>
 
         <section class="export-surface" id="export-surface">
+            <div class="export-watermark" aria-hidden="true"></div>
             <div class="map-title">
                 <h1>Mapa Convocatoria de Mixtos por Gerencia de Control Regional</h1>
                 <p>Capacidad requerida e identificación de proyectos mixtos por Gerencia de Control Regional. Datos
