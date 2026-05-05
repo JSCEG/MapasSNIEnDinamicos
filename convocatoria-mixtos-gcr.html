@@ -315,7 +315,7 @@
 
         .legend h2,
         .data-summary h2,
-        .tech-panel h2,
+        .comparison-panel h2,
         .update-panel h2,
         .export-legend-panel h2 {
             margin: 0 0 12px;
@@ -407,6 +407,44 @@
             grid-template-columns: 14px 1fr auto;
             align-items: center;
             gap: 8px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .comparison-card {
+            padding: 12px;
+            border: 1px solid #eaded4;
+            border-radius: 8px;
+            background: #fffdfb;
+        }
+
+        .comparison-card h3 {
+            margin: 0 0 8px;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 13px;
+        }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 5px 0;
+            border-top: 1px solid #f0e6dc;
+            font-size: 12px;
+        }
+
+        .comparison-row:first-of-type {
+            border-top: 0;
+        }
+
+        .comparison-row span:last-child {
+            color: var(--guinda);
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         .note {
@@ -850,12 +888,9 @@
                         <div id="legend-rows"></div>
                     </section>
 
-                    <section class="tech-panel">
-                        <h2>Capacidad por tecnología</h2>
-                        <div class="pie-wrap">
-                            <div class="pie" id="tech-pie" aria-hidden="true"></div>
-                            <div class="tech-legend" id="tech-legend"></div>
-                        </div>
+                    <section class="comparison-panel">
+                        <h2>Información completa</h2>
+                        <div class="comparison-grid" id="comparison-grid"></div>
                     </section>
 
                     <section class="data-summary">
@@ -885,7 +920,8 @@
             </div>
         </section>
 
-        <section class="update-panel">
+        <!-- Módulo de actualización pausado temporalmente. Quitar hidden para reactivarlo. -->
+        <section class="update-panel" hidden>
             <h2>Actualización de datos</h2>
             <div class="update-grid">
                 <div class="edit-table-wrap">
@@ -1183,7 +1219,7 @@
         function renderAll() {
             renderSidePanel();
             renderEditTable();
-            renderTechChart();
+            renderComparisonPanel();
         }
 
         function renderSidePanel() {
@@ -1255,27 +1291,37 @@
             syncLabelSelector();
         }
 
-        function renderTechChart() {
-            const total = appData.tech.reduce((sum, item) => sum + (Number(item.mw) || 0), 0) || 1;
-            let cursor = 0;
-            const segments = appData.tech.map((item) => {
-                const value = Number(item.mw) || 0;
-                const start = cursor;
-                cursor += (value / total) * 100;
-                return `${item.color} ${start}% ${cursor}%`;
+        function renderComparisonPanel() {
+            const totals = getComparisonTotals();
+            document.getElementById("comparison-grid").innerHTML = `
+                <div class="comparison-card">
+                    <h3>Proyectos no específicos</h3>
+                    <div class="comparison-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(totals.noSpecific.required)} MW</span></div>
+                    <div class="comparison-row"><span>Proyectos identificados</span><span>${formatNumber(totals.noSpecific.identified)} MW</span></div>
+                    <div class="comparison-row"><span>No.</span><span>${formatNumber(totals.noSpecific.count)}</span></div>
+                </div>
+                <div class="comparison-card">
+                    <h3>Proyectos específicos</h3>
+                    <div class="comparison-row"><span>Capacidad requerida (CFE)</span><span>${formatNumber(totals.specific.required)} MW</span></div>
+                    <div class="comparison-row"><span>Proyectos registrados</span><span>${formatNumber(totals.specific.registered)} MW</span></div>
+                    <div class="comparison-row"><span>No.</span><span>${formatNumber(totals.specific.count)}</span></div>
+                </div>
+            `;
+        }
+
+        function getComparisonTotals() {
+            return appData.rows.reduce((totals, item) => {
+                totals.noSpecific.required += Number(item.requiredCfe) || 0;
+                totals.noSpecific.identified += Number(item.identifiedMw) || 0;
+                totals.noSpecific.count += Number(item.identifiedCount) || 0;
+                totals.specific.required += Number(item.specificRequiredCfe) || 0;
+                totals.specific.registered += Number(item.registeredMw) || 0;
+                totals.specific.count += Number(item.registeredCount) || 0;
+                return totals;
+            }, {
+                noSpecific: { required: 0, identified: 0, count: 0 },
+                specific: { required: 0, registered: 0, count: 0 }
             });
-            document.getElementById("tech-pie").style.background = `conic-gradient(${segments.join(", ")})`;
-            document.getElementById("tech-legend").innerHTML = appData.tech.map((item) => {
-                const value = Number(item.mw) || 0;
-                const pct = total ? Math.round((value / total) * 100) : 0;
-                return `
-                    <div class="tech-legend-row">
-                        <span class="swatch" style="width:14px;height:14px;background:${item.color}"></span>
-                        <b>${escapeHtml(item.label)}</b>
-                        <span>${formatNumber(value)} MW · ${pct}%</span>
-                    </div>
-                `;
-            }).join("");
         }
 
         function applyTableEdits() {
