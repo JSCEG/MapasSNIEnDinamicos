@@ -257,6 +257,8 @@
         }
 
         .map-wrap {
+            display: flex;
+            flex-direction: column;
             min-width: 0;
             min-height: 610px;
             background: #f7f4ef;
@@ -264,7 +266,7 @@
 
         #map {
             width: 100%;
-            height: 100%;
+            height: 610px;
             min-height: 610px;
             background: #f7f4ef;
         }
@@ -489,6 +491,62 @@
             white-space: nowrap;
         }
 
+        .all-info-table-panel {
+            padding: 12px 16px 16px;
+            border-top: 1px solid #eaded4;
+            background: #fffdfb;
+        }
+
+        .all-info-table-panel[hidden] {
+            display: none !important;
+        }
+
+        .all-info-table-panel h2 {
+            margin: 0 0 10px;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-size: 15px;
+        }
+
+        .all-info-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #eaded4;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .all-info-table {
+            width: 100%;
+            min-width: 840px;
+            border-collapse: collapse;
+            color: #303030;
+            font-size: 11px;
+        }
+
+        .all-info-table th,
+        .all-info-table td {
+            padding: 7px 8px;
+            border: 1px solid #eaded4;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .all-info-table th {
+            background: #fbf6f1;
+            color: var(--guinda);
+            font-family: "Montserrat", sans-serif;
+            font-weight: 800;
+        }
+
+        .all-info-table th:first-child,
+        .all-info-table td:first-child {
+            text-align: left;
+        }
+
+        .all-info-table tbody td:first-child {
+            font-weight: 800;
+        }
+
         .note {
             margin-top: auto;
             padding-top: 14px;
@@ -653,9 +711,18 @@
         }
 
         .saee-label-card.detail-label {
-            min-width: 210px;
+            min-width: 136px;
             padding: 8px 10px;
-            text-align: left;
+            text-align: center;
+        }
+
+        .saee-label-detail-text {
+            display: block;
+            margin-top: 4px;
+            color: #303030;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         .label-detail-grid {
@@ -968,8 +1035,12 @@
             min-height: 610px;
         }
 
-        .exporting .map-wrap,
+        .exporting .map-wrap {
+            min-height: 610px;
+        }
+
         .exporting #map {
+            height: 610px;
             min-height: 610px;
         }
 
@@ -1060,6 +1131,25 @@
             font-size: 8px;
         }
 
+        .exporting .all-info-table-panel {
+            padding: 10px 14px 12px;
+        }
+
+        .exporting .all-info-table-panel h2 {
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .exporting .all-info-table {
+            min-width: 0;
+            font-size: 8px;
+        }
+
+        .exporting .all-info-table th,
+        .exporting .all-info-table td {
+            padding: 4px 5px;
+        }
+
         @media (max-width: 1180px) {
             .map-controls { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
             .map-layout,
@@ -1073,6 +1163,7 @@
             .map-controls { grid-template-columns: 1fr; padding: 14px; }
             .map-title { padding: 18px 16px; }
             .map-wrap, #map { min-height: 560px; }
+            #map { height: 560px; }
             .side-panel, .update-panel { padding: 18px; }
         }
     </style>
@@ -1171,6 +1262,12 @@
             <div class="map-layout">
                 <div class="map-wrap">
                     <div id="map" role="img" aria-label="Mapa de México con indicadores de la Convocatoria de Mixtos por GCR"></div>
+                    <section class="all-info-table-panel" id="all-info-table-panel" hidden>
+                        <h2>Detalle completo por GCR</h2>
+                        <div class="all-info-table-wrap">
+                            <table class="all-info-table" id="all-info-table"></table>
+                        </div>
+                    </section>
                 </div>
                 <aside class="side-panel">
                     <section class="metric">
@@ -1505,12 +1602,7 @@
             }
 
             return `
-                <div class="label-detail-grid">
-                    <div class="label-detail-row label-detail-head"><b></b><span>No específico</span><span>Específico</span></div>
-                    <div class="label-detail-row"><b>Req.</b><span>${formatNumber(data.requiredCfe)} MW</span><span>${formatNumber(data.specificRequiredCfe)} MW</span></div>
-                    <div class="label-detail-row"><b>Proy.</b><span>${formatNumber(data.identifiedMw)} MW</span><span>${formatNumber(data.registeredMw)} MW</span></div>
-                    <div class="label-detail-row"><b>No.</b><span>${formatNumber(data.identifiedCount)}</span><span>${formatNumber(data.registeredCount)}</span></div>
-                </div>
+                <span class="saee-label-detail-text">Detalle completo</span>
             `;
         }
 
@@ -1608,6 +1700,7 @@
             renderSidePanel();
             renderEditTable();
             renderComparisonPanel();
+            renderAllInfoTable();
         }
 
         function renderSidePanel() {
@@ -1624,7 +1717,7 @@
             const exportRows = document.getElementById("export-legend-rows");
             const rowsHtml = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
-                const value = currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric);
+                const value = currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric);
                 return `
                     <div class="legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
@@ -1640,10 +1733,51 @@
                     <div class="export-legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
-                        <span>${currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
+                        <span>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
                     </div>
                 `;
             }).join("");
+        }
+
+        function renderAllInfoTable() {
+            const panel = document.getElementById("all-info-table-panel");
+            const table = document.getElementById("all-info-table");
+            const showTable = currentMetric === "allInfo";
+            panel.hidden = !showTable;
+            if (!showTable) {
+                table.innerHTML = "";
+                return;
+            }
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th rowspan="2">GCR</th>
+                        <th colspan="3">Proyectos no específicos</th>
+                        <th colspan="3">Proyectos específicos</th>
+                    </tr>
+                    <tr>
+                        <th>Cap. requerida (CFE)</th>
+                        <th>Proyectos identificados</th>
+                        <th>No.</th>
+                        <th>Cap. requerida (CFE)</th>
+                        <th>Proyectos registrados</th>
+                        <th>No.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${appData.rows.map((item) => `
+                        <tr>
+                            <td>${escapeHtml(item.label)}</td>
+                            <td>${formatNumber(item.requiredCfe)} MW</td>
+                            <td>${formatNumber(item.identifiedMw)} MW</td>
+                            <td>${formatNumber(item.identifiedCount)}</td>
+                            <td>${formatNumber(item.specificRequiredCfe)} MW</td>
+                            <td>${formatNumber(item.registeredMw)} MW</td>
+                            <td>${formatNumber(item.registeredCount)}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            `;
         }
 
         function renderEditTable() {
