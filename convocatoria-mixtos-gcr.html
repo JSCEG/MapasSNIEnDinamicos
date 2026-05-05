@@ -1050,6 +1050,7 @@
         const STORAGE_KEY = "convocatoria-mixtos-gcr-data-v1";
 
         const METRICS = {
+            allInfo: { label: "Toda la información", short: "Detalle", unit: "", decimals: 0 },
             requiredCfe: { label: "Capacidad requerida (CFE)", short: "Req. CFE", unit: "MW", decimals: 0 },
             identifiedMw: { label: "Proyectos identificados", short: "Identificados", unit: "MW", decimals: 0 },
             identifiedCount: { label: "No. proyectos identificados", short: "No. ident.", unit: "", decimals: 0 },
@@ -1157,6 +1158,7 @@
             document.getElementById("basemap-select").addEventListener("change", (event) => setBasemap(event.target.value));
             document.getElementById("metric-select").addEventListener("change", (event) => {
                 currentMetric = event.target.value;
+                syncLayerModeForMetric();
                 renderAll();
                 drawGcrLayer();
             });
@@ -1190,6 +1192,17 @@
             const select = document.getElementById("metric-select");
             select.innerHTML = Object.entries(METRICS).map(([key, metric]) => `<option value="${key}">${metric.label}</option>`).join("");
             select.value = currentMetric;
+        }
+
+        function syncLayerModeForMetric() {
+            const layerModeSelect = document.getElementById("layer-mode");
+            if (currentMetric === "allInfo") {
+                currentMode = "gcr";
+                layerModeSelect.value = "gcr";
+                layerModeSelect.disabled = true;
+            } else {
+                layerModeSelect.disabled = false;
+            }
         }
 
         function updateDataIndexes() {
@@ -1272,7 +1285,24 @@
         }
 
         function isZeroForCurrentMetric(data) {
+            if (currentMetric === "allInfo") {
+                return false;
+            }
             return (Number(data[currentMetric]) || 0) === 0;
+        }
+
+        function buildLabelValue(data) {
+            if (currentMetric !== "allInfo") {
+                return `
+                    <span class="saee-label-mw">${formatValue(Number(data[currentMetric]) || 0, currentMetric)}</span>
+                    <span class="saee-label-time">${escapeHtml(METRICS[currentMetric].short)}</span>
+                `;
+            }
+
+            return `
+                <span class="saee-label-mw">NE ${formatNumber(data.identifiedMw)} MW</span>
+                <span class="saee-label-time">No. ${formatNumber(data.identifiedCount)} · E ${formatNumber(data.registeredMw)} MW · No. ${formatNumber(data.registeredCount)}</span>
+            `;
         }
 
         function addLabel(data, latlng) {
@@ -1282,8 +1312,7 @@
                 html: `
                     <div class="saee-label-card" style="--label-color:${color}">
                         <span class="saee-label-name">${escapeHtml(data.label)}</span>
-                        <span class="saee-label-mw">${formatValue(Number(data[currentMetric]) || 0, currentMetric)}</span>
-                        <span class="saee-label-time">${escapeHtml(METRICS[currentMetric].short)}</span>
+                        ${buildLabelValue(data)}
                     </div>
                 `,
                 iconSize: null,
@@ -1322,7 +1351,7 @@
                     <h2 class="gcr-popup-title">${escapeHtml(data.label)} · ${escapeHtml(data.gcr)}</h2>
                     <div class="gcr-popup-current">
                         <span>${escapeHtml(metric.label)}</span>
-                        <strong>${formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
+                        <strong>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(data[currentMetric]) || 0, currentMetric)}</strong>
                     </div>
                     <div class="gcr-popup-grid">
                         <section class="gcr-popup-block">
@@ -1350,21 +1379,21 @@
 
         function renderSidePanel() {
             const metric = METRICS[currentMetric];
-            const total = appData.rows.reduce((sum, item) => sum + (Number(item[currentMetric]) || 0), 0);
+            const total = currentMetric === "allInfo" ? null : appData.rows.reduce((sum, item) => sum + (Number(item[currentMetric]) || 0), 0);
             document.getElementById("total-label").textContent = metric.label;
-            document.getElementById("total-value").textContent = formatValue(total, currentMetric);
-            document.getElementById("metric-note").textContent = currentMode === "gcr" ? "Mapa coloreado por gerencia." : "Mapa coloreado por indicador seleccionado.";
+            document.getElementById("total-value").textContent = currentMetric === "allInfo" ? "8 GCR" : formatValue(total, currentMetric);
+            document.getElementById("metric-note").textContent = currentMetric === "allInfo" ? "Mapa coloreado por gerencia con etiqueta completa." : currentMode === "gcr" ? "Mapa coloreado por gerencia." : "Mapa coloreado por indicador seleccionado.";
             document.getElementById("summary-metric-title").textContent = metric.short;
             document.getElementById("export-total-label").textContent = metric.label;
-            document.getElementById("export-total-value").textContent = formatValue(total, currentMetric);
-            document.getElementById("export-legend-title").textContent = currentMode === "gcr" ? "Leyenda por GCR" : "Leyenda por indicador";
+            document.getElementById("export-total-value").textContent = currentMetric === "allInfo" ? "8 GCR" : formatValue(total, currentMetric);
+            document.getElementById("export-legend-title").textContent = currentMetric === "allInfo" || currentMode === "gcr" ? "Leyenda por GCR" : "Leyenda por indicador";
 
             const legendRows = document.getElementById("legend-rows");
             const summaryRows = document.getElementById("summary-rows");
             const exportRows = document.getElementById("export-legend-rows");
             const rowsHtml = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
-                const value = formatValue(Number(item[currentMetric]) || 0, currentMetric);
+                const value = currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric);
                 return `
                     <div class="legend-row">
                         <span class="swatch" style="background:${color}"></span>
@@ -1380,14 +1409,14 @@
                     <div class="export-legend-row">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
-                        <span>${formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
+                        <span>${currentMetric === "allInfo" ? "Detalle completo" : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
                     </div>
                 `;
             }).join("");
             summaryRows.innerHTML = appData.rows.map((item) => `
                 <tr>
                     <td>${escapeHtml(item.label)}</td>
-                    <td>${formatValue(Number(item[currentMetric]) || 0, currentMetric)}</td>
+                    <td>${currentMetric === "allInfo" ? buildSummaryDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</td>
                 </tr>
             `).join("");
         }
@@ -1433,6 +1462,10 @@
                     <div class="comparison-row"><span>No.</span><span>${formatNumber(totals.specific.count)}</span></div>
                 </div>
             `;
+        }
+
+        function buildSummaryDetail(item) {
+            return `NE ${formatNumber(item.identifiedMw)} MW / ${formatNumber(item.identifiedCount)} · E ${formatNumber(item.registeredMw)} MW / ${formatNumber(item.registeredCount)}`;
         }
 
         function getComparisonTotals() {
@@ -1562,7 +1595,7 @@
         }
 
         function getFeatureColor(data) {
-            if (currentMode === "gcr") return GCR_COLORS[data.gcr] || "#C9C2B8";
+            if (currentMetric === "allInfo" || currentMode === "gcr") return GCR_COLORS[data.gcr] || "#C9C2B8";
             return getMetricColor(Number(data[currentMetric]) || 0);
         }
 
@@ -1685,6 +1718,9 @@
 
         function formatValue(value, metricKey) {
             const metric = METRICS[metricKey];
+            if (metricKey === "allInfo") {
+                return "Detalle completo";
+            }
             const formatted = formatNumber(value);
             return metric.unit ? `${formatted} ${metric.unit}` : formatted;
         }
