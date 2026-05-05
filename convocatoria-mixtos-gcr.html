@@ -349,18 +349,20 @@
 
         .legend-detail-line {
             display: grid;
-            grid-template-columns: 24px minmax(62px, 1fr) auto;
+            grid-template-columns: 38px minmax(62px, 1fr) minmax(62px, 1fr);
             align-items: baseline;
             gap: 6px;
             color: #303030;
             font-size: 11px;
             line-height: 1.1;
+            text-align: right;
         }
 
         .legend-detail-line b {
             color: var(--guinda);
             font-size: 11px;
             font-weight: 800;
+            text-align: left;
         }
 
         .legend-detail-line span {
@@ -368,7 +370,7 @@
             white-space: nowrap;
         }
 
-        .legend-detail-line small {
+        .legend-detail-head span {
             color: #777777;
             font-size: 10px;
             font-weight: 700;
@@ -660,18 +662,20 @@
 
         .label-detail-row {
             display: grid;
-            grid-template-columns: 22px 1fr auto;
+            grid-template-columns: 30px 1fr 1fr;
             align-items: baseline;
             gap: 5px;
             color: #303030;
             font-size: 10px;
             line-height: 1.1;
+            text-align: right;
         }
 
         .label-detail-row b {
             color: var(--label-color, var(--guinda));
             font-size: 10px;
             font-weight: 800;
+            text-align: left;
         }
 
         .label-detail-row span {
@@ -679,7 +683,7 @@
             white-space: nowrap;
         }
 
-        .label-detail-row small {
+        .label-detail-head span {
             color: #777777;
             font-size: 9px;
             font-weight: 700;
@@ -1409,8 +1413,10 @@
 
             return `
                 <div class="label-detail-grid">
-                    <div class="label-detail-row"><b>NE</b><span>${formatNumber(data.identifiedMw)} MW</span><small>No. ${formatNumber(data.identifiedCount)}</small></div>
-                    <div class="label-detail-row"><b>ES</b><span>${formatNumber(data.registeredMw)} MW</span><small>No. ${formatNumber(data.registeredCount)}</small></div>
+                    <div class="label-detail-row label-detail-head"><b></b><span>NE</span><span>ES</span></div>
+                    <div class="label-detail-row"><b>Req.</b><span>${formatNumber(data.requiredCfe)} MW</span><span>${formatNumber(data.specificRequiredCfe)} MW</span></div>
+                    <div class="label-detail-row"><b>Proy.</b><span>${formatNumber(data.identifiedMw)} MW</span><span>${formatNumber(data.registeredMw)} MW</span></div>
+                    <div class="label-detail-row"><b>No.</b><span>${formatNumber(data.identifiedCount)}</span><span>${formatNumber(data.registeredCount)}</span></div>
                 </div>
             `;
         }
@@ -1585,8 +1591,10 @@
         function buildLegendDetail(item) {
             return `
                 <span class="legend-detail-table">
-                    <span class="legend-detail-line"><b>NE</b><span>${formatNumber(item.identifiedMw)} MW</span><small>No. ${formatNumber(item.identifiedCount)}</small></span>
-                    <span class="legend-detail-line"><b>ES</b><span>${formatNumber(item.registeredMw)} MW</span><small>No. ${formatNumber(item.registeredCount)}</small></span>
+                    <span class="legend-detail-line legend-detail-head"><b></b><span>NE</span><span>ES</span></span>
+                    <span class="legend-detail-line"><b>Req.</b><span>${formatNumber(item.requiredCfe)} MW</span><span>${formatNumber(item.specificRequiredCfe)} MW</span></span>
+                    <span class="legend-detail-line"><b>Proy.</b><span>${formatNumber(item.identifiedMw)} MW</span><span>${formatNumber(item.registeredMw)} MW</span></span>
+                    <span class="legend-detail-line"><b>No.</b><span>${formatNumber(item.identifiedCount)}</span><span>${formatNumber(item.registeredCount)}</span></span>
                 </span>
             `;
         }
