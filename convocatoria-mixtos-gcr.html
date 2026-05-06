@@ -677,6 +677,24 @@
             font-weight: 800;
         }
 
+        .all-info-table tbody tr {
+            background: linear-gradient(90deg, color-mix(in srgb, var(--row-color, #ffffff) 12%, #ffffff), #ffffff 42%);
+        }
+
+        .all-info-gcr-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .all-info-gcr-swatch {
+            width: 18px;
+            height: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.16);
+            border-radius: 3px;
+            background: var(--row-color, #c9c2b8);
+        }
+
         .all-info-table tfoot td {
             background: #fbf6f1;
             color: var(--guinda);
@@ -1907,7 +1925,7 @@
             const exportRows = document.getElementById("export-legend-rows");
             const rowsHtml = appData.rows.map((item) => {
                 const color = getFeatureColor(item);
-                const value = currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric);
+                const value = currentMetric === "allInfo" ? "" : formatValue(Number(item[currentMetric]) || 0, currentMetric);
                 return `
                     <div class="legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
@@ -1923,7 +1941,7 @@
                     <div class="export-legend-row ${currentMetric === "allInfo" ? "detail-row" : ""}">
                         <span class="swatch" style="background:${color}"></span>
                         <b>${escapeHtml(item.label)}</b>
-                        <span>${currentMetric === "allInfo" ? buildLegendDetail(item) : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
+                        <span>${currentMetric === "allInfo" ? "" : formatValue(Number(item[currentMetric]) || 0, currentMetric)}</span>
                     </div>
                 `;
             }).join("");
@@ -1957,8 +1975,8 @@
                 </thead>
                 <tbody>
                     ${appData.rows.map((item) => `
-                        <tr>
-                            <td>${escapeHtml(item.label)}</td>
+                        <tr style="--row-color:${getFeatureColor(item)}">
+                            <td><span class="all-info-gcr-cell"><span class="all-info-gcr-swatch"></span>${escapeHtml(item.label)}</span></td>
                             <td>${formatNumber(item.requiredCfe)} MW</td>
                             <td>${formatNumber(item.identifiedMw)} MW</td>
                             <td>${formatNumber(item.identifiedCount)}</td>
